@@ -49,6 +49,9 @@ sealed partial class NativeProbe
                 Require((bool)Field(laneRules.GetType(), "DropResourcesWhenDestroyed").GetValue(laneRules)! && (bool)Field(laneRules.GetType(), "DropResourcesWhenRemoved").GetValue(laneRules)!, "Lane would delete rounds on destroy/salvage: " + BeltIds[i] + "/" + lane);
             }
         }
+        foreach (string id in BeltIds.Take(4))
+            Require((string)ReadRuleObject(root, beltRegistry[id] + "/Components/AmmoLaneBulletOut/Type", typeof(string)) == "ResourceStorageProxy", "Single-output bullet lane must push straight into its proxy: " + id);
+        Console.WriteLine("PASS: single-output belts push bullets directly into the AmmoLaneBulletOut proxy (no 1-element MultiResourceStorage).");
         Console.WriteLine("PASS: ammo belt lanes: all 10 lane storages (5 parts x bullet/EMP) parse with native DropResourcesWhenDestroyed=true and DropResourcesWhenRemoved=true.");
         for (int i = 0; i < 6; i++) {
             string toggle = (string)ReadRuleObject(root, "<gui/game/parts/part_toggles.rules>/PartToggles/" + (Nodes(root, "<gui/game/parts/part_toggles.rules>/PartToggles").Length - 6 + i) + "/ToggleID", typeof(string));
@@ -224,8 +227,8 @@ sealed partial class NativeProbe
             var cannon = Endpoint("cosmoteer.cannon_med", cx, cy, r, 2, 2, Vanilla(CannonAmmo));
             AttachAll();
             Require(Proxied(belts[0]["AmmoLaneBulletIn"]) == factory["AmmoStorage"], "Belt did not bind the factory_ammo output behind it");
-            Require(Proxied(belts[4]["AmmoLaneBulletFront"]) == cannon["AmmoStorage"], "Belt did not bind cannon_med AmmoStorage");
-            for (int i = 0; i < 4; i++) Require(Proxied(belts[i]["AmmoLaneBulletFront"]) == belts[i + 1]["AmmoLaneBullet"], "Straight belt chain not linked");
+            Require(Proxied(belts[4]["AmmoLaneBulletOut"]) == cannon["AmmoStorage"], "Belt did not bind cannon_med AmmoStorage");
+            for (int i = 0; i < 4; i++) Require(Proxied(belts[i]["AmmoLaneBulletOut"]) == belts[i + 1]["AmmoLaneBullet"], "Straight belt chain not linked");
             var firstArrival = new double[6]; Array.Fill(firstArrival, -1);
             BeltTicks(900, () => {
                 Require(Total("AmmoLaneBullet", factory["AmmoStorage"], cannon["AmmoStorage"]) == 40, "Bullets not conserved on belt hop");
@@ -395,7 +398,7 @@ sealed partial class NativeProbe
         AttachAll();
         SetCount(b["AmmoLaneBullet"], 1); SetCount(b["AmmoLaneEmp"], 1);
         BeltTicks(60);
-        Require(Rounds(launcher["MissileStorage"]) == 1 && Rounds(b["AmmoLaneBullet"]) == 1 && Proxied(b["AmmoLaneBulletFront"]) == null, "Bullets must never bind missile_launcher; EMP mode must accept EMP parts");
+        Require(Rounds(launcher["MissileStorage"]) == 1 && Rounds(b["AmmoLaneBullet"]) == 1 && Proxied(b["AmmoLaneBulletOut"]) == null, "Bullets must never bind missile_launcher; EMP mode must accept EMP parts");
 
         // Launcher in nuke mode: the shared MissileStorage ID is the nuke storage.
         NewBeltGrid();

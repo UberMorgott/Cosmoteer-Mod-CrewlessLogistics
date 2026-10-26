@@ -258,8 +258,7 @@ CommonComponents : <./Data/ships/terran/base_part_terran.rules>/Part/Components
 // One output side. Straight and merger: front; corners: left or right.
 FrontComponents : ~/CommonComponents
 {
-    AmmoLaneBulletFront : ~/BulletFront {}
-    AmmoLaneBulletOut : ~/Outs { ResourceType = bullet; ResourceStorages = [AmmoLaneBulletFront] }
+    AmmoLaneBulletOut : ~/BulletFront {}
     AmmoLaneEmpFront : ~/EmpFront {}
     LauncherEmpModeFront : ~/LauncherEmpModeFront {}
     AmmoLaneEmpLauncherFront : ~/EmpLauncherFront { ProxyToggle = LauncherEmpModeFront }
@@ -267,8 +266,7 @@ FrontComponents : ~/CommonComponents
 }
 LeftComponents : ~/CommonComponents
 {
-    AmmoLaneBulletLeft : ~/BulletLeft {}
-    AmmoLaneBulletOut : ~/Outs { ResourceType = bullet; ResourceStorages = [AmmoLaneBulletLeft] }
+    AmmoLaneBulletOut : ~/BulletLeft {}
     AmmoLaneEmpLeft : ~/EmpLeft {}
     LauncherEmpModeLeft : ~/LauncherEmpModeLeft {}
     AmmoLaneEmpLauncherLeft : ~/EmpLauncherLeft { ProxyToggle = LauncherEmpModeLeft }
@@ -276,8 +274,7 @@ LeftComponents : ~/CommonComponents
 }
 RightComponents : ~/CommonComponents
 {
-    AmmoLaneBulletRight : ~/BulletRight {}
-    AmmoLaneBulletOut : ~/Outs { ResourceType = bullet; ResourceStorages = [AmmoLaneBulletRight] }
+    AmmoLaneBulletOut : ~/BulletRight {}
     AmmoLaneEmpRight : ~/EmpRight {}
     LauncherEmpModeRight : ~/LauncherEmpModeRight {}
     AmmoLaneEmpLauncherRight : ~/EmpLauncherRight { ProxyToggle = LauncherEmpModeRight }
