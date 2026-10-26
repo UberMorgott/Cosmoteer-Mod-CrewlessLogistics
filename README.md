@@ -2,6 +2,8 @@
 
 A Cosmoteer mod for game version 0.30.5. Cables carry whole batteries from reactors and Power Capacitors straight to powered devices, freeing crew from battery runs. Normal crew delivery still works alongside the electrical network.
 
+**Steam Workshop:** https://steamcommunity.com/sharedfiles/filedetails/?id=3827751334
+
 ## Reporting issues
 
 **Report bugs only on GitHub, not in Workshop comments.** Open an issue with the **Bug report** template:
