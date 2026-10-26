@@ -1,0 +1,55 @@
+Crewless Logistics
+[h1]Crewless Logistics[/h1]
+[i]A crewless electrical network for Cosmoteer[/i]
+
+[h2]Found a bug? Do NOT report it in the comments[/h2]
+[b]Report bugs only on GitHub, not in Workshop comments.[/b] Open an issue using the [b]Bug report[/b] template:
+[url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]
+Please include:
+[list]
+[*]Mod version (in the Mods list) and game version (bottom-left corner of the main menu)
+[*]Install source (Workshop or manual) and the full list of other enabled mods
+[*]Single-player or multiplayer (host or client; do all players have the same mod version?)
+[*]Steps to reproduce, expected vs actual result, screenshots
+[*]The ship file (.ship.png) if the problem is ship-specific, a save file if needed
+[*]The newest log from the affected session in [b]%USERPROFILE%\Saved Games\Cosmoteer\<SteamID>\Logs\[/b] ([i]log YYYY-MM-DD HH_mm_ss.txt[/i])
+[/list]
+
+[h2]What it does[/h2]
+Cables carry [b]whole batteries[/b] from reactors and Power Capacitors straight to powered devices, freeing crew from battery runs. Normal crew delivery still works alongside the network.
+[list]
+[*][b]Electrical cable[/b]: four automatic connections; blocks crew passage. Its dark plated casing is cosmetic, with a plain hull roof.
+[*][b]All three cable parts[/b] have vanilla Heat Pipe stats: 1000 HP, density 1, no armor category and no EMP absorption. Each costs 4 coils + 2 steel.
+[*][b]Crew crossing[/b]: two opposite electrical ports; crew can walk perpendicular to the cable at 80% speed. Rotate to choose the cable direction.
+[*][b]Heat/electric crossover[/b]: carries heat along one axis and electricity along the other. Rotate to swap axes. Blocks crew passage. Found in Power and Heat Management.
+[*][b]Electrical Network switch[/b] on every reactor, capacitor and powered device. It is [b]off by default[/b], and its setting is saved. Each device needs its own switch on to join the network.
+[*][b]Reactors first[/b]: capacitors supply only while no reachable reactor has a whole battery. Through the network, capacitors charge only from reactors, after devices have been supplied.
+[*][b]Engine Rooms[/b] receive power through the network and pass batteries to the engines and thrusters they buff. The room's Electrical Network and power distribution switches must be on, as must each recipient's Electrical Network switch.
+[*]Green lamps on electrical cables and crew crossings light up when a connected source has a whole battery.
+[*]Supports all vanilla powered devices, plus parts from these optional Workshop mods. Their compatibility patches apply only if the mods are installed:
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] (3 thrusters)
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url] (4 control rooms)
+[/list]
+[*]Rules-only mod: no DLL, no mod loader. Text follows the game language (EN, RU, DE, ES, FR, JA, PT-BR, ZH-CN).
+[/list]
+
+[h2]How to use[/h2]
+[olist]
+[*]Enable the mod in the Mods list and restart the game.
+[*]Build cables from the [b]Power[/b] category between reactors, capacitors and devices. Use the crew crossing where crew must walk through, and the crossover where a heat pipe has to cross.
+[*]Turn on the [b]Electrical Network[/b] switch on each device that should be connected.
+[/olist]
+
+[h2]Multiplayer[/h2]
+All players need the [b]same mod version[/b] and the same game version. After an update, restart the game before joining.
+
+[h2]Known limits[/h2]
+[list]
+[*]Only whole batteries move. A device waits until a whole battery fits.
+[*]Devices from mods that ship DLLs or use their own energy types are not supported.
+[*]Upgrading from Powergrid (the old name): cables load, but every Electrical Network switch resets to off. Remove the old Powergrid folder.
+[/list]
+
+[h2]Planned[/h2]
+Ammo and resource logistics are planned. No promises and no dates.

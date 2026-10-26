@@ -1,0 +1,55 @@
+Crewless Logistics
+[h1]Crewless Logistics[/h1]
+[i]Una red eléctrica que ahorra a la tripulación el transporte de baterías[/i]
+
+[h2]¿Encontraste un error? NO lo publiques en los comentarios[/h2]
+[b]Informa de los errores solo en GitHub, no en los comentarios del Workshop.[/b] Abre una incidencia con la plantilla [b]Bug report[/b]:
+[url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]
+Incluye:
+[list]
+[*]Versión del mod (en la lista de mods) y del juego (abajo a la izquierda del menú principal)
+[*]Origen de la instalación (Workshop o manual) y la lista completa de los demás mods activos
+[*]Un jugador o multijugador (anfitrión o cliente; ¿todos tienen la misma versión del mod?)
+[*]Pasos para reproducirlo, resultado esperado y real, capturas de pantalla
+[*]El archivo de la nave (.ship.png) si el problema depende de la nave, y una partida guardada si hace falta
+[*]El registro del juego: [b]%USERPROFILE%\Saved Games\Cosmoteer\<SteamID>\Logs\[/b] – el archivo [i]log YYYY-MM-DD HH_mm_ss.txt[/i] más reciente de la sesión en la que ocurrió el problema
+[/list]
+
+[h2]Qué hace[/h2]
+Los cables llevan [b]baterías enteras[/b] desde los reactores y condensadores de potencia directamente a los dispositivos, así la tripulación ya no tiene que cargar baterías. El transporte normal por la tripulación sigue funcionando junto a la red.
+[list]
+[*][b]Cable eléctrico[/b]: cuatro conexiones automáticas; bloquea el paso de la tripulación. Por fuera lo cubre un techo de casco liso.
+[*]Las tres piezas tienen las características de un tubo de calor del juego base: 1000 puntos de vida, densidad 1, sin categoría de blindaje ni absorción de EMP. Las placas oscuras son solo decorativas. Cada pieza cuesta 4 bobinas y 2 unidades de acero.
+[*][b]Paso de tripulación[/b]: un cable con dos conexiones opuestas bajo un suelo transitable. La tripulación pasa en perpendicular al cable al 80 % de su velocidad. Gira la pieza para elegir la dirección.
+[*][b]Cruce de calor/electricidad[/b]: lleva calor por un eje y electricidad por el otro en una sola casilla. Gíralo para intercambiar los ejes. La tripulación no puede pasar. Está en Potencia y en Administración de calor.
+[*][b]Interruptor de red eléctrica[/b] en cada reactor, condensador y dispositivo que use energía. Está [b]apagado por defecto[/b] y su estado se guarda. Un dispositivo solo se une a la red con su propio interruptor encendido.
+[*][b]Primero los reactores[/b]: los reactores abastecen primero; los condensadores solo cuando ningún reactor accesible tiene una batería entera. Los condensadores solo se cargan desde los reactores, después de abastecer a los dispositivos.
+[*][b]Las salas de máquinas[/b] reciben energía por la red y la pasan a los propulsores que potencian. Tanto la sala como cada propulsor receptor deben tener encendido el interruptor de red eléctrica. Activa también la opción Distribución de energía del propulsor de la sala.
+[*]Las luces verdes del cable y del paso de tripulación se encienden cuando una fuente conectada tiene una batería entera.
+[*]Funciona con todos los dispositivos que usan energía del juego base y con las piezas de estos mods opcionales del Workshop, solo si están instalados:
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] (3 propulsores)
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url] (4 salas de control)
+[/list]
+[*]Mod solo de reglas: sin DLL ni cargador de mods. Los textos siguen el idioma del juego (EN, RU, DE, ES, FR, JA, PT-BR, ZH-CN).
+[/list]
+
+[h2]Cómo usarlo[/h2]
+[olist]
+[*]Activa el mod en la lista de mods y reinicia el juego.
+[*]Construye cables de la categoría [b]Potencia[/b] entre reactores, condensadores y dispositivos. Usa el paso de tripulación donde la tripulación deba pasar y el cruce donde haya que cruzar un tubo de calor.
+[*]Enciende el interruptor de [b]red eléctrica[/b] en cada dispositivo que deba estar conectado.
+[/olist]
+
+[h2]Multijugador[/h2]
+Todos los jugadores necesitan [b]la misma versión del mod[/b] y la misma versión del juego. Tras una actualización, reinicia el juego antes de unirte.
+
+[h2]Limitaciones conocidas[/h2]
+[list]
+[*]Solo se transfieren baterías enteras. Un dispositivo espera hasta que quepa una batería entera.
+[*]No se admiten dispositivos de mods con DLL o con tipos de energía propios.
+[*]Al actualizar desde Powergrid (el nombre anterior): los cables se cargan, pero todos los interruptores de red eléctrica vuelven a apagado. Borra la carpeta antigua de Powergrid.
+[/list]
+
+[h2]Planeado[/h2]
+Está previsto añadir el transporte de munición y recursos, sin promesas ni fechas.

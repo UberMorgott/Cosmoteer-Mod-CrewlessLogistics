@@ -1,0 +1,11 @@
+CrewlessLogistics
+{
+    HeatCrossingName = "Croisement chaleur/électricité Crewless Logistics"
+    HeatCrossingDesc = "Un conduit thermique orange sur un axe, un câble électrique bleu sur l'autre. Faites pivoter la pièce pour échanger les axes. Bloque le passage de l'équipage. Disponible dans Alimentation et Gestion de la chaleur. Habillage sombre purement visuel ; caractéristiques d'un conduit thermique standard : 1000 PV, densité 1, aucune catégorie de blindage ni absorption des IEM. Coût : 4 bobines et 2 unités d'acier."
+    NetworkOff = "Réseau électrique : DÉSACTIVÉ. Cliquez pour raccorder ce module aux câbles. Désactivé par défaut ; l'état est mémorisé. L'énergie stockée est conservée. Le fonctionnement normal et le transport par l'équipage ne changent pas."
+    NetworkOn = "Réseau électrique : ACTIVÉ. Cliquez pour déconnecter ce module des câbles. L'état est mémorisé. Activez l'interrupteur sur chaque module à raccorder. La surcharge se règle séparément."
+    CableName = "Câble électrique Crewless Logistics"
+    CableDesc = "Quatre raccordements électriques automatiques ; transfère uniquement des batteries entières. Ne se raccorde pas aux conduits thermiques. Bloque le passage de l'équipage. Le voyant vert s'allume quand une source raccordée contient une batterie entière. Vu de l'extérieur, le câble est recouvert d'une coque ordinaire. Habillage sombre purement visuel ; caractéristiques d'un conduit thermique standard : 1000 PV, densité 1, aucune catégorie de blindage ni absorption des IEM. Coût : 4 bobines et 2 unités d'acier."
+    CrossingName = "Passage d'équipage Crewless Logistics"
+    CrossingDesc = "Deux raccordements électriques opposés ; permet le passage de l'équipage. L'équipage passe perpendiculairement au câble à 80 % de sa vitesse. Faites pivoter la pièce pour choisir la direction. Le voyant vert indique qu'une source raccordée contient une batterie entière. Transfère uniquement des batteries entières ; ne se raccorde pas aux conduits thermiques. Habillage sombre purement visuel ; caractéristiques d'un conduit thermique standard : 1000 PV, densité 1, aucune catégorie de blindage ni absorption des IEM. Coût : 4 bobines et 2 unités d'acier."
+}

@@ -1,0 +1,65 @@
+// Network counts are whole cells. Battery storage remains in vanilla units.
+DeviceToggle
+{
+    Type = UIToggle
+    ToggleID = "morgott.crewless_logistics.network"
+    Default = 0
+    RequiresCommand = false
+    RememberValue = true
+}
+CellView
+{
+    Type = InlineResourceConverter
+    ResourceType = fake
+    FromStorage = BatteryStorage
+    FromQuantity = 1000
+    ToQuantity = 1
+    SuppliesResources = false
+}
+ElectricPort
+{
+    Type = NetworkPort
+    Location = [0, 0]
+    Direction = Right
+    Types = [morgott.crewless_logistics.electric]
+    Overlay
+    {
+        OverlayIcon = "CrewlessLogisticsElectricPort"
+        ConnectedEdgeIcon = "CrewlessLogisticsElectricDot"
+        // Cable art shows topology; diagnostic route lines are never drawn.
+        RouteDrawMode = Never
+        DrawRouteHub = false
+        HighlightPartOnPrimaryConnection = true
+        PartHighlightColor = [110, 255, 45, 61]
+    }
+}
+DeviceElectricPort : ElectricPort
+{
+    OperationalToggle = CrewlessLogisticsToggle
+    BlueprintOperationalToggle = CrewlessLogisticsToggle
+    // The native editor diagonally offsets compatible multi-port diagrams when
+    // a part contains independent heat/electric blueprint nodes. Keep exact
+    // primary placement markers and physical sockets; hide that shifted diagram.
+    Overlay : ^/0/Overlay { IconDrawMode = Primary }
+}
+// Generated device sockets set only Location and Direction.
+ConsumerElectricPort : DeviceElectricPort
+{
+    RouteEndpoint = CrewlessLogisticsReceiver
+    BlueprintRouteEndpoint = CrewlessLogisticsBlueprintNode
+}
+BusElectricPort : DeviceElectricPort
+{
+    RouteSource = CrewlessLogisticsNode
+    RouteEndpoint = CrewlessLogisticsNode
+    BlueprintRouteSource = CrewlessLogisticsBlueprintNode
+    BlueprintRouteEndpoint = CrewlessLogisticsBlueprintNode
+}
+CableElectricPort : ElectricPort
+{
+    RouteSource = CrewlessLogisticsNode
+    RouteEndpoint = CrewlessLogisticsNode
+    BlueprintRouteSource = CrewlessLogisticsBlueprintNode
+    BlueprintRouteEndpoint = CrewlessLogisticsBlueprintNode
+    Overlay : ^/0/Overlay { IconDrawMode = Never }
+}

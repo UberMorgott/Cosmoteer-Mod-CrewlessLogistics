@@ -1,0 +1,40 @@
+Toggle
+{
+    ToggleID = "morgott.crewless_logistics.network"
+    Style = Switch
+    ShowInEditor = true
+    SortOrder = 1
+    Choices
+    [
+        {
+            ChoiceID = "morgott.crewless_logistics.network.off"
+            ButtonToolTipKey = "CrewlessLogistics/NetworkOff"
+            ButtonSprite
+            {
+                Texture
+                {
+                    File = "assets/network_toggle.png"
+                    MipLevels = 2
+                    SampleMode = Linear
+                }
+                VertexColor = [100, 120, 130]
+                Size = [64, 64]
+            }
+        }
+        {
+            ChoiceID = "morgott.crewless_logistics.network.on"
+            ButtonToolTipKey = "CrewlessLogistics/NetworkOn"
+            ButtonSprite
+            {
+                Texture
+                {
+                    File = "assets/network_toggle.png"
+                    MipLevels = 2
+                    SampleMode = Linear
+                }
+                VertexColor = [0, 183, 255]
+                Size = [64, 64]
+            }
+        }
+    ]
+}

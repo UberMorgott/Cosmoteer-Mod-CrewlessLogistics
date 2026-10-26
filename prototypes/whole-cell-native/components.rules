@@ -1,0 +1,188 @@
+// Throwaway native component fixture, not an installable mod.
+SourceStorage
+{
+    Type = ResourceStorage
+    ResourceType = battery
+    MaxResources = 8000
+    StartingResources = 0
+    SuppliesResources = false
+    IsDrainable = false
+}
+ReceiverStorage : SourceStorage { MaxResources = 4000 }
+ReceivingBias
+{
+    Type = ResourceStorage
+    ResourceType = fake
+    MaxResources = 999
+    StartingResources = 999
+    SuppliesResources = false
+    IsDrainable = false
+    DrainOnFtlJump = false
+    DropResourcesWhenDestroyed = false
+    DropResourcesWhenRemoved = false
+    DoResourceDeathEffects = false
+    DoResourceResponseEffects = false
+}
+SourceCells
+{
+    Type = InlineResourceConverter
+    ResourceType = fake
+    FromStorage = SourceStorage
+    FromQuantity = 1000
+    ToQuantity = 1
+    SuppliesResources = false
+}
+ReceivingAggregate
+{
+    Type = MultiResourceStorage
+    ResourceType = fake
+    ResourceStorages = [ReceiverStorage, ReceivingBias]
+    AddMode = InOrder
+    RemoveMode = InReverseOrder
+    CycleStorageOnAdd = false
+    CycleStorageOnRemove = false
+    SuppliesResources = false
+}
+ReceiverCells : SourceCells { FromStorage = ReceivingAggregate }
+SourceStore
+{
+    Type = NetworkResourceStore
+    ResourceType = fake
+    ResourceStorage = SourceCells
+    AllowProviding = true
+    AllowReceiving = false
+    Categories = [morgott.crewless_logistics.cells.source]
+}
+ReceiverStore
+{
+    Type = NetworkResourceStore
+    ResourceType = fake
+    ResourceStorage = ReceiverCells
+    AllowProviding = false
+    AllowReceiving = true
+    Categories = [morgott.crewless_logistics.cells.receiver]
+}
+NetworkOutput
+{
+    Type = NetworkResourceOutput
+    ResourceType = fake
+    Mode = DistributeProportionallyByAvailable
+    Categories = [morgott.crewless_logistics.cells.source]
+    AllowUncategorized = false
+}
+NetworkInput
+{
+    Type = NetworkResourceInput
+    ResourceType = fake
+    Mode = DistributeProportionallyByAvailable
+    Categories = [morgott.crewless_logistics.cells.receiver]
+    AllowUncategorized = false
+}
+CellTransfer
+{
+    Type = ResourceConverter
+    FromStorage = NetworkOutput
+    FromQuantity = 1
+    MinFromQuantityForConversion = 1
+    ToStorage = NetworkInput
+    ToQuantity = 1
+    MinToQuantityForConversion = 1
+    Interval = 0.01
+}
+
+// Native category filters isolate charging from supplying consumers.
+ReactorStore : SourceStore { Categories = [morgott.crewless_logistics.cells.reactor] }
+CapacitorSupplyStore : SourceStore { Categories = [morgott.crewless_logistics.cells.capacitor_supply] }
+CapacitorReceiveStore : ReceiverStore { Categories = [morgott.crewless_logistics.cells.capacitor_receive] }
+ConsumerReceiveStore : ReceiverStore { Categories = [morgott.crewless_logistics.cells.consumer] }
+ReactorOutput : NetworkOutput { Categories = [morgott.crewless_logistics.cells.reactor] }
+CapacitorOutput : NetworkOutput { Categories = [morgott.crewless_logistics.cells.capacitor_supply] }
+CapacitorInput : NetworkInput { Categories = [morgott.crewless_logistics.cells.capacitor_receive] }
+ConsumerInput : NetworkInput { Categories = [morgott.crewless_logistics.cells.consumer] }
+
+// Probe-only fixed whole-cell batches, to verify native odd-count allocation.
+CellTransfer3 : CellTransfer
+{
+    FromQuantity = 3
+    ToQuantity = 3
+    MinFromQuantityForConversion = 3
+    MinToQuantityForConversion = 3
+}
+CellTransfer5 : CellTransfer
+{
+    FromQuantity = 5
+    ToQuantity = 5
+    MinFromQuantityForConversion = 5
+    MinToQuantityForConversion = 5
+}
+
+// Co-located physical port fixture. Each channel has its own native route.
+PortProbeOverclock { Type = DebugToggle; DefaultToggle = false; }
+PortProbeHeatStorage : SourceStorage { ResourceType = heat; MaxResources = 100; }
+PortProbeElectricInput : NetworkInput {}
+PortProbeHeatInput : NetworkInput { ResourceType = heat; Categories = [thermal_storage]; }
+PortProbeElectricStore : ReceiverStore {}
+PortProbeHeatStore : ReceiverStore
+{
+    ResourceType = heat
+    ResourceStorage = PortProbeHeatStorage
+    Categories = [thermal_storage]
+}
+PortProbeElectricNode { Type = NetworkBasicNode; IncludeInPhysical = true; }
+PortProbeHeatNode { Type = NetworkBasicNode; IncludeInPhysical = true; }
+PortProbeSourceElectric
+{
+    Type = NetworkPort
+    Location = [0, 0]
+    Direction = Right
+    Types = [morgott.crewless_logistics.electric]
+    RouteSource = PortProbeElectricInput
+}
+// Same location/direction as electrical port, vanilla overclock gating and types.
+PortProbeSourceHeat
+{
+    Type = NetworkPort
+    Location = [0, 0]
+    Direction = Right
+    OperationalToggle = PortProbeOverclock
+    Types = [thermal, thermal_out]
+    IncompatibleTypes = [thermal_out]
+    RouteSource = PortProbeHeatInput
+}
+PortProbeWrongElectric : PortProbeSourceElectric { OperationalToggle = PortProbeOverclock; }
+PortProbeCableElectricLeft
+{
+    Type = NetworkPort
+    Location = [0, 0]
+    Direction = Left
+    Types = [morgott.crewless_logistics.electric]
+    RouteSource = PortProbeElectricNode
+    RouteEndpoint = PortProbeElectricNode
+}
+PortProbeCableElectricRight : PortProbeCableElectricLeft { Direction = Right; }
+PortProbeCableHeatLeft
+{
+    Type = NetworkPort
+    Location = [0, 0]
+    Direction = Left
+    Types = [thermal]
+    RouteSource = PortProbeHeatNode
+    RouteEndpoint = PortProbeHeatNode
+}
+PortProbeCableHeatRight : PortProbeCableHeatLeft { Direction = Right; }
+PortProbeTargetElectric
+{
+    Type = NetworkPort
+    Location = [0, 0]
+    Direction = Left
+    Types = [morgott.crewless_logistics.electric]
+    RouteEndpoint = PortProbeElectricStore
+}
+PortProbeTargetHeat
+{
+    Type = NetworkPort
+    Location = [0, 0]
+    Direction = Left
+    Types = [thermal]
+    RouteEndpoint = PortProbeHeatStore
+}

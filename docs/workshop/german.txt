@@ -1,0 +1,55 @@
+Crewless Logistics
+[h1]Crewless Logistics[/h1]
+[i]Ein Stromnetz ohne Crew für Cosmoteer[/i]
+
+[h2]Fehler gefunden? Bitte NICHT in den Kommentaren melden[/h2]
+[b]Workshop-Kommentare werden nicht als Fehlerberichte bearbeitet.[/b] Bitte erstelle stattdessen ein Issue auf GitHub mit der Vorlage [b]Bug report[/b]:
+[url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]
+Bitte angeben:
+[list]
+[*]Mod-Version (in der Mod-Liste) und Spielversion (unten links im Hauptmenü)
+[*]Installationsquelle (Workshop oder manuell) und die vollständige Liste aller anderen aktiven Mods
+[*]Einzelspieler oder Mehrspieler (Host oder Client; haben alle Spieler dieselbe Mod-Version?)
+[*]Schritte zum Nachstellen, erwartetes und tatsächliches Ergebnis, Screenshots
+[*]Die Schiffsdatei (.ship.png), wenn das Problem schiffsabhängig ist, bei Bedarf einen Spielstand
+[*]Das neueste Spielprotokoll der Sitzung, in der der Fehler auftrat, aus [b]%USERPROFILE%\Saved Games\Cosmoteer\<SteamID>\Logs\[/b] ([i]log YYYY-MM-DD HH_mm_ss.txt[/i])
+[/list]
+
+[h2]Was die Mod macht[/h2]
+Kabel übertragen [b]ganze Batterien[/b] von Reaktoren und Energiekondensatoren direkt zu stromverbrauchenden Geräten. So muss die Crew keine Batterien mehr tragen. Die normale Versorgung durch die Crew funktioniert weiterhin parallel zum Netz.
+[list]
+[*][b]Stromkabel[/b]: vier automatische Anschlüsse, für die Crew nicht passierbar. Dunkle Metallverkleidung im Inneren, außen ein schlichtes Rumpfdach.
+[*][b]Crew-Übergang[/b]: zwei gegenüberliegende Stromanschlüsse. Die Crew kann das Kabel rechtwinklig mit 80 % ihrer normalen Geschwindigkeit überqueren. Durch Drehen die Kabelrichtung wählen.
+[*][b]Wärme-/Stromkreuzung[/b]: leitet Wärme entlang einer Achse und Strom entlang der anderen. Drehen vertauscht die Achsen. Die Crew kann nicht hindurchgehen. Zu finden unter Energie und Wärmeregulierung.
+[*][b]Alle drei Kabelteile[/b] haben die Werte eines normalen Wärmerohrs: 1000 HP, Dichte 1, keine Panzerungskategorie und keine EMP-Absorption. Die dunkle Verkleidung ist rein optisch. Jedes Teil kostet 4 Spulen + 2 Stahl.
+[*][b]Stromnetz-Schalter[/b] an jedem Reaktor, Energiekondensator und stromverbrauchenden Gerät. Er ist [b]standardmäßig aus[/b]; seine Einstellung wird gespeichert. Nur Geräte mit eingeschaltetem eigenem Schalter nehmen am Netz teil.
+[*][b]Reaktoren zuerst[/b]: Kondensatoren liefern nur, solange kein erreichbarer Reaktor eine ganze Batterie hat. Kondensatoren werden ausschließlich von Reaktoren geladen; Geräte werden zuerst versorgt.
+[*][b]Maschinenräume[/b] erhalten Energie aus dem Netz und geben sie an die von ihnen verstärkten Schubdüsen weiter. Im Maschinenraum müssen Stromnetz und Schubdüsen-Energieverteilung eingeschaltet sein, an jeder empfangenden Schubdüse deren eigener Stromnetz-Schalter.
+[*]Die grünen Lampen am Stromkabel und am Crew-Übergang leuchten, wenn eine verbundene Quelle mindestens eine ganze Batterie hat.
+[*]Unterstützt alle stromverbrauchenden Geräte des Grundspiels sowie Teile dieser optionalen Workshop-Mods. Die jeweilige Erweiterung wird nur angewendet, wenn die Mod installiert ist:
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] (3 Schubdüsen)
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url] (4 Kontrollräume)
+[/list]
+[*]Besteht nur aus Regeldateien: keine DLL, kein Mod-Loader nötig. Texte folgen der Spielsprache (EN, RU, DE, ES, FR, JA, PT-BR, ZH-CN).
+[/list]
+
+[h2]Benutzung[/h2]
+[olist]
+[*]Aktiviere die Mod in der Mod-Liste und starte das Spiel neu.
+[*]Verbinde Reaktoren, Kondensatoren und Geräte mit Kabeln aus der Kategorie [b]Energie[/b]. Nutze den Crew-Übergang für Laufwege und die Wärme-/Stromkreuzung, wo sich Kabel und Wärmerohr kreuzen sollen.
+[*]Schalte an jedem Gerät, das verbunden sein soll, den Schalter [b]Stromnetz[/b] ein.
+[/olist]
+
+[h2]Mehrspieler[/h2]
+Alle Spieler brauchen [b]dieselbe Mod-Version[/b] und dieselbe Spielversion. Nach einem Update das Spiel vor dem Beitreten neu starten.
+
+[h2]Bekannte Einschränkungen[/h2]
+[list]
+[*]Es werden nur ganze Batterien übertragen. Ein Gerät wartet, bis eine ganze Batterie hineinpasst.
+[*]Geräte aus Mods mit DLLs oder eigenen Energiearten werden nicht unterstützt.
+[*]Umstieg von Powergrid (alter Name): Kabel werden geladen, aber alle Stromnetz-Schalter stehen wieder auf Aus. Entferne den alten Powergrid-Ordner.
+[/list]
+
+[h2]Geplant[/h2]
+Munitions- und Ressourcenlogistik sind geplant. Keine Versprechen, keine Termine.

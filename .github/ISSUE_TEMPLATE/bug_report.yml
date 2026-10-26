@@ -1,0 +1,115 @@
+name: Bug report
+description: Something in Crewless Logistics does not work as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please fill in every required field; reports without a log or mod list are usually impossible to reproduce.
+
+        **Game log location (Windows):** `%USERPROFILE%\Saved Games\Cosmoteer\<SteamID>\Logs\`
+        Paste `%USERPROFILE%\Saved Games\Cosmoteer\` into the Explorer address bar, open your numbered SteamID folder, then `Logs`. Attach the newest log from the session where the problem happened (`log YYYY-MM-DD HH_mm_ss.txt`). The game creates a new log at each start, so keep the affected session's log before restarting.
+        Ships are in `...\Cosmoteer\<SteamID>\Saved Ships\`, saves in `...\Cosmoteer\<SteamID>\Saved Games\`.
+  - type: input
+    id: mod-version
+    attributes:
+      label: Mod version
+      description: Shown next to Crewless Logistics in the in-game Mods list.
+      placeholder: "0.3.4"
+    validations:
+      required: true
+  - type: input
+    id: game-version
+    attributes:
+      label: Game version
+      description: Shown in the bottom-left corner of the game's main menu. Copy the full version shown there.
+      placeholder: "0.30.5_steam"
+    validations:
+      required: true
+  - type: dropdown
+    id: install-source
+    attributes:
+      label: Install source
+      options:
+        - Steam Workshop
+        - Manual (copied folder / GitHub)
+    validations:
+      required: true
+  - type: textarea
+    id: other-mods
+    attributes:
+      label: Other enabled mods
+      description: Full list of every other enabled mod, with versions if possible. Write "none" if there are none.
+    validations:
+      required: true
+  - type: dropdown
+    id: game-mode
+    attributes:
+      label: Single-player or multiplayer
+      options:
+        - Single-player
+        - Multiplayer (I am the host)
+        - Multiplayer (I am a client)
+    validations:
+      required: true
+  - type: dropdown
+    id: same-version
+    attributes:
+      label: Multiplayer only - do all players have the same mod version?
+      options:
+        - Not multiplayer
+        - "Yes"
+        - "No"
+        - Not sure
+    validations:
+      required: false
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Build a reactor, a cable and a laser
+        2. Turn on Electrical Network on both
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Drag images here. Show the network switch state and the cables if relevant.
+    validations:
+      required: false
+  - type: textarea
+    id: ship-file
+    attributes:
+      label: Ship file (.ship.png)
+      description: Required if the problem happens only on a specific ship. Attach the .ship.png from `Saved Ships`.
+    validations:
+      required: false
+  - type: textarea
+    id: save-file
+    attributes:
+      label: Save file
+      description: If the problem needs a specific game state, zip the save from `Saved Games` and attach it.
+    validations:
+      required: false
+  - type: textarea
+    id: log
+    attributes:
+      label: Game log file
+      description: Attach the newest `log YYYY-MM-DD HH_mm_ss.txt` from `%USERPROFILE%\Saved Games\Cosmoteer\<SteamID>\Logs\`.
+    validations:
+      required: true

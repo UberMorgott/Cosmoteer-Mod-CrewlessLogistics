@@ -1,0 +1,13 @@
+CrewlessLogistics
+{
+    HeatCrossingName = "Crewless Logistics Heat/Electric Crossover"
+    HeatCrossingDesc = "An orange Heat Pipe crosses a blue electrical cable. Carries heat along one axis and electricity along the other. Rotate to swap axes. Blocks crew passage. Available in Power and Heat Management. The dark plated casing is cosmetic: vanilla Heat Pipe stats, 1000 HP, density 1, no armor category or EMP absorption. Costs 4 coils + 2 steel."
+    NetworkOff = "Electrical Network: OFF. Click to connect this device to the network. Off by default; this setting is saved. Stored energy, normal operation and crew delivery are unaffected."
+    NetworkOn = "Electrical Network: ON. Click to disconnect this device from the network. This setting is saved. Each reactor, capacitor and powered device needs its own switch on. Overclocking is controlled separately."
+    CableName = "Crewless Logistics Electrical Cable"
+    CableDesc = "Four automatic electrical connections; transfers whole batteries only. Blocks crew passage and does not connect to Heat Pipes. Green glass beneath the grille lights up when a connected source has a whole battery. Plain hull roof. The dark plated casing is cosmetic: vanilla Heat Pipe stats, 1000 HP, density 1, no armor category or EMP absorption. Costs 4 coils + 2 steel."
+    CrossingName = "Crewless Logistics Crew Crossing"
+    CrossingDesc = "Two opposite electrical ports; crew can cross perpendicular to the cable at 80% speed. Rotate to choose the cable direction. Transfers whole batteries only; does not connect to Heat Pipes. Green glass beneath the grille lights up when a connected source has a whole battery. Vanilla Heat Pipe stats: 1000 HP, density 1, no armor category or EMP absorption. Costs 4 coils + 2 steel."
+}
+
+

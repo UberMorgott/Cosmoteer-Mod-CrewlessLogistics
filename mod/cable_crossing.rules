@@ -1,0 +1,29 @@
+Part : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part
+{
+    ID = morgott.crewless_logistics.cable_crossing
+    OtherIDs = [morgott.powergrid.cable_crossing] // pre-0.3.3 saves/blueprints
+    TypeCategories = [crewless_logistics]
+    NameKey = "CrewlessLogistics/CrossingName"
+    IconNameKey = "CrewlessLogistics/CrossingName"
+    DescriptionKey = "CrewlessLogistics/CrossingDesc"
+    EditorGroup = "Power"
+    EditorGroups = ["Power"]
+    DontStackInEditorGroups = ["Power"]
+    EditorParentParts = []
+    Resources = [[coil, 4], [steel, 2]]
+    SelectionTypeID = morgott.crewless_logistics.cable_crossing
+    // Preserve real vanilla crossing rotation, perpendicular doors and crew speed.
+    EditorIcon { Texture { File = "assets/cable_crossing_icon.png"; SampleMode = Linear }; Size = [32, 32]; VertexColor = [255, 255, 255, 255] }
+    Components : <cable_graphics.rules>/CrossingComponents
+    {
+        IsOperational : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/IsOperational {}
+        CrewlessLogisticsNode { Type = NetworkBasicNode; IncludeInPhysical = true }
+        CrewlessLogisticsBlueprintNode { Type = NetworkBasicNode; IncludeInBlueprints = true }
+        Port_Up : <common.rules>/CableElectricPort { Direction = Up }
+        Port_Down : Port_Up { Direction = Down }
+        DestroyedEffects : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/DestroyedEffects {}
+        Dont_Draw_Pipe_Connector_Into_This_Part { Type = Graphics }
+    }
+}
+
+

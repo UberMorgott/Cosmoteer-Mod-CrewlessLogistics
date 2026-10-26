@@ -1,0 +1,122 @@
+// Exact native pipe geometry, adaptive selection and damage frames. Body and
+// lamp art are plain PNGs baked from the vanilla sprites by tools/Bake-CableSprites.ps1.
+// Current is a source-availability-gated native lights_add sprite, never a route rectangle.
+Availability
+{
+    Type = NetworkResourceOutput
+    ResourceType = fake
+    Categories = [morgott.crewless_logistics.source]
+    AllowUncategorized = false
+    SuppliesResources = false
+    ToggleOnResources = 1
+    ToggleOffResources = 0
+}
+AvailabilityRouter
+{
+    Type = NetworkRouter
+    RouteGenerators [ { Type = Omni; ComponentIDs = [CrewlessLogisticsNode, CrewlessLogisticsAvailable] } ]
+}
+// Native crossing cylinder; two source pixels overlap the adjacent cylinder at each seam.
+SeamDoodad : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Graphics/OperationalDoodad
+{
+    DamageLevels
+    [
+        : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Graphics/OperationalDoodad/DamageLevels/0 { Size = [1, 1.0625] }
+        : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Graphics/OperationalDoodad/DamageLevels/1 { Size = [1, 1.0625] }
+        : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Graphics/OperationalDoodad/DamageLevels/2 { Size = [1, 1.0625] }
+    ]
+}
+// Navy/silver crossing cylinder with dark glass under the grille ribs.
+CrossingBody : ~/SeamDoodad
+{
+    DamageLevels
+    [
+        : ~/SeamDoodad/DamageLevels/0 { File = "assets/cable_crossing_body.png" }
+        : ~/SeamDoodad/DamageLevels/1 { File = "assets/cable_crossing_body_33.png" }
+        : ~/SeamDoodad/DamageLevels/2 { File = "assets/cable_crossing_body_66.png" }
+    ]
+}
+// Green light through the grille gaps. RGB holds a quarter of the HDR emission;
+// VertexColor restores it, exactly as the former additive glow material.
+CrossingLamp : ~/SeamDoodad
+{
+    Layer = "lights_add"
+    DamageLevels
+    [
+        : ~/SeamDoodad/DamageLevels/0 { File = "assets/cable_crossing_lamp.png"; VertexColor = [1020, 1020, 1020, 255] }
+        : ~/SeamDoodad/DamageLevels/1 { File = "assets/cable_crossing_lamp_33.png"; VertexColor = [1020, 1020, 1020, 255] }
+        : ~/SeamDoodad/DamageLevels/2 { File = "assets/cable_crossing_lamp_66.png"; VertexColor = [1020, 1020, 1020, 255] }
+    ]
+}
+// Six native adaptive shapes; dark glass is part of the body art.
+BodySprites : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_blend_sprites.rules>/FloorBlendSprites
+{
+    Layer = "doodads_low"
+    AmbiguousSprites
+    [
+        : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_blend_sprites.rules>/HUB { DamageLevelSprites [ { File = "assets/cable_body_hub.png" } { File = "assets/cable_body_hub_33.png" } { File = "assets/cable_body_hub_66.png" } ] }
+        : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_blend_sprites.rules>/STUB { DamageLevelSprites [ { File = "assets/cable_body_stub.png" } { File = "assets/cable_body_stub_33.png" } { File = "assets/cable_body_stub_66.png" } ] }
+        : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_blend_sprites.rules>/STRAIGHT { DamageLevelSprites [ { File = "assets/cable_body_straight.png" } { File = "assets/cable_body_straight_33.png" } { File = "assets/cable_body_straight_66.png" } ] }
+        : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_blend_sprites.rules>/CORNER { DamageLevelSprites [ { File = "assets/cable_body_corner.png" } { File = "assets/cable_body_corner_33.png" } { File = "assets/cable_body_corner_66.png" } ] }
+        : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_blend_sprites.rules>/SPLIT_3WAY { DamageLevelSprites [ { File = "assets/cable_body_3way.png" } { File = "assets/cable_body_3way_33.png" } { File = "assets/cable_body_3way_66.png" } ] }
+        : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_blend_sprites.rules>/SPLIT_4WAY { DamageLevelSprites [ { File = "assets/cable_body_4way.png" } { File = "assets/cable_body_4way_33.png" } { File = "assets/cable_body_4way_66.png" } ] }
+    ]
+}
+LampSprites : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_blend_sprites.rules>/FloorBlendSprites
+{
+    Layer = "lights_add"
+    AmbiguousSprites
+    [
+        : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_blend_sprites.rules>/HUB { DamageLevelSprites [ { File = "assets/cable_lamp_hub.png"; VertexColor = [1020, 1020, 1020, 255] } { File = "assets/cable_lamp_hub_33.png"; VertexColor = [1020, 1020, 1020, 255] } { File = "assets/cable_lamp_hub_66.png"; VertexColor = [1020, 1020, 1020, 255] } ] }
+        : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_blend_sprites.rules>/STUB { DamageLevelSprites [ { File = "assets/cable_lamp_stub.png"; VertexColor = [1020, 1020, 1020, 255] } { File = "assets/cable_lamp_stub_33.png"; VertexColor = [1020, 1020, 1020, 255] } { File = "assets/cable_lamp_stub_66.png"; VertexColor = [1020, 1020, 1020, 255] } ] }
+        : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_blend_sprites.rules>/STRAIGHT { DamageLevelSprites [ { File = "assets/cable_lamp_straight.png"; VertexColor = [1020, 1020, 1020, 255] } { File = "assets/cable_lamp_straight_33.png"; VertexColor = [1020, 1020, 1020, 255] } { File = "assets/cable_lamp_straight_66.png"; VertexColor = [1020, 1020, 1020, 255] } ] }
+        : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_blend_sprites.rules>/CORNER { DamageLevelSprites [ { File = "assets/cable_lamp_corner.png"; VertexColor = [1020, 1020, 1020, 255] } { File = "assets/cable_lamp_corner_33.png"; VertexColor = [1020, 1020, 1020, 255] } { File = "assets/cable_lamp_corner_66.png"; VertexColor = [1020, 1020, 1020, 255] } ] }
+        : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_blend_sprites.rules>/SPLIT_3WAY { DamageLevelSprites [ { File = "assets/cable_lamp_3way.png"; VertexColor = [1020, 1020, 1020, 255] } { File = "assets/cable_lamp_3way_33.png"; VertexColor = [1020, 1020, 1020, 255] } { File = "assets/cable_lamp_3way_66.png"; VertexColor = [1020, 1020, 1020, 255] } ] }
+        : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_blend_sprites.rules>/SPLIT_4WAY { DamageLevelSprites [ { File = "assets/cable_lamp_4way.png"; VertexColor = [1020, 1020, 1020, 255] } { File = "assets/cable_lamp_4way_33.png"; VertexColor = [1020, 1020, 1020, 255] } { File = "assets/cable_lamp_4way_66.png"; VertexColor = [1020, 1020, 1020, 255] } ] }
+    ]
+}
+CommonComponents : <./Data/ships/terran/base_part_terran.rules>/Part/Components
+{
+    CrewlessLogisticsAvailable : ~/Availability {}
+    CrewlessLogisticsAvailabilityRouter : ~/AvailabilityRouter {}
+}
+AdaptiveComponents : CommonComponents
+{
+    // Native six-shape placement art remains visible even before any connection.
+    CableBlueprints : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_blend_sprites.rules>/BlueprintBlendSprites {}
+    CableBackground
+    {
+        Type = Graphics
+        Location = [.5, .5]
+        Floor : <./Data/ships/terran/armor/armor.rules>/Part/Components/Graphics/Floor {}
+        Roof : <./Data/ships/terran/armor/armor.rules>/Part/Components/Graphics/Roof {}
+    }
+    CableBody : ~/BodySprites {}
+    CableGlow : ~/LampSprites { OperationalToggle = CrewlessLogisticsAvailable }
+}
+CrossingComponents : CommonComponents
+{
+    Blueprints : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Blueprints
+    {
+        File = "assets/cable_crossing_icon.png"
+    }
+    CableBackground
+    {
+        Type = Graphics
+        Location = &<./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Graphics/Location
+        Floor : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Graphics/Floor {}
+        Walls : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Graphics/Walls {}
+        Roof : <./Data/ships/terran/corridor/corridor.rules>/Part/Components/Graphics/Roof {}
+    }
+    CableBody
+    {
+        Type = Graphics
+        Location = &<./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Graphics/Location
+        OperationalDoodad : ~/CrossingBody {}
+    }
+    CableGlow : CableBody
+    {
+        OperationalToggle = CrewlessLogisticsAvailable
+        OperationalDoodad : ~/CrossingLamp {}
+    }
+}

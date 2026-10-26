@@ -1,0 +1,87 @@
+// Shared source bus plus a reserve charged from reactors only. Sockets are generated in sources.rules.
+Components : <source-components.rules>/Components
+{
+    CrewlessLogisticsCanTransfer : ^/0/CrewlessLogisticsCanTransfer { Toggles = [ConsumptionToggle, CrewlessLogisticsToggle] }
+    // The unscaled native receiver combines the local normal and overclock reserves. Vanilla crew
+    // overclock pickup conversion is separate and remains untouched.
+    CrewlessLogisticsCells : ^/0/CrewlessLogisticsCells { FromStorage = BatteryReceiverStorage }
+    CrewlessLogisticsTransfer : ^/0/CrewlessLogisticsTransfer { OperationalToggle = CrewlessLogisticsCanSupply }
+    CrewlessLogisticsSource : ^/0/CrewlessLogisticsSource { Categories = [morgott.crewless_logistics.source] }
+    CrewlessLogisticsSourceRouter : ^/0/CrewlessLogisticsSourceRouter
+    {
+        RouteGenerators [ { Type = Omni; ComponentIDs = [CrewlessLogisticsNode, CrewlessLogisticsInput, CrewlessLogisticsSource, CrewlessLogisticsReactorOutput] } ]
+    }
+    CrewlessLogisticsReceivingBias : <consumer_base.rules>/Components/CrewlessLogisticsReceivingBias {}
+    CrewlessLogisticsReceivingAggregate : <consumer_base.rules>/Components/CrewlessLogisticsReceivingAggregate
+    {
+        ResourceStorages = [BatteryReceiverStorage, CrewlessLogisticsReceivingBias]
+    }
+    CrewlessLogisticsReceivingCells : <common.rules>/CellView { FromStorage = CrewlessLogisticsReceivingAggregate }
+    // This query excludes every capacitor, including this one.
+    CrewlessLogisticsReactorOutput
+    {
+        Type = NetworkResourceOutput
+        ResourceType = fake
+        SuppliesResources = false
+        Mode = DistributeProportionallyByAvailable
+        Categories = [morgott.crewless_logistics.reactor]
+        AllowUncategorized = false
+    }
+    // Native NetworkResourceInput.Value is the fraction of free receiving
+    // capacity, and zero when no eligible sinks exist. Whole-cell receiver views
+    // therefore give consumers priority until no complete cell can fit.
+    CrewlessLogisticsConsumersSatisfied
+    {
+        Type = ThresholdToggle
+        ValueFrom = CrewlessLogisticsInput
+        MaxAmount = 0
+    }
+    CrewlessLogisticsCanCharge
+    {
+        Type = MultiToggle
+        Mode = All
+        Toggles = [CrewlessLogisticsCanTransfer, CrewlessLogisticsConsumersSatisfied]
+    }
+    // Reactor-first: stored cells supply consumers only while no reachable
+    // reactor exposes a complete cell.
+    CrewlessLogisticsNoReactorCells
+    {
+        Type = ThresholdToggle
+        ValueFrom = CrewlessLogisticsReactorOutput
+        MaxAmount = 0
+    }
+    CrewlessLogisticsCanSupply
+    {
+        Type = MultiToggle
+        Mode = All
+        Toggles = [CrewlessLogisticsCanTransfer, CrewlessLogisticsNoReactorCells]
+    }
+    CrewlessLogisticsCharge : CrewlessLogisticsTransfer
+    {
+        OperationalToggle = CrewlessLogisticsCanCharge
+        FromStorage = CrewlessLogisticsReactorOutput
+        ToStorage = CrewlessLogisticsReceivingCells
+    }
+    // Network storage operations do not invoke the crew-only receiving trigger.
+    // Preserve the native crew path and account for each network-delivered cell
+    // separately using the same vanilla per-battery overclock heat amount.
+    CrewlessLogisticsDeliveryTrigger
+    {
+        Type = MultiTrigger
+        OperationalToggle = IsOverclocked
+        Triggers = [CrewlessLogisticsCharge]
+    }
+    CrewlessLogisticsDeliveryHeat : <./Data/ships/terran/power_storage/power_storage.rules>/Part/Components/Overclock_DeliveryHeatProducer
+    {
+        Trigger = CrewlessLogisticsDeliveryTrigger
+        Amount : <./Data/ships/terran/power_storage/power_storage.rules>/Part/Components/Overclock_DeliveryHeatProducer/Amount
+        {
+            // Each successful conversion is exactly one cell. Native converter
+            // trigger events have effect scale zero, so normalize to one battery.
+            Modifiers
+            [
+                { Type = ScaledEffectScale; ModificationMode = Multiply; Scale = 0; Basis = 1 }
+            ]
+        }
+    }
+}

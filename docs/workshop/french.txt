@@ -1,0 +1,55 @@
+Crewless Logistics
+[h1]Crewless Logistics[/h1]
+[i]Un réseau électrique qui évite à l’équipage de transporter les batteries[/i]
+
+[h2]Un bug ? NE le signalez PAS dans les commentaires[/h2]
+[b]Signalez les bugs uniquement sur GitHub, pas dans les commentaires du Workshop.[/b] Ouvrez un ticket avec le modèle [b]Bug report[/b] :
+[url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]
+Indiquez :
+[list]
+[*]La version du mod (dans la liste des mods) et celle du jeu (en bas à gauche du menu principal)
+[*]La source d'installation (Workshop ou manuelle) et la liste complète des autres mods activés
+[*]Solo ou multijoueur (hôte ou client ; tous les joueurs ont-ils la même version du mod ?)
+[*]Les étapes pour reproduire, le résultat attendu et le résultat obtenu, des captures d'écran
+[*]Le fichier du vaisseau (.ship.png) si le problème dépend du vaisseau, une sauvegarde si nécessaire
+[*]Le journal du jeu : [b]%USERPROFILE%\Saved Games\Cosmoteer\<SteamID>\Logs\[/b] – le fichier [i]log YYYY-MM-DD HH_mm_ss.txt[/i] le plus récent de la session où le problème s'est produit
+[/list]
+
+[h2]Ce que fait le mod[/h2]
+Des câbles acheminent des [b]batteries entières[/b] depuis les réacteurs et les condensateurs d'énergie directement jusqu'aux modules, l'équipage n'a donc plus à porter de batteries. Le transport habituel par l'équipage continue de fonctionner en parallèle.
+[list]
+[*][b]Câble électrique[/b] : quatre raccordements automatiques ; bloque le passage de l'équipage. Vu de l'extérieur, il est recouvert d'une coque ordinaire.
+[*]Les trois pièces ont les caractéristiques d'un conduit thermique standard : 1000 PV, densité 1, aucune catégorie de blindage ni absorption des IEM. Leur habillage sombre en plaques est purement visuel. Coût de chaque pièce : 4 bobines + 2 unités d'acier.
+[*][b]Passage d'équipage[/b] : un câble à deux raccordements opposés sous un sol praticable. L'équipage passe perpendiculairement au câble à 80 % de sa vitesse. Faites pivoter la pièce pour choisir la direction.
+[*][b]Croisement chaleur/électricité[/b] : un conduit thermique sur un axe et un câble sur l'autre, dans une seule case. Faites pivoter la pièce pour échanger les axes. L'équipage ne peut pas passer. Disponible dans Alimentation et Gestion de la chaleur.
+[*][b]Interrupteur Réseau électrique[/b] sur chaque réacteur, condensateur et module alimenté. Il est [b]désactivé par défaut[/b] et son état est mémorisé. Un module ne rejoint le réseau que si son propre interrupteur est activé.
+[*][b]Réacteurs d'abord[/b] : les réacteurs alimentent les modules en premier ; les condensateurs seulement quand aucun réacteur accessible ne contient de batterie entière. Les condensateurs se rechargent uniquement auprès des réacteurs, une fois les modules alimentés.
+[*][b]Les salles des machines[/b] reçoivent l'énergie du réseau et la transmettent aux propulseurs qu'elles renforcent. L'interrupteur Réseau électrique doit être activé sur la salle et sur chaque propulseur destinataire. Activez aussi l'option Alimentation en énergie de la propulsion de la salle.
+[*]Les voyants verts du câble et du passage d'équipage s'allument quand une source raccordée contient une batterie entière.
+[*]Fonctionne avec tous les modules alimentés du jeu de base, ainsi qu'avec les pièces de ces mods Workshop facultatifs, uniquement s'ils sont installés :
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] (3 propulseurs)
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url] (4 salles de contrôle)
+[/list]
+[*]Mod composé uniquement de règles : pas de DLL, pas de chargeur de mods. Les textes suivent la langue du jeu (EN, RU, DE, ES, FR, JA, PT-BR, ZH-CN).
+[/list]
+
+[h2]Utilisation[/h2]
+[olist]
+[*]Activez le mod dans la liste des mods et redémarrez le jeu.
+[*]Construisez des câbles de la catégorie [b]Alimentation[/b] entre les réacteurs, les condensateurs et les modules. Utilisez le passage d'équipage là où l'équipage doit circuler, et le croisement là où un conduit thermique doit passer.
+[*]Activez l'interrupteur [b]Réseau électrique[/b] sur chaque module à raccorder.
+[/olist]
+
+[h2]Multijoueur[/h2]
+Tous les joueurs doivent avoir [b]la même version du mod[/b] et la même version du jeu. Après une mise à jour, redémarrez le jeu avant de rejoindre une partie.
+
+[h2]Limites connues[/h2]
+[list]
+[*]Seules des batteries entières circulent. Un module attend qu'une batterie entière puisse y entrer.
+[*]Les modules issus de mods contenant des DLL ou utilisant leurs propres types d'énergie ne sont pas pris en charge.
+[*]Mise à jour depuis Powergrid (ancien nom) : les câbles se chargent, mais tous les interrupteurs Réseau électrique repassent sur désactivé. Supprimez l'ancien dossier Powergrid.
+[/list]
+
+[h2]Prévu[/h2]
+Le transport des munitions et des ressources est prévu, sans promesse ni date annoncée.

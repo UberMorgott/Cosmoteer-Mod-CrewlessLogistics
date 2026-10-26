@@ -1,0 +1,32 @@
+// Gameplay stats (health, density, penetration, flammability) are the vanilla heat pipe's.
+Part : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_adaptive.rules>/Part
+{
+    ID = morgott.crewless_logistics.cable
+    OtherIDs = [morgott.powergrid.cable] // pre-0.3.3 saves/blueprints
+    TypeCategories = [crewless_logistics]
+    NameKey = "CrewlessLogistics/CableName"
+    IconNameKey = "CrewlessLogistics/CableName"
+    DescriptionKey = "CrewlessLogistics/CableDesc"
+    EditorGroup = "Power"
+    EditorGroups = ["Power"]
+    DontStackInEditorGroups = ["Power"]
+    EditorParentParts = []
+    SelectionTypeID = morgott.crewless_logistics.cable
+    Resources = [[coil, 4], [steel, 2]]
+    // Native detailed adaptive sprites use a separate electrical material.
+    EditorIcon { Texture { File = "assets/cable_icon.png"; SampleMode = Linear }; Size = [32, 32]; VertexColor = [255, 255, 255, 255] }
+    Components : <cable_graphics.rules>/AdaptiveComponents
+    {
+        CrewlessLogisticsNode { Type = NetworkBasicNode; IncludeInPhysical = true }
+        CrewlessLogisticsBlueprintNode { Type = NetworkBasicNode; IncludeInBlueprints = true }
+        Port_Up : <common.rules>/CableElectricPort { Direction = Up }
+        Port_Right : Port_Up { Direction = Right }
+        Port_Down : Port_Up { Direction = Down }
+        Port_Left : Port_Up { Direction = Left }
+        DestroyedEffects : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_adaptive.rules>/Part/Components/DestroyedEffects {}
+        Dont_Draw_Pipe_Connector_Into_This_Part { Type = Graphics }
+    }
+}
+
+
+

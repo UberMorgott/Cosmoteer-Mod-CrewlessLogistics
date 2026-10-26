@@ -1,0 +1,38 @@
+// Native engine-room delivery draws from its own reserve. The electrical sink
+// remains local, so multiple rooms never advertise overlapping network capacity.
+Components : <consumer_base.rules>/Components
+{
+    CrewlessLogisticsEngineRoomSupplyCells : <common.rules>/CellView {}
+    CrewlessLogisticsEngineRoomRecipients
+    {
+        Type = MultiResourceStorage
+        ResourceType = fake
+        ViaBuffs
+        {
+            OutgoingBuffProviders = [PowerDistributionBuffProvider]
+            ComponentIDs = [CrewlessLogisticsRoomInlet]
+        }
+        AddMode = PrioritizeLeastResources
+        CycleStorageOnAdd = true
+        SuppliesResources = false
+    }
+    CrewlessLogisticsEngineRoomCanDistribute
+    {
+        Type = MultiToggle
+        Mode = All
+        Toggles = [CrewlessLogisticsToggle, DistributePowerToggle]
+    }
+    CrewlessLogisticsEngineRoomDistribution
+    {
+        Type = ResourceConverter
+        OperationalToggle = CrewlessLogisticsEngineRoomCanDistribute
+        FromStorage = CrewlessLogisticsEngineRoomSupplyCells
+        FromQuantity = 1
+        // Keep one complete local cell for the room's own operation.
+        MinFromQuantityForConversion = 2
+        ToStorage = CrewlessLogisticsEngineRoomRecipients
+        ToQuantity = 1
+        MinToQuantityForConversion = 1
+        Interval = 0.01
+    }
+}

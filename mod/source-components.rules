@@ -1,0 +1,62 @@
+Components
+{
+    CrewlessLogisticsToggle : <common.rules>/DeviceToggle {}
+    CrewlessLogisticsCanTransfer
+    {
+        Type = MultiToggle
+        Mode = All
+        Toggles = [IsOperational, CrewlessLogisticsToggle]
+    }
+    CrewlessLogisticsCells : <common.rules>/CellView {}
+    CrewlessLogisticsInput
+    {
+        Type = NetworkResourceInput
+        ResourceType = fake
+        Mode = DistributeProportionallyByAvailable
+        Categories = [morgott.crewless_logistics.consumer]
+        AllowUncategorized = false
+    }
+    // Reactors supply consumers first: native generation stops once BatteryStorage
+    // is full, so idle reactor cells would otherwise be wasted generation.
+    CrewlessLogisticsTransfer
+    {
+        Type = ResourceConverter
+        OperationalToggle = CrewlessLogisticsCanTransfer
+        FromStorage = CrewlessLogisticsCells
+        FromQuantity = 1
+        MinFromQuantityForConversion = 1
+        ToStorage = CrewlessLogisticsInput
+        ToQuantity = 1
+        MinToQuantityForConversion = 1
+        Interval = 0.01
+    }
+    CrewlessLogisticsBlueprintNode
+    {
+        Type = NetworkBasicNode
+        IncludeInBlueprints = true
+    }
+    // Electrical relay is independent of generation and local stored energy.
+    // The explicit network switch controls the bus and every physical socket.
+    CrewlessLogisticsNode { Type = NetworkBasicNode; IncludeInPhysical = true; }
+    // This provider is read by capacitor charging and cable voltage queries only.
+    // Reactor-to-reactor transfers remain impossible: reactors have no receiving store.
+    CrewlessLogisticsSource
+    {
+        Type = NetworkResourceStore
+        OperationalToggle = CrewlessLogisticsCanTransfer
+        ResourceType = fake
+        ResourceStorage = CrewlessLogisticsCells
+        AllowProviding = true
+        AllowReceiving = false
+        Categories = [morgott.crewless_logistics.source, morgott.crewless_logistics.reactor]
+    }
+    CrewlessLogisticsSourceRouter
+    {
+        Type = NetworkRouter
+        OperationalToggle = CrewlessLogisticsToggle
+        RouteGenerators
+        [
+            { Type = Omni; ComponentIDs = [CrewlessLogisticsNode, CrewlessLogisticsInput, CrewlessLogisticsSource] }
+        ]
+    }
+}

@@ -1,0 +1,11 @@
+CrewlessLogistics
+{
+    HeatCrossingName = "Cruce de calor/electricidad de Crewless Logistics"
+    HeatCrossingDesc = "Un tubo de calor naranja por un eje y un cable eléctrico azul por el otro. Gira la pieza para intercambiar los ejes. Bloquea el paso de la tripulación. Disponible en Potencia y en Administración de calor. Las placas oscuras son solo decorativas. Tiene las características de un tubo de calor del juego base: 1000 puntos de vida, densidad 1, sin categoría de blindaje ni absorción de EMP. Coste: 4 bobinas y 2 unidades de acero."
+    NetworkOff = "Red eléctrica: APAGADA. Haz clic para conectar este dispositivo a los cables. Apagada por defecto; su estado se guarda. La energía almacenada se conserva. El funcionamiento normal y el transporte por la tripulación no cambian."
+    NetworkOn = "Red eléctrica: ENCENDIDA. Haz clic para desconectar este dispositivo de los cables. Su estado se guarda. Enciende el interruptor en cada dispositivo que quieras conectar. La sobreaceleración se controla por separado."
+    CableName = "Cable eléctrico de Crewless Logistics"
+    CableDesc = "Cuatro conexiones eléctricas automáticas; solo transfiere baterías enteras. No se conecta a tubos de calor. Bloquea el paso de la tripulación. La luz verde se enciende cuando una fuente conectada tiene una batería entera. Por fuera lo cubre un techo de casco liso. Las placas oscuras son solo decorativas. Tiene las características de un tubo de calor del juego base: 1000 puntos de vida, densidad 1, sin categoría de blindaje ni absorción de EMP. Coste: 4 bobinas y 2 unidades de acero."
+    CrossingName = "Paso de tripulación de Crewless Logistics"
+    CrossingDesc = "Dos conexiones eléctricas opuestas; permite el paso de la tripulación. La tripulación pasa en perpendicular al cable al 80 % de su velocidad. Gira la pieza para elegir la dirección. La luz verde indica que una fuente conectada tiene una batería entera. Solo transfiere baterías enteras; no se conecta a tubos de calor. Las placas oscuras son solo decorativas. Tiene las características de un tubo de calor del juego base: 1000 puntos de vida, densidad 1, sin categoría de blindaje ni absorción de EMP. Coste: 4 bobinas y 2 unidades de acero."
+}

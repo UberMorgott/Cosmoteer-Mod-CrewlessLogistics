@@ -1,0 +1,47 @@
+// Receiving-only native adapter. Each endpoint exposes its own physical battery.
+// Rocket aliases and engine-room distribution proxies are deliberately not sinks:
+// they can overlap other endpoints or multiply units in overclock mode.
+Components
+{
+    CrewlessLogisticsToggle : <common.rules>/DeviceToggle {}
+    CrewlessLogisticsReceivingBias
+    {
+        Type = ResourceStorage
+        ResourceType = fake
+        MaxResources = 999
+        StartingResources = 999
+        SuppliesResources = false
+        IsDrainable = false
+        DrainOnFtlJump = false
+        DropResourcesWhenDestroyed = false
+        DropResourcesWhenRemoved = false
+        DoResourceDeathEffects = false
+        DoResourceResponseEffects = false
+    }
+    CrewlessLogisticsReceivingAggregate
+    {
+        Type = MultiResourceStorage
+        ResourceType = fake
+        ResourceStorages = [BatteryStorage, CrewlessLogisticsReceivingBias]
+        AddMode = InOrder
+        RemoveMode = InReverseOrder
+        CycleStorageOnAdd = false
+        CycleStorageOnRemove = false
+        SuppliesResources = false
+    }
+    CrewlessLogisticsCells : <common.rules>/CellView { FromStorage = CrewlessLogisticsReceivingAggregate }
+    CrewlessLogisticsReceiver
+    {
+        Type = NetworkResourceStore
+        OperationalToggle = CrewlessLogisticsToggle
+        ResourceType = fake
+        ResourceStorage = CrewlessLogisticsCells
+        AllowProviding = false
+        AllowReceiving = true
+        Categories = [morgott.crewless_logistics.consumer]
+    }
+    // Engine-room delivery target; native proxy closes while this device's switch is off.
+    CrewlessLogisticsRoomInlet { Type = ResourceStorageProxy; ResourceType = fake; ComponentID = CrewlessLogisticsCells; ProxyToggle = CrewlessLogisticsToggle }
+    CrewlessLogisticsBlueprintNode { Type = NetworkBasicNode; IncludeInBlueprints = true }
+}
+

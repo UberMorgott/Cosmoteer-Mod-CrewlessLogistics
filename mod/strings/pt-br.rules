@@ -1,0 +1,11 @@
+CrewlessLogistics
+{
+    HeatCrossingName = "Cruzamento de calor/eletricidade Crewless Logistics"
+    HeatCrossingDesc = "Um termoduto laranja em um eixo e um cabo elétrico azul no outro. Gire a peça para trocar os eixos. Bloqueia a passagem da tripulação. Disponível em Energia e em Gerenciamento de calor. As placas escuras são apenas decorativas. Tem as características de um termoduto do jogo base: 1000 pontos de vida, densidade 1, sem categoria de blindagem nem absorção de P.E.M. Custo: 4 bobinas e 2 unidades de aço."
+    NetworkOff = "Rede elétrica: DESLIGADA. Clique para conectar este dispositivo aos cabos. Desligada por padrão; seu estado é salvo. A energia armazenada é mantida. O funcionamento normal e o transporte pela tripulação não mudam."
+    NetworkOn = "Rede elétrica: LIGADA. Clique para desconectar este dispositivo dos cabos. Seu estado é salvo. Ligue o interruptor em cada dispositivo que quiser conectar. O overclock é controlado separadamente."
+    CableName = "Cabo elétrico Crewless Logistics"
+    CableDesc = "Quatro conexões elétricas automáticas; transfere apenas baterias inteiras. Não se conecta a termodutos. Bloqueia a passagem da tripulação. A luz verde acende quando uma fonte conectada tem uma bateria inteira. Por fora, tem um teto de casco comum. As placas escuras são apenas decorativas. Tem as características de um termoduto do jogo base: 1000 pontos de vida, densidade 1, sem categoria de blindagem nem absorção de P.E.M. Custo: 4 bobinas e 2 unidades de aço."
+    CrossingName = "Passagem de tripulação Crewless Logistics"
+    CrossingDesc = "Duas conexões elétricas opostas; permite a passagem da tripulação. A tripulação passa perpendicularmente ao cabo a 80% da velocidade. Gire a peça para escolher a direção. A luz verde indica que uma fonte conectada tem uma bateria inteira. Transfere apenas baterias inteiras; não se conecta a termodutos. As placas escuras são apenas decorativas. Tem as características de um termoduto do jogo base: 1000 pontos de vida, densidade 1, sem categoria de blindagem nem absorção de P.E.M. Custo: 4 bobinas e 2 unidades de aço."
+}

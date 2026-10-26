@@ -1,0 +1,12 @@
+// Mirror only the native capacitor receiver's storage composition. Its media
+// factories need full graphics startup; the package probe checks the real fields.
+CapacitorReceiver
+{
+    Type = MultiResourceStorage
+    ResourceType = battery
+    ResourceStorages = [BatteryStorage, Overclock_BatteryStorageProxy]
+    AddMode = InOrder
+    ProvidedValueRange = 0
+    ProvidedValuePerResource = 1/1000
+    IsIntermediateStorage = true
+}

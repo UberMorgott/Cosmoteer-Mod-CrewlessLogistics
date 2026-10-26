@@ -1,0 +1,58 @@
+ID = morgott.crewless_logistics
+Name = "Crewless Logistics"
+Version = 0.3.4
+CompatibleGameVersions = ["0.30.5"]
+ModifiesGameplay = true
+Author = "Morgott"
+Logo = "logo.png"
+Description = "EN: Report bugs only on GitHub using the Bug report template, not in Workshop comments: https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues\nCrewless electrical network: cables carry whole batteries from reactors and Power Capacitors to powered devices. Crew delivery still works. Includes electrical cable (blocks crew, four connections, plain hull roof), crew crossing (walk across at 80% speed) and heat/electric crossover (one axis each; rotate to swap; blocks crew). All three have vanilla Heat Pipe stats: 1000 HP, density 1, no armor category or EMP absorption. Each costs 4 coils + 2 steel; dark plating is cosmetic. Electrical Network switches on every reactor, capacitor and powered device are off by default; settings are saved. Reactors supply first. Capacitors supply only while no reachable reactor has a whole battery, and charge through the network only from reactors, after devices. Engine Rooms receive power and pass batteries to the engines and thrusters they buff: enable the room's network and power distribution switches, and each recipient's network switch. Supports all vanilla powered devices plus parts from Diagonal Thruster Plus and Diagonal Cockpits, only if installed. Rules-only, no DLL or loader. Multiplayer: same mod and game versions for everyone. Ammo and resource logistics are planned, with no promises or dates.\n\nRU: Сообщайте об ошибках только на GitHub по шаблону Bug report, не в комментариях Мастерской: https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues\nЭлектросеть без экипажа: кабели передают целые батареи от реакторов и силовых накопителей к устройствам. Обычная доставка экипажем тоже работает. Есть электрический кабель (экипаж не проходит, четыре подключения, снаружи обычная обшивка), проходной кабель (проход поперёк со скоростью 80%) и пересечение тепла и электричества (по разным осям; поворот меняет их местами; экипаж не проходит). У всех трёх характеристики обычного теплопередатчика: прочность 1000, плотность 1, без категории брони и поглощения ЭМИ. Каждая деталь стоит 4 спирали + 2 стали. Тёмные панели — только внешний вид. Переключатель «Электросеть» есть на каждом реакторе, накопителе и устройстве; по умолчанию выключен, положение сохраняется. Сначала энергию отдают реакторы. Накопители отдают её, только когда ни у одного доступного реактора нет целой батареи, а по сети заряжаются только от реакторов, после снабжения устройств. Машинные отсеки получают энергию и передают батареи двигателям, которые они усиливают: включите в отсеке сеть и распределение энергии, у каждого двигателя — свою сеть. Поддерживаются все устройства базовой игры, которым нужна энергия, и детали Diagonal Thruster Plus и Diagonal Cockpits, только если эти моды установлены. Только файлы правил, без DLL и загрузчика. Для сетевой игры у всех должны совпадать версии мода и игры. Логистика боеприпасов и ресурсов в планах, без обещаний и сроков."
+StringsFolder = "strings"
+
+// Generated device AddBase actions come first; the list below is appended natively.
+Actions : <generated.actions.rules>/Actions
+[
+    {
+        Action = AddMany
+        AddTo = "<ships/terran/terran.rules>/Terran/RenderLayers"
+        ManyToAdd
+        [
+            &<cable_material.rules>/ThermalLayer
+        ]
+    }
+    {
+        Action = Add
+        AddTo = "<gui/game/parts/part_toggles.rules>/PartToggles"
+        ToAdd = &<network_toggle.rules>/Toggle
+    }
+    {
+        Action = AddMany
+        AddTo = "<ships/terran/terran.rules>/Terran/Parts"
+        ManyToAdd
+        [
+            &<cable.rules>/Part
+            &<cable_crossing.rules>/Part
+            &<cable_heat_crossing.rules>/Part
+        ]
+    }
+    {
+        Action = Overrides
+        OverrideIn = "<gui/game/parts/networks/part_networks.rules>/OverlayIcons"
+        Overrides
+        {
+            CrewlessLogisticsElectricPort : <./Data/gui/game/parts/networks/part_networks.rules>/OverlayIcons/ThermalPort
+            {
+                Sprite : ^/0/Sprite { VertexColor = [110, 255, 45, 255] }
+            }
+            CrewlessLogisticsElectricDot : <./Data/gui/game/parts/networks/part_networks.rules>/OverlayIcons/ThermalDot
+            {
+                // The thermal circle texture is already orange; use a neutral vanilla dot.
+                Sprite : ^/0/Sprite
+                {
+                    File = "./Data/gui/dot.png"
+                    VertexColor = [110, 255, 45, 255]
+                    Size = [0.3, 0.3]
+                }
+            }
+        }
+    }
+]

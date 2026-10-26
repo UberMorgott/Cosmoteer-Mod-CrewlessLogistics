@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest an idea or a compatibility target for Crewless Logistics.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: Describe the feature and the problem it solves.
+    validations:
+      required: true
+  - type: textarea
+    id: mods
+    attributes:
+      label: Related mods
+      description: For compatibility requests, link the Workshop mod and name the parts it adds.
+    validations:
+      required: false
+  - type: input
+    id: mod-version
+    attributes:
+      label: Mod version you use
+      placeholder: "0.3.4"
+    validations:
+      required: false

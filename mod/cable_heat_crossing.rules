@@ -1,0 +1,117 @@
+// Two native networks cross orthogonally inside an armor-look, crew-blocking tile.
+// Gameplay stats are the vanilla heat pipe crossing's; only crew passage is blocked.
+// Up/down retains the actual vanilla thermal crossing node and port mechanics.
+Part : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part
+{
+    ID = morgott.crewless_logistics.cable_heat_crossing
+    OtherIDs = [morgott.powergrid.cable_heat_crossing] // pre-0.3.3 saves/blueprints
+    TypeCategories = [crewless_logistics, heat_management]
+    NameKey = "CrewlessLogistics/HeatCrossingName"
+    IconNameKey = "CrewlessLogistics/HeatCrossingName"
+    DescriptionKey = "CrewlessLogistics/HeatCrossingDesc"
+    EditorGroup = "Power"
+    EditorGroups = ["Power", "Thermal"]
+    DontStackInEditorGroups = ["Power", "Thermal"]
+    EditorParentParts = []
+    SelectionTypeID = morgott.crewless_logistics.cable_heat_crossing
+    Resources = [[coil, 4], [steel, 2]]
+    IsRotateable = true
+    IgnoreRotationForMirroredSelection = false
+    CrewSpeedFactor = 0
+    AllowedDoorLocations = []
+    EditorIcon { Texture { File = "assets/cable_heat_crossing_icon.png"; SampleMode = Linear }; Size = [32, 32] }
+    Components : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components
+    {
+        // Preserve the native connected thermal indicator through the crossing.
+        Port_Up : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Port_Up
+        {
+            BlueprintRouteSource = CrewlessLogisticsBlueprintNode
+            BlueprintRouteEndpoint = CrewlessLogisticsBlueprintNode
+            Overlay : ^/0/Overlay { RouteDrawMode = Connected; IconDrawMode = Never; DrawRouteHub = false }
+        }
+        Port_Down : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Port_Down
+        {
+            BlueprintRouteSource = CrewlessLogisticsBlueprintNode
+            BlueprintRouteEndpoint = CrewlessLogisticsBlueprintNode
+            Overlay : ^/0/Overlay { RouteDrawMode = Connected; IconDrawMode = Never; DrawRouteHub = false }
+        }
+        CrewlessLogisticsNode { Type = NetworkBasicNode; IncludeInPhysical = true }
+        CrewlessLogisticsBlueprintNode { Type = NetworkBasicNode; IncludeInBlueprints = true }
+        // The native renderer spaces independent blueprint components diagonally.
+        // Electric uses the first inherited node, thermal the second. An isolated
+        // blueprint-only third node centers thermal with no physical graph change.
+        OverlaySpacingNode { Type = NetworkBasicNode; IncludeInBlueprints = true }
+        Port_Electric_Left : <common.rules>/CableElectricPort
+        {
+            Direction = Left
+            BlueprintRouteSource = BlueprintNetworkNode
+            BlueprintRouteEndpoint = BlueprintNetworkNode
+        }
+        Port_Electric_Right : <common.rules>/CableElectricPort
+        {
+            Direction = Right
+            BlueprintRouteSource = BlueprintNetworkNode
+            BlueprintRouteEndpoint = BlueprintNetworkNode
+        }
+        CrewlessLogisticsAvailable : <cable_graphics.rules>/Availability {}
+        CrewlessLogisticsAvailabilityRouter : <cable_graphics.rules>/AvailabilityRouter {}
+
+        // Armored mixed crossing keeps native dark metal at normal brightness.
+        Graphics
+        {
+            Type = Graphics
+            Location = [.5, .5]
+            Floor : <./Data/ships/terran/armor/armor.rules>/Part/Components/Graphics/Floor {}
+            Walls : <./Data/ships/terran/armor/armor.rules>/Part/Components/Graphics/Walls {}
+            Roof : <./Data/ships/terran/armor/armor.rules>/Part/Components/Graphics/Roof {}
+        }
+        ThermalBody
+        {
+            Type = Graphics
+            Location = [.5, .5]
+            OperationalDoodad : <cable_graphics.rules>/SeamDoodad { Layer = "CrewlessLogisticsThermalBridge" }
+        }
+        // Fresh groups deliberately omit every inherited thermal roof glow.
+        Darkness_Graphics { Type = Graphics }
+        HeatGlow_Graphics
+        {
+            Type = Graphics
+            Location = [.5, .5]
+            GetColorFrom = ThermalLoadGlowColorFactor
+            OperationalDoodad : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/HeatGlow_Graphics/OperationalDoodad
+            {
+                Layer = "lights_add"
+                DamageLevels [ : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/HeatGlow_Graphics/OperationalDoodad/DamageLevels/0 { Size = [1, 1.0625] } ]
+            }
+        }
+        // The blue horizontal path passes below the elevated thermal cylinder.
+        // Its grille lamp lies entirely under that opaque cylinder, so no light layer.
+        ElectricBridge
+        {
+            Type = Graphics
+            Location = [.5, .5]
+            Rotation = 90d
+            OperationalDoodad : <cable_graphics.rules>/CrossingBody {}
+        }
+        Blueprints : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Blueprints
+        {
+            File = "assets/cable_heat_crossing_icon.png"
+        }
+        // Keep native thermal connector logic/interior art; fresh groups omit its
+        // external connector roof plates so the roof remains uninterrupted armor.
+        PipeConnectorUp_Components : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/PipeConnectorUp_Components
+        {
+            Components { PipesConnectorUp_Graphics : ~/ConnectorNoRoof { Location = [0.5, -0.5] } }
+        }
+        PipeConnectorDown_Components : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/PipeConnectorDown_Components
+        {
+            Components { PipesConnectorDown_Graphics : ~/ConnectorNoRoof { Location = [0.5, 1.5] } }
+        }
+    }
+}
+ConnectorNoRoof
+{
+    Type = Graphics
+    Floor : <./Data/ships/terran/heat_pipe_adaptive/pipe_connector/heat_pipe_connector_graphics.rules>/BASE_PIPE_CONNECTOR_GRAPHICS/Floor {}
+    WallsStencil : <./Data/ships/terran/heat_pipe_adaptive/pipe_connector/heat_pipe_connector_graphics.rules>/BASE_PIPE_CONNECTOR_GRAPHICS/WallsStencil {}
+}

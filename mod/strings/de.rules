@@ -1,0 +1,11 @@
+CrewlessLogistics
+{
+    HeatCrossingName = "Crewless Logistics Wärme-/Stromkreuzung"
+    HeatCrossingDesc = "Ein orangefarbenes Wärmerohr kreuzt ein blaues Stromkabel. Wärme und Strom fließen unabhängig entlang verschiedener Achsen; Drehen vertauscht die Achsen. Verfügbar unter Energie und Wärmeregulierung. Für die Crew nicht passierbar. Dunkle Verkleidung ohne Schutzwirkung: Werte eines normalen Wärmerohrs, 1000 HP, Dichte 1, keine Panzerungskategorie, keine EMP-Absorption. Kosten: 4 Spulen + 2 Stahl."
+    NetworkOff = "Stromnetz: AUS. Klicken, um dieses Gerät mit den Kabeln zu verbinden. Standardmäßig aus; die Einstellung wird gespeichert. Gespeicherte Energie bleibt erhalten. Der normale Betrieb und die Versorgung durch die Crew funktionieren weiterhin."
+    NetworkOn = "Stromnetz: EIN. Klicken, um dieses Gerät von den Kabeln zu trennen. Die Einstellung wird gespeichert. Jedes Gerät braucht einen eingeschalteten eigenen Schalter, auch Schubdüsen, die von einem Maschinenraum versorgt werden. Die Übertaktung wird unabhängig davon geschaltet."
+    CableName = "Crewless Logistics Stromkabel"
+    CableDesc = "Stromkabel mit dunklem Metallgehäuse und schlichtem Rumpfdach. Vier automatische Stromanschlüsse. Überträgt nur ganze Batterien. Das grüne Glas unter dem Gitter leuchtet, wenn eine verbundene Quelle mindestens eine ganze Batterie hat. Verbindet sich nicht mit Wärmerohren. Für die Crew nicht passierbar. Die Verkleidung ist rein optisch: Werte eines normalen Wärmerohrs, 1000 HP, Dichte 1, keine Panzerungskategorie, keine EMP-Absorption. Kosten: 4 Spulen + 2 Stahl."
+    CrossingName = "Crewless Logistics Crew-Übergang"
+    CrossingDesc = "Begehbare Kabelkreuzung mit zwei gegenüberliegenden Stromanschlüssen. Die Crew überquert das Kabel rechtwinklig mit 80 % ihrer normalen Geschwindigkeit. Durch Drehen die Richtung wählen. Überträgt nur ganze Batterien. Das grüne Glas unter dem Gitter leuchtet, wenn eine verbundene Quelle mindestens eine ganze Batterie hat. Verbindet sich nicht mit Wärmerohren. Werte eines normalen Wärmerohrs: 1000 HP, Dichte 1, keine Panzerungskategorie, keine EMP-Absorption. Kosten: 4 Spulen + 2 Stahl."
+}

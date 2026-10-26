@@ -1,0 +1,13 @@
+// The mixed crossover's orange cylinder must cover the blue crossing body
+// (vanilla doodads_high) and stay below native thermal light (lights_add).
+ThermalLayer
+{
+    Key = "CrewlessLogisticsThermalBridge"
+    Value
+    {
+        UniqueBucket = 175
+        RenderStage = High
+        AtlasTextureParams { MipLevels = 7 }
+        Material { Shader = "./Data/ships/common/parts.shader" }
+    }
+}

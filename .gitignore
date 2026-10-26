@@ -1,0 +1,33 @@
+# Only source goes public: rules, assets, probes, tools, docs.
+
+# Build output and local evidence
+artifacts/
+**/bin/
+**/obj/
+
+# Game runtime copies (never redistribute game binaries or decompiled game code)
+*.dll
+*.exe
+*.pdb
+Decompiled/
+
+# IDE / local agent settings
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+.claude/
+.agentlink/
+
+# Backups and logs
+*.bak
+*.orig
+*~
+*-backups/
+*.log
+
+# OS clutter
+Thumbs.db
+desktop.ini
+.DS_Store
