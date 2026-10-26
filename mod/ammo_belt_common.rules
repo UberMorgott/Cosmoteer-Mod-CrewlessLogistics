@@ -2,8 +2,9 @@
 // Every belt tile holds one permanent 1-round lane per ammo type. A round hops from
 // a lane into the matching lane of the part in front (or a whitelisted endpoint) by
 // an ordinary ResourceConverter through a ResourceStorageProxy. No network teleport.
-// Belts are never flippable: RelativePartCriteria.Rot is the raw rotation difference,
-// so a mirrored source would invert the meaning of Rot 1/3. Mirror variants are parts.
+// RelativePartCriteria.Rot is a raw rotation difference, so a flipped source inverts
+// the meaning of Rot 1/3. Only corners flip (they need it for ship mirroring); their
+// side outputs and rear pull switch criteria by their own flip state (IsFlipped).
 // Adding an ammo type = repeat one lane block per part with the new ResourceType/IDs.
 
 BeltIDs
@@ -46,6 +47,12 @@ AmmoFactory3 { IDs = [cosmoteer.factory_ammo]; Rot = 2; FlipX = true; Top = 1; L
 EmpFactory0 { IDs = [cosmoteer.factory_emp]; Rot = 2; Top = 1; Left = 0 }
 EmpFactory1 { IDs = [cosmoteer.factory_emp]; Rot = 2; Top = 1; Left = -1 }
 EmpFactory2 { IDs = [cosmoteer.factory_emp]; Rot = 2; Top = 1; Left = -2 }
+// Mirrored (flipped) belt: same factory layouts seen through a flipped frame, i.e.
+// Rot negated. EMP entries (Rot 2) are already mirror-invariant.
+AmmoFactoryM0 { IDs = [cosmoteer.factory_ammo]; Rot = 2; FlipX = false; Top = 1; Left = 0 }
+AmmoFactoryM1 { IDs = [cosmoteer.factory_ammo]; Rot = 1; FlipX = false; Top = 1; Left = -1 }
+AmmoFactoryM2 { IDs = [cosmoteer.factory_ammo]; Rot = 3; FlipX = true; Top = 1; Left = 0 }
+AmmoFactoryM3 { IDs = [cosmoteer.factory_ammo]; Rot = 2; FlipX = true; Top = 1; Left = -1 }
 
 Lane
 {
@@ -91,6 +98,16 @@ PullBullet
         { PartCriteria = &~/AmmoFactory1; ComponentID = AmmoStorage }
         { PartCriteria = &~/AmmoFactory2; ComponentID = AmmoStorage }
         { PartCriteria = &~/AmmoFactory3; ComponentID = AmmoStorage }
+    ]
+}
+PullBulletMirrored : ~/PullBullet
+{
+    ProxyableComponents
+    [
+        { PartCriteria = &~/AmmoFactoryM0; ComponentID = AmmoStorage }
+        { PartCriteria = &~/AmmoFactoryM1; ComponentID = AmmoStorage }
+        { PartCriteria = &~/AmmoFactoryM2; ComponentID = AmmoStorage }
+        { PartCriteria = &~/AmmoFactoryM3; ComponentID = AmmoStorage }
     ]
 }
 PullEmp
@@ -174,6 +191,19 @@ EmpLeft : ~/EmpFront
         { PartCriteria = &~/LeftMergerB; ComponentID = AmmoLaneEmp }
     ]
 }
+
+// Side outputs of a flipped corner: PartLocation is mirrored natively, but criteria
+// Rot is a raw rotation difference, so a mirrored source uses the other side's list.
+BulletRightMirrored : ~/BulletLeft { PartLocation = [1, 0] }
+BulletLeftMirrored : ~/BulletRight { PartLocation = [-1, 0] }
+EmpRightMirrored : ~/EmpLeft { PartLocation = [1, 0] }
+EmpLeftMirrored : ~/EmpRight { PartLocation = [-1, 0] }
+
+// A flippable part learns its own mirror state: FlipMarker is built only when the
+// part is flipped (native OnlyWithFlip construction filter); IsFlipped proxies it on
+// the same part and is off when it is absent.
+FlipMarker { Type = MultiToggle; Mode = All; Toggles = []; OnlyWithFlip = true }
+IsFlipped { Type = ToggleProxy; IsOnWhenNotConnected = false; ProxyableComponents [ { ComponentID = FlipMarker } ] }
 
 // Launcher binding is type-safe: EMP, HE and nuke modes all expose a component named
 // MissileStorage, so the storage proxy is only active while the launcher's own
@@ -277,21 +307,38 @@ FrontComponents : ~/CommonComponents
     AmmoLaneEmpLauncherFront : ~/EmpLauncherFront { ProxyToggle = LauncherEmpModeFront }
     AmmoLaneEmpOut : ~/Outs { ResourceType = missile_part_emp; ResourceStorages = [AmmoLaneEmpFront, AmmoLaneEmpLauncherFront] }
 }
-LeftComponents : ~/CommonComponents
+// Corners are flippable so ship mirroring turns a right corner into a left turn.
+// Mirror-dependent proxies come in pairs (U = unflipped, M = flipped) gated by
+// IsFlipped; exactly one of each pair is active and they share one aggregate.
+CornerComponents : ~/CommonComponents
 {
-    AmmoLaneBulletOut : ~/BulletLeft {}
-    AmmoLaneEmpLeft : ~/EmpLeft {}
+    FlipMarker : ~/FlipMarker {}
+    IsFlipped : ~/IsFlipped {}
+    AmmoLaneBulletInU : ~/PullBullet { ProxyToggle = IsFlipped; InvertProxyToggle = true }
+    AmmoLaneBulletInM : ~/PullBulletMirrored { ProxyToggle = IsFlipped }
+    AmmoLaneBulletIn : ~/Outs { ResourceType = bullet; ResourceStorages = [AmmoLaneBulletInU, AmmoLaneBulletInM] }
+}
+LeftComponents : ~/CornerComponents
+{
+    AmmoLaneBulletOutU : ~/BulletLeft { ProxyToggle = IsFlipped; InvertProxyToggle = true }
+    AmmoLaneBulletOutM : ~/BulletLeftMirrored { ProxyToggle = IsFlipped }
+    AmmoLaneBulletOut : ~/Outs { ResourceType = bullet; ResourceStorages = [AmmoLaneBulletOutU, AmmoLaneBulletOutM] }
+    AmmoLaneEmpLeftU : ~/EmpLeft { ProxyToggle = IsFlipped; InvertProxyToggle = true }
+    AmmoLaneEmpLeftM : ~/EmpLeftMirrored { ProxyToggle = IsFlipped }
     LauncherEmpModeLeft : ~/LauncherEmpModeLeft {}
     AmmoLaneEmpLauncherLeft : ~/EmpLauncherLeft { ProxyToggle = LauncherEmpModeLeft }
-    AmmoLaneEmpOut : ~/Outs { ResourceType = missile_part_emp; ResourceStorages = [AmmoLaneEmpLeft, AmmoLaneEmpLauncherLeft] }
+    AmmoLaneEmpOut : ~/Outs { ResourceType = missile_part_emp; ResourceStorages = [AmmoLaneEmpLeftU, AmmoLaneEmpLeftM, AmmoLaneEmpLauncherLeft] }
 }
-RightComponents : ~/CommonComponents
+RightComponents : ~/CornerComponents
 {
-    AmmoLaneBulletOut : ~/BulletRight {}
-    AmmoLaneEmpRight : ~/EmpRight {}
+    AmmoLaneBulletOutU : ~/BulletRight { ProxyToggle = IsFlipped; InvertProxyToggle = true }
+    AmmoLaneBulletOutM : ~/BulletRightMirrored { ProxyToggle = IsFlipped }
+    AmmoLaneBulletOut : ~/Outs { ResourceType = bullet; ResourceStorages = [AmmoLaneBulletOutU, AmmoLaneBulletOutM] }
+    AmmoLaneEmpRightU : ~/EmpRight { ProxyToggle = IsFlipped; InvertProxyToggle = true }
+    AmmoLaneEmpRightM : ~/EmpRightMirrored { ProxyToggle = IsFlipped }
     LauncherEmpModeRight : ~/LauncherEmpModeRight {}
     AmmoLaneEmpLauncherRight : ~/EmpLauncherRight { ProxyToggle = LauncherEmpModeRight }
-    AmmoLaneEmpOut : ~/Outs { ResourceType = missile_part_emp; ResourceStorages = [AmmoLaneEmpRight, AmmoLaneEmpLauncherRight] }
+    AmmoLaneEmpOut : ~/Outs { ResourceType = missile_part_emp; ResourceStorages = [AmmoLaneEmpRightU, AmmoLaneEmpRightM, AmmoLaneEmpLauncherRight] }
 }
 // Splitter: three outputs, each gated by its own (type x side) filter switch.
 SplitterComponents : ~/CommonComponents

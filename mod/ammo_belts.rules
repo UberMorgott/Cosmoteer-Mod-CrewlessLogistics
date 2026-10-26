@@ -17,6 +17,7 @@ CornerLeft : <ammo_belt_common.rules>/BasePart
     NameKey = "CrewlessLogistics/AmmoBeltCornerLeftName"
     IconNameKey = "CrewlessLogistics/AmmoBeltCornerLeftName"
     DescriptionKey = "CrewlessLogistics/AmmoBeltCornerLeftDesc"
+    IsFlippable = true
     Components : <ammo_belt_common.rules>/LeftComponents {}
 }
 CornerRight : <ammo_belt_common.rules>/BasePart
@@ -26,6 +27,7 @@ CornerRight : <ammo_belt_common.rules>/BasePart
     NameKey = "CrewlessLogistics/AmmoBeltCornerRightName"
     IconNameKey = "CrewlessLogistics/AmmoBeltCornerRightName"
     DescriptionKey = "CrewlessLogistics/AmmoBeltCornerRightDesc"
+    IsFlippable = true
     Components : <ammo_belt_common.rules>/RightComponents {}
 }
 Merger : <ammo_belt_common.rules>/BasePart

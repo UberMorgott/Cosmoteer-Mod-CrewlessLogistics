@@ -41,7 +41,7 @@ sealed partial class NativeProbe
             string prefix = registry + (99 + i);
             Require((string)ReadRuleObject(root, prefix + "/ID", typeof(string)) == BeltIds[i], "Ammo belt not appended to the vanilla registry: " + BeltIds[i]);
             beltRegistry[BeltIds[i]] = prefix;
-            Require((bool)ReadRuleObject(root, prefix + "/IsRotateable", typeof(bool)) && !(bool)ReadRuleObject(root, prefix + "/IsFlippable", typeof(bool)), "Belts must rotate and never flip (criteria Rot is a raw rotation difference)");
+            Require((bool)ReadRuleObject(root, prefix + "/IsRotateable", typeof(bool)) && (bool)ReadRuleObject(root, prefix + "/IsFlippable", typeof(bool)) == (i is 1 or 2), "Belts rotate; only corners flip (ship mirroring)");
             Require((int)ReadRuleObject(root, prefix + "/MaxHealth", typeof(int)) == (int)ReadRuleObject(root, heatPipe + "MaxHealth", typeof(int)), "Belt must keep heat pipe durability");
             Require(((int[])ReadRuleObject(root, prefix + "/Size", typeof(int[]))).SequenceEqual(new[] { 1, 1 }), "Belts are 1x1");
             foreach (string lane in new[] { "AmmoLaneBullet", "AmmoLaneEmp" }) {
@@ -50,9 +50,11 @@ sealed partial class NativeProbe
                 Require((bool)Field(laneRules.GetType(), "DropResourcesWhenDestroyed").GetValue(laneRules)! && (bool)Field(laneRules.GetType(), "DropResourcesWhenRemoved").GetValue(laneRules)!, "Lane would delete rounds on destroy/salvage: " + BeltIds[i] + "/" + lane);
             }
         }
-        foreach (string id in BeltIds.Take(4))
+        foreach (string id in new[] { BeltIds[0], BeltIds[3] })
             Require((string)ReadRuleObject(root, beltRegistry[id] + "/Components/AmmoLaneBulletOut/Type", typeof(string)) == "ResourceStorageProxy", "Single-output bullet lane must push straight into its proxy: " + id);
-        Console.WriteLine("PASS: single-output belts push bullets directly into the AmmoLaneBulletOut proxy (no 1-element MultiResourceStorage).");
+        foreach (string id in new[] { BeltIds[1], BeltIds[2] })
+            Require(((string[])ReadRuleObject(root, beltRegistry[id] + "/Components/AmmoLaneBulletOut/ResourceStorages", typeof(string[]))).SequenceEqual(new[] { "AmmoLaneBulletOutU", "AmmoLaneBulletOutM" }), "Corner output must aggregate only its unflipped/flipped proxy pair: " + id);
+        Console.WriteLine("PASS: straight/merger push bullets directly into the AmmoLaneBulletOut proxy; corners only aggregate their unflipped/flipped proxy pair.");
         Console.WriteLine("PASS: ammo belt lanes: all 10 lane storages (5 parts x bullet/EMP) parse with native DropResourcesWhenDestroyed=true and DropResourcesWhenRemoved=true.");
         for (int i = 0; i < 6; i++) {
             string toggle = (string)ReadRuleObject(root, "<gui/game/parts/part_toggles.rules>/PartToggles/" + (Nodes(root, "<gui/game/parts/part_toggles.rules>/PartToggles").Length - 6 + i) + "/ToggleID", typeof(string));
@@ -81,6 +83,7 @@ sealed partial class NativeProbe
             BeltNeighbourMatrix();
             BeltFactoryPullMatrix();
             BeltTypeSafety();
+            BeltMirroredLayouts();
         } finally {
             SetField(ship, "<Parts>k__BackingField", null);
             SetTime(0);
@@ -141,6 +144,10 @@ sealed partial class NativeProbe
         var components = new Dictionary<string, object>();
         foreach (string name in names) {
             var rules = CachedRules(prefix + "/" + name, beltRoot, "Cosmoteer.Ships.Parts.PartComponentRules");
+            // Native physical construction filter (Part.cs OnlyWithRotation/OnlyWithFlip).
+            var onlyRot = (int?)Field(rules.GetType(), "OnlyWithRotation").GetValue(rules);
+            var onlyFlip = (bool?)Field(rules.GetType(), "OnlyWithFlip").GetValue(rules);
+            if ((onlyRot.HasValue && onlyRot != (rot & 3)) || (onlyFlip.HasValue && onlyFlip != rot >= 4)) continue;
             if (rules.GetType().Name == "PartUIToggleRules" && (bool)Field(rules.GetType(), "RememberValue").GetValue(rules)!) {
                 Require((int)Field(rules.GetType(), "Default").GetValue(rules)! == 1 && !(bool)Field(rules.GetType(), "RequiresCommand").GetValue(rules)!, "Splitter filters must default to allowed without command");
                 // No save metadata in the fixture; only persistence is bypassed.
@@ -359,13 +366,17 @@ sealed partial class NativeProbe
     static readonly Dictionary<string, (int X, int Y)[]> BeltOutputs = new() {
         [BeltIds[0]] = new[] { (0, -1) }, [BeltIds[1]] = new[] { (-1, 0) }, [BeltIds[2]] = new[] { (1, 0) },
         [BeltIds[3]] = new[] { (0, -1) }, [BeltIds[4]] = new[] { (0, -1), (-1, 0), (1, 0) } };
+    static IEnumerable<int> Orientations(string id) => Enumerable.Range(0, id == BeltIds[1] || id == BeltIds[2] ? 8 : 4);
+    // Bound = native proxy (or aggregate of proxies) currently exposes target capacity.
+    static bool Bound(object storage) => Count(storage, "MaxResources") > 0;
     void BeltNeighbourMatrix()
     {
         int cases = 0, linked = 0;
-        foreach (var source in BeltIds) foreach (int sr in new[] { 0, 1, 2, 3 }) foreach (var output in BeltOutputs[source])
-            foreach (var target in BeltIds) foreach (int tr in new[] { 0, 1, 2, 3 }) {
+        foreach (var source in BeltIds) foreach (int sr in Orientations(source)) foreach (var output in BeltOutputs[source])
+            foreach (var target in BeltIds) foreach (int tr in Orientations(target)) {
                 NewBeltGrid();
-                var dir = Rot(sr, output.X, output.Y);
+                // Flip mirrors local X before rotation (PartRules.GetShipRelativeCell).
+                var dir = Rot(sr, sr >= 4 ? -output.X : output.X, output.Y);
                 var s = Belt(source, 0, 0, sr);
                 var t = Belt(target, dir.X, dir.Y, tr);
                 AttachAll();
@@ -379,7 +390,7 @@ sealed partial class NativeProbe
                 }
                 cases++; if (expected) linked++;
             }
-        Console.WriteLine($"PASS: belt neighbour matrix {cases} cases (5 parts x 4 rot x outputs x 5 parts x 4 rot), {linked} input-facing links, {cases - linked} passing/away/output-facing neighbours received nothing; bullet and EMP lanes.");
+        Console.WriteLine($"PASS: belt neighbour matrix {cases} cases (5 parts x 4 rot [x flip for corners] x outputs x same), {linked} input-facing links, {cases - linked} passing/away/output-facing neighbours received nothing; bullet and EMP lanes.");
         scenarioResults.Add(new { name = "ammo belt neighbour orientation matrix", cases, linked, rejected = cases - linked });
     }
 
@@ -403,20 +414,21 @@ sealed partial class NativeProbe
             for (int x = -1; x <= rw; x++) for (int y = -1; y <= rh; y++) {
                 if (x >= 0 && x < rw && y >= 0 && y < rh) continue;
                 if ((x < 0 || x >= rw) && (y < 0 || y >= rh)) continue; // corners touch no face
-                foreach (int br in new[] { 0, 1, 2, 3 }) {
+                foreach (var beltId in new[] { BeltIds[0], BeltIds[2] }) foreach (int br in Orientations(beltId)) {
                     NewBeltGrid();
                     var factory = Endpoint(factoryId, 0, 0, rotFlip, w, h, Fixture(storage));
-                    var belt = Belt(BeltIds[0], x, y, br);
+                    var belt = Belt(beltId, x, y, br);
                     AttachAll();
-                    var back = Rot(br, 0, 1);
+                    var back = Rot(br, 0, 1); // back is mirror-invariant
                     bool expected = faces.Any(f => f.Belt == (x, y) && f.Out == (x + back.X, y + back.Y));
-                    Require((Proxied(belt[lane]) != null) == expected, $"Factory pull rule failed: {factoryId} rotFlip{rotFlip} belt ({x},{y}) r{br} expected {expected}");
-                    Require(Proxied(belt[otherLane]) == null, "Lane pulled from the wrong factory type");
+                    Require(Bound(belt[lane]) == expected, $"Factory pull rule failed: {factoryId} rotFlip{rotFlip} {beltId} ({x},{y}) rf{br} expected {expected}");
+                    Require(!Bound(belt[otherLane]), "Lane pulled from the wrong factory type");
+                    if (belt.Components.ContainsKey("AmmoLaneBulletInU")) Require(!(Bound(belt["AmmoLaneBulletInU"]) && Bound(belt["AmmoLaneBulletInM"])), "Both mirror variants of a corner pull are active");
                     cases++; if (expected) pulls++;
                 }
             }
         }
-        Console.WriteLine($"PASS: rear pull matrix {cases} cases (factory_ammo, factory_emp x 4 rot x flip x ring cells x 4 belt rot): {pulls} binds exactly on output faces; never a wrong-type lane.");
+        Console.WriteLine($"PASS: rear pull matrix {cases} cases (factory_ammo, factory_emp x 4 rot x flip x ring cells x straight 4 rot + corner 4 rot x flip): {pulls} binds exactly on output faces; never a wrong-type lane.");
         scenarioResults.Add(new { name = "ammo belt factory pull matrix", cases, pulls });
     }
 
@@ -489,6 +501,51 @@ sealed partial class NativeProbe
         scenarioResults.Add(new { name = "ammo belt type safety", empIntoCannon = 0, bulletsIntoLauncher = 0, empIntoNuke = 0, transientNukeBindingInSyncModeEvent = transientNuke });
     }
 
+    // ---- (3) ship mirroring: layouts mirrored by native PartInfo.MirrorX/MirrorY ----
+    void BeltMirroredLayouts()
+    {
+        var partInfoType = Game("Cosmoteer.Ships.Parts.PartInfo");
+        var mirrorX = partInfoType.GetMethod("MirrorX")!; var mirrorY = partInfoType.GetMethod("MirrorY")!;
+        var rangeType = mirrorX.GetParameters()[0].ParameterType;
+        const string factoryPart = "<ships/terran/factory_ammo/factory_ammo.rules>/Part", cannonPart = "<ships/terran/cannon_med/cannon_med.rules>/Part";
+        // (kind, id, rules path, x, y, rotFlip, w, h). Right-turn and left-turn feeds.
+        var layouts = new Dictionary<string, (string Kind, string Id, string Path, int X, int Y, int R, int W, int H)[]> {
+            ["right corner"] = new[] { ("factory", "cosmoteer.factory_ammo", factoryPart, 0, 0, 0, 2, 2), ("belt", BeltIds[0], "", 2, 1, 1, 1, 1), ("belt", BeltIds[2], "", 3, 1, 1, 1, 1), ("belt", BeltIds[0], "", 3, 2, 2, 1, 1), ("cannon", "cosmoteer.cannon_med", cannonPart, 3, 3, 0, 2, 2) },
+            ["left corner"] = new[] { ("factory", "cosmoteer.factory_ammo", factoryPart, 0, 0, 0, 2, 2), ("belt", BeltIds[0], "", 2, 1, 1, 1, 1), ("belt", BeltIds[1], "", 3, 1, 1, 1, 1), ("belt", BeltIds[0], "", 3, 0, 0, 1, 1), ("cannon", "cosmoteer.cannon_med", cannonPart, 3, -2, 0, 2, 2) } };
+        int runs = 0;
+        foreach (var (layoutName, layout) in layouts) foreach (var mode in new[] { "none", "X", "Y", "XY" }) {
+            int minX = layout.Min(p => p.X), maxX = layout.Max(p => p.X + ((p.R & 1) == 1 ? p.H : p.W) - 1);
+            int minY = layout.Min(p => p.Y), maxY = layout.Max(p => p.Y + ((p.R & 1) == 1 ? p.W : p.H) - 1);
+            NewBeltGrid();
+            PlacedPart? factory = null, cannon = null; var belts = new List<PlacedPart>();
+            foreach (var spec in layout) {
+                // Native editor mirroring math on a PartRules carrying the parsed mirror fields.
+                string path = spec.Kind == "belt" ? beltRegistry[spec.Id] : spec.Path;
+                var rules = RuntimeHelpers.GetUninitializedObject(Game("Cosmoteer.Ships.Parts.PartRules"));
+                SetField(rules, "Size", Vector(spec.W, spec.H));
+                foreach (string flag in new[] { "IsFlippable", "IsRotateable" }) SetField(rules, flag, ReadRuleObject(beltRoot, path + "/" + flag, typeof(bool)));
+                foreach (string map in new[] { "FlipHRotate", "FlipVRotate" }) SetField(rules, map, ReadRuleObject(beltRoot, path + "/" + map, typeof(int[])));
+                object info = Activator.CreateInstance(partInfoType, rules, Vector(spec.X, spec.Y), spec.R & 3, spec.R >= 4)!;
+                if (mode.Contains('X')) info = mirrorX.Invoke(info, new[] { Activator.CreateInstance(rangeType, minX, maxX)! })!;
+                if (mode.Contains('Y')) info = mirrorY.Invoke(info, new[] { Activator.CreateInstance(rangeType, minY, maxY)! })!;
+                var loc = Field(partInfoType, "Location").GetValue(info)!;
+                int x = (int)loc.GetType().GetField("X")!.GetValue(loc)!, y = (int)loc.GetType().GetField("Y")!.GetValue(loc)!;
+                int rotFlip = (int)Field(partInfoType, "Rotation").GetValue(info)! | ((bool)Field(partInfoType, "FlipX").GetValue(info)! ? 4 : 0);
+                if (spec.Kind == "belt") belts.Add(Belt(spec.Id, x, y, rotFlip));
+                else if (spec.Kind == "factory") factory = Endpoint(spec.Id, x, y, rotFlip, spec.W, spec.H, Fixture("AmmoFactory/AmmoStorage"));
+                else cannon = Endpoint(spec.Id, x, y, rotFlip, spec.W, spec.H, Vanilla(CannonAmmo));
+            }
+            AttachAll();
+            SetCount(factory!["AmmoStorage"], 30);
+            BeltTicks(900, () => Require(Total("AmmoLaneBullet", factory["AmmoStorage"], cannon!["AmmoStorage"]) == 30, "Bullets not conserved in mirrored layout"));
+            bool cornerFlipped = (bool)Property(belts[1].Part, "FlipX");
+            Require(cornerFlipped == (mode.Length == 1), "Native mirroring should flip the corner exactly for single-axis mirrors");
+            Require(Rounds(cannon!["AmmoStorage"]) == 15 && belts.All(b => Rounds(b["AmmoLaneBullet"]) == 1), $"Mirrored layout broke ({layoutName}, mirror {mode})");
+            runs++;
+        }
+        Console.WriteLine($"PASS: ship mirroring: {runs} layouts (right/left corner feeds x none/MirrorX/MirrorY/both via native PartInfo mirroring): corner flips on single-axis mirrors, cannon_med fills 15/15, all lanes full, bullets conserved.");
+        scenarioResults.Add(new { name = "ammo belt mirrored layouts", runs, nativeMirror = "PartInfo.MirrorX/MirrorY" });
+    }
     // Emulates Part.AddComponents/RemoveComponent bookkeeping + native ComponentAdded/Removed events.
     void RaiseComponentChange(object p, string id, object component, bool added)
     {
