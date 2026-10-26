@@ -27,6 +27,7 @@ sealed partial class NativeProbe
     List<BeltHop> beltHops = new();
     List<PlacedPart> beltParts = new();
     double beltTime;
+    long beltPulses; // conversion ticks actually scheduled (operational converters only)
     Random beltOrder = new(20261027);
     Func<double, object> toTime = null!;
 
@@ -125,7 +126,7 @@ sealed partial class NativeProbe
     }
     object[] Nodes(object source, string path) => ((IEnumerable)ReadRuleObject(source, path, Core("Halfling.ObjectText.OTNode").MakeArrayType())).Cast<object>().ToArray();
     readonly Dictionary<string, string[]> beltComponentNames = new();
-    static readonly HashSet<string> BeltLogicTypes = new() { "ResourceStorage", "ResourceStorageProxy", "MultiResourceStorage", "ResourceConverter", "MultiToggle", "ToggleProxy", "UIToggle" };
+    static readonly HashSet<string> BeltLogicTypes = new() { "ResourceStorage", "ResourceStorageProxy", "MultiResourceStorage", "ResourceConverter", "MultiToggle", "ToggleProxy", "UIToggle", "StaticValue", "ValueOperation", "ThresholdToggle" };
 
     PlacedPart Belt(string id, int x, int y, int rot)
     {
@@ -160,7 +161,7 @@ sealed partial class NativeProbe
     static bool Is(object component, string typeName) { for (var t = component.GetType(); t != null; t = t.BaseType) if (t.Name == typeName) return true; return false; }
     PlacedPart Link(object p, Dictionary<string, object> components)
     {
-        int Order(object c) => Is(c, "PartUIToggle") || Is(c, "PartDebugToggle") ? 0 : Is(c, "PartToggleProxy") ? 1 : Is(c, "ResourceStorageProxy") || c.GetType().Name == "ResourceStorage" ? 2 : Is(c, "MultiResourceStorage") ? 3 : Is(c, "PartMultiToggle") ? 4 : 5;
+        int Order(object c) => Is(c, "PartUIToggle") || Is(c, "PartDebugToggle") || Is(c, "PartStaticValue") ? 0 : Is(c, "PartToggleProxy") ? 1 : Is(c, "ResourceStorageProxy") || c.GetType().Name == "ResourceStorage" ? 2 : Is(c, "MultiResourceStorage") ? 3 : Is(c, "PartValueOperation") ? 4 : Is(c, "PartThresholdToggle") ? 5 : Is(c, "PartMultiToggle") ? 6 : 7;
         foreach (var c in components.Values.OrderBy(Order)) {
             // Converters/storages: link only (no native operational scheduling).
             if (Is(c, "ResourceConverter") || Is(c, "BaseResourceStorage")) Call(c, "OnAddedToPart2", p);
@@ -191,7 +192,7 @@ sealed partial class NativeProbe
                 bool on = Flag(hop.Gate, "IsToggleOn");
                 if (on && !hop.WasOn) hop.Next = beltTime + BeltDt; // native OnOperational: first tick one Interval later
                 hop.WasOn = on;
-                if (on && beltTime >= hop.Next - 1e-9) { Pulse(hop.Converter); hop.Next = beltTime + BeltDt; }
+                if (on && beltTime >= hop.Next - 1e-9) { Pulse(hop.Converter); beltPulses++; hop.Next = beltTime + BeltDt; }
             }
             afterTick?.Invoke();
         }
@@ -288,12 +289,16 @@ sealed partial class NativeProbe
         BeltTicks(900, () => Require(Total("AmmoLaneBullet", l.Factory["AmmoStorage"], full, open) == 55, "Bullets not conserved under backpressure"));
         Require(Rounds(full) == 15 && Rounds(l.LeftBelt["AmmoLaneBullet"]) == 1, "Full cannon branch did not stop with one round waiting");
         Require(Rounds(open) == 15, "Open branch starved by full branch");
+        long before = beltPulses;
+        BeltTicks(300);
+        long idlePulses = beltPulses - before;
+        Require(idlePulses == 0, "Full/blocked lanes keep polling: " + idlePulses + " conversion ticks in 10 s");
         int factoryLeft = Rounds(l.Factory["AmmoStorage"]);
         SetCount(full, 10);
         BeltTicks(300);
         Require(Rounds(full) == 15, "Drained branch did not resume");
-        Console.WriteLine($"PASS: backpressure: full cannon_med branch holds (15, lane 1) while other branch fills 0->15; branch resumes after drain; factory left {factoryLeft}.");
-        scenarioResults.Add(new { name = "ammo belt splitter backpressure and cycling", maxSpread, fullBranch = 15, openBranch = 15, resumed = true });
+        Console.WriteLine($"PASS: backpressure: full cannon_med branch holds (15, lane 1) while other branch fills 0->15; branch resumes after drain; factory left {factoryLeft}. Saturated 10 s: {idlePulses} converter ticks (gate = has round AND output RemainingCapacity>=1).");
+        scenarioResults.Add(new { name = "ammo belt splitter backpressure and cycling", maxSpread, fullBranch = 15, openBranch = 15, resumed = true, saturatedConverterTicks = idlePulses });
     }
 
     // ---- (c) splitter filter (actual package UIToggle Mode setter) ----

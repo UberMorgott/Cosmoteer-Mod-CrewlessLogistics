@@ -58,8 +58,8 @@ Lane
     DropResourcesWhenDestroyed = true
     DropResourcesWhenRemoved = true
 }
-// Converter template. Gate: the From storage's native toggle (on at >= 1 round),
-// so idle lanes are non-operational and leave the converter queue.
+// Converter template. Gates (OperationalToggle) are set per use: idle, blocked and
+// full hops are non-operational and leave the native converter queue.
 Hop
 {
     Type = ResourceConverter
@@ -75,6 +75,9 @@ Outs
     CycleStorageOnAdd = true
 }
 CanPull { Type = MultiToggle; Mode = All }
+// Output free slots (native RemainingCapacity value, minus 0) >= 1.
+Room { Type = ValueOperation; Operator = Subtract; ValueTwo = AmmoBeltZero }
+HasRoom { Type = ThresholdToggle; MinAmount = 1 }
 
 PullBullet
 {
@@ -246,13 +249,22 @@ CommonComponents : <./Data/ships/terran/base_part_terran.rules>/Part/Components
     AmmoLaneBulletIn : ~/PullBullet {}
     AmmoLaneBulletCanPull : ~/CanPull { Toggles = [AmmoLaneBulletIn, { Toggle = AmmoLaneBullet; Invert = true }] }
     AmmoLaneBulletPull : ~/Hop { OperationalToggle = AmmoLaneBulletCanPull; FromStorage = AmmoLaneBulletIn; ToStorage = AmmoLaneBullet }
-    AmmoLaneBulletPush : ~/Hop { OperationalToggle = AmmoLaneBullet; FromStorage = AmmoLaneBullet; ToStorage = AmmoLaneBulletOut }
+    // Push only while holding a round AND the output has room: a blocked or full
+    // lane is non-operational (out of the converter queue) instead of polling at 30/s.
+    AmmoBeltZero { Type = StaticValue; Value = 0 }
+    AmmoLaneBulletRoom : ~/Room { ValueOne = { ID = AmmoLaneBulletOut; ValueID = "RemainingCapacity" } }
+    AmmoLaneBulletHasRoom : ~/HasRoom { ValueFrom = AmmoLaneBulletRoom }
+    AmmoLaneBulletCanPush : ~/CanPull { Toggles = [AmmoLaneBullet, AmmoLaneBulletHasRoom] }
+    AmmoLaneBulletPush : ~/Hop { OperationalToggle = AmmoLaneBulletCanPush; FromStorage = AmmoLaneBullet; ToStorage = AmmoLaneBulletOut }
 
     AmmoLaneEmp : ~/Lane { ResourceType = missile_part_emp }
     AmmoLaneEmpIn : ~/PullEmp {}
     AmmoLaneEmpCanPull : ~/CanPull { Toggles = [AmmoLaneEmpIn, { Toggle = AmmoLaneEmp; Invert = true }] }
     AmmoLaneEmpPull : ~/Hop { OperationalToggle = AmmoLaneEmpCanPull; FromStorage = AmmoLaneEmpIn; ToStorage = AmmoLaneEmp }
-    AmmoLaneEmpPush : ~/Hop { OperationalToggle = AmmoLaneEmp; FromStorage = AmmoLaneEmp; ToStorage = AmmoLaneEmpOut }
+    AmmoLaneEmpRoom : ~/Room { ValueOne = { ID = AmmoLaneEmpOut; ValueID = "RemainingCapacity" } }
+    AmmoLaneEmpHasRoom : ~/HasRoom { ValueFrom = AmmoLaneEmpRoom }
+    AmmoLaneEmpCanPush : ~/CanPull { Toggles = [AmmoLaneEmp, AmmoLaneEmpHasRoom] }
+    AmmoLaneEmpPush : ~/Hop { OperationalToggle = AmmoLaneEmpCanPush; FromStorage = AmmoLaneEmp; ToStorage = AmmoLaneEmpOut }
 }
 
 // One output side. Straight and merger: front; corners: left or right.
