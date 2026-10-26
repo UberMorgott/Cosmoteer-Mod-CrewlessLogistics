@@ -8,6 +8,22 @@ CrewlessLogistics
     CableDesc = "Four automatic electrical connections; transfers whole batteries only. Blocks crew passage and does not connect to Heat Pipes. Green glass beneath the grille lights up when a connected source has a whole battery. Plain hull roof. The dark plated casing is cosmetic: vanilla Heat Pipe stats, 1000 HP, density 1, no armor category or EMP absorption. Costs 4 coils + 2 steel."
     CrossingName = "Crewless Logistics Crew Crossing"
     CrossingDesc = "Two opposite electrical ports; crew can cross perpendicular to the cable at 80% speed. Rotate to choose the cable direction. Transfers whole batteries only; does not connect to Heat Pipes. Green glass beneath the grille lights up when a connected source has a whole battery. Vanilla Heat Pipe stats: 1000 HP, density 1, no armor category or EMP absorption. Costs 4 coils + 2 steel."
+    AmmoBeltName = "Crewless Ammo Belt"
+    AmmoBeltDesc = "Prototype. Moves bullets and EMP missile parts tile by tile without crew: in at the back, out at the arrow. Pulls from an Ammo Factory or EMP Factory output behind it and feeds the next belt, a Cannon (bullets) or a Missile Launcher set to EMP (EMP parts). One round per ammo type per tile. Heat Pipe stats: 1000 HP, 4 steel + 2 coils."
+    AmmoBeltCornerLeftName = "Crewless Ammo Belt Corner (Left)"
+    AmmoBeltCornerLeftDesc = "Prototype. Ammo belt that turns left: in at the back, out on the left side. Pulls from a factory output behind it. Heat Pipe stats: 1000 HP, 4 steel + 2 coils."
+    AmmoBeltCornerRightName = "Crewless Ammo Belt Corner (Right)"
+    AmmoBeltCornerRightDesc = "Prototype. Ammo belt that turns right: in at the back, out on the right side. Pulls from a factory output behind it. Heat Pipe stats: 1000 HP, 4 steel + 2 coils."
+    AmmoBeltMergerName = "Crewless Ammo Belt Merger"
+    AmmoBeltMergerDesc = "Prototype. Joins belts: accepts rounds from the back, left and right, out at the arrow. Heat Pipe stats: 1000 HP, 4 steel + 2 coils."
+    AmmoBeltSplitterName = "Crewless Ammo Belt Splitter"
+    AmmoBeltSplitterDesc = "Prototype. In at the back; shares rounds between the front, left and right outputs in turn, skipping full or blocked ones. Six switches choose which ammo type may leave by which side. Heat Pipe stats: 1000 HP, 4 steel + 2 coils."
+    FilterBulletFront = "Splitter: bullets to the front output. Bright = allowed, dark = blocked. Click to switch; saved."
+    FilterBulletLeft = "Splitter: bullets to the left output. Bright = allowed, dark = blocked. Click to switch; saved."
+    FilterBulletRight = "Splitter: bullets to the right output. Bright = allowed, dark = blocked. Click to switch; saved."
+    FilterEmpFront = "Splitter: EMP missile parts to the front output. Bright = allowed, dark = blocked. Click to switch; saved."
+    FilterEmpLeft = "Splitter: EMP missile parts to the left output. Bright = allowed, dark = blocked. Click to switch; saved."
+    FilterEmpRight = "Splitter: EMP missile parts to the right output. Bright = allowed, dark = blocked. Click to switch; saved."
 }
 
 

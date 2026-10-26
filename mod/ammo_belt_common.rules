@@ -1,0 +1,329 @@
+// Crewless ammo belts: shared lane templates (prototype).
+// Every belt tile holds one permanent 1-round lane per ammo type. A round hops from
+// a lane into the matching lane of the part in front (or a whitelisted endpoint) by
+// an ordinary ResourceConverter through a ResourceStorageProxy. No network teleport.
+// Belts are never flippable: RelativePartCriteria.Rot is the raw rotation difference,
+// so a mirrored source would invert the meaning of Rot 1/3. Mirror variants are parts.
+// Adding an ammo type = repeat one lane block per part with the new ResourceType/IDs.
+
+BeltIDs
+[
+    morgott.crewless_logistics.ammo_belt
+    morgott.crewless_logistics.ammo_belt_corner_left
+    morgott.crewless_logistics.ammo_belt_corner_right
+    morgott.crewless_logistics.ammo_belt_merger
+    morgott.crewless_logistics.ammo_belt_splitter
+]
+MergerIDs = [morgott.crewless_logistics.ammo_belt_merger]
+
+// Input-side criteria, relative to the pushing tile. Every belt takes input at its
+// back; the merger also at its left and right, never at its own output (front).
+// Front output: neighbour back faces us at Rot 0; merger sides at Rot 1/3.
+FrontBelt { IDs = &~/BeltIDs; Rot = 0 }
+FrontMergerA { IDs = &~/MergerIDs; Rot = 1 }
+FrontMergerB { IDs = &~/MergerIDs; Rot = 3 }
+// Right output: neighbour back faces us at Rot 1; merger sides at Rot 0/2.
+RightBelt { IDs = &~/BeltIDs; Rot = 1 }
+RightMergerA { IDs = &~/MergerIDs; Rot = 0 }
+RightMergerB { IDs = &~/MergerIDs; Rot = 2 }
+// Left output: neighbour back faces us at Rot 3; merger sides at Rot 0/2.
+LeftBelt { IDs = &~/BeltIDs; Rot = 3 }
+LeftMergerA { IDs = &~/MergerIDs; Rot = 0 }
+LeftMergerB { IDs = &~/MergerIDs; Rot = 2 }
+
+// Typed endpoints. Only these vanilla storages ever receive from a lane.
+Cannon { IDs = [cosmoteer.cannon_med] }
+Launcher { IDs = [cosmoteer.missile_launcher] }
+
+// Rear pull: the tile behind the belt must be a factory output cell and the belt
+// must sit outside the factory on that output face (factory Rect.Top = 1 in belt space).
+// factory_ammo AmmoStorage grid = cell [1,1] (right and bottom faces).
+AmmoFactory0 { IDs = [cosmoteer.factory_ammo]; Rot = 2; FlipX = false; Top = 1; Left = 0 }
+AmmoFactory1 { IDs = [cosmoteer.factory_ammo]; Rot = 3; FlipX = false; Top = 1; Left = -1 }
+AmmoFactory2 { IDs = [cosmoteer.factory_ammo]; Rot = 1; FlipX = true; Top = 1; Left = 0 }
+AmmoFactory3 { IDs = [cosmoteer.factory_ammo]; Rot = 2; FlipX = true; Top = 1; Left = -1 }
+// factory_emp MissileStorage grid = bottom row [0,3,3,1] (bottom face only).
+EmpFactory0 { IDs = [cosmoteer.factory_emp]; Rot = 2; Top = 1; Left = 0 }
+EmpFactory1 { IDs = [cosmoteer.factory_emp]; Rot = 2; Top = 1; Left = -1 }
+EmpFactory2 { IDs = [cosmoteer.factory_emp]; Rot = 2; Top = 1; Left = -2 }
+
+Lane
+{
+    Type = ResourceStorage
+    MaxResources = 1
+    InitToMaxResources = 0
+    // Travel time per tile: a received round is not ready to hop on for 0.2 s.
+    DelayBeforeReadyToUse = 0.2
+}
+// Converter template. Gate: the From storage's native toggle (on at >= 1 round),
+// so idle lanes are non-operational and leave the converter queue.
+Hop
+{
+    Type = ResourceConverter
+    FromQuantity = 1
+    ToQuantity = 1
+    Interval = 1/30
+}
+// Outputs share by native cycling: first output with room, then rotate order.
+Outs
+{
+    Type = MultiResourceStorage
+    AddMode = InOrder
+    CycleStorageOnAdd = true
+}
+CanPull { Type = MultiToggle; Mode = All }
+
+PullBullet
+{
+    Type = ResourceStorageProxy
+    ResourceType = bullet
+    PartLocation = [0, 1]
+    ProxyableComponents
+    [
+        { PartCriteria = &~/AmmoFactory0; ComponentID = AmmoStorage }
+        { PartCriteria = &~/AmmoFactory1; ComponentID = AmmoStorage }
+        { PartCriteria = &~/AmmoFactory2; ComponentID = AmmoStorage }
+        { PartCriteria = &~/AmmoFactory3; ComponentID = AmmoStorage }
+    ]
+}
+PullEmp
+{
+    Type = ResourceStorageProxy
+    ResourceType = missile_part_emp
+    PartLocation = [0, 1]
+    ProxyableComponents
+    [
+        { PartCriteria = &~/EmpFactory0; ComponentID = MissileStorage }
+        { PartCriteria = &~/EmpFactory1; ComponentID = MissileStorage }
+        { PartCriteria = &~/EmpFactory2; ComponentID = MissileStorage }
+    ]
+}
+
+BulletFront
+{
+    Type = ResourceStorageProxy
+    ResourceType = bullet
+    PartLocation = [0, -1]
+    ProxyableComponents
+    [
+        { PartCriteria = &~/FrontBelt; ComponentID = AmmoLaneBullet }
+        { PartCriteria = &~/FrontMergerA; ComponentID = AmmoLaneBullet }
+        { PartCriteria = &~/FrontMergerB; ComponentID = AmmoLaneBullet }
+        { PartCriteria = &~/Cannon; ComponentID = AmmoStorage }
+    ]
+}
+BulletRight : ~/BulletFront
+{
+    PartLocation = [1, 0]
+    ProxyableComponents
+    [
+        { PartCriteria = &~/RightBelt; ComponentID = AmmoLaneBullet }
+        { PartCriteria = &~/RightMergerA; ComponentID = AmmoLaneBullet }
+        { PartCriteria = &~/RightMergerB; ComponentID = AmmoLaneBullet }
+        { PartCriteria = &~/Cannon; ComponentID = AmmoStorage }
+    ]
+}
+BulletLeft : ~/BulletFront
+{
+    PartLocation = [-1, 0]
+    ProxyableComponents
+    [
+        { PartCriteria = &~/LeftBelt; ComponentID = AmmoLaneBullet }
+        { PartCriteria = &~/LeftMergerA; ComponentID = AmmoLaneBullet }
+        { PartCriteria = &~/LeftMergerB; ComponentID = AmmoLaneBullet }
+        { PartCriteria = &~/Cannon; ComponentID = AmmoStorage }
+    ]
+}
+
+EmpFront
+{
+    Type = ResourceStorageProxy
+    ResourceType = missile_part_emp
+    PartLocation = [0, -1]
+    ProxyableComponents
+    [
+        { PartCriteria = &~/FrontBelt; ComponentID = AmmoLaneEmp }
+        { PartCriteria = &~/FrontMergerA; ComponentID = AmmoLaneEmp }
+        { PartCriteria = &~/FrontMergerB; ComponentID = AmmoLaneEmp }
+    ]
+}
+EmpRight : ~/EmpFront
+{
+    PartLocation = [1, 0]
+    ProxyableComponents
+    [
+        { PartCriteria = &~/RightBelt; ComponentID = AmmoLaneEmp }
+        { PartCriteria = &~/RightMergerA; ComponentID = AmmoLaneEmp }
+        { PartCriteria = &~/RightMergerB; ComponentID = AmmoLaneEmp }
+    ]
+}
+EmpLeft : ~/EmpFront
+{
+    PartLocation = [-1, 0]
+    ProxyableComponents
+    [
+        { PartCriteria = &~/LeftBelt; ComponentID = AmmoLaneEmp }
+        { PartCriteria = &~/LeftMergerA; ComponentID = AmmoLaneEmp }
+        { PartCriteria = &~/LeftMergerB; ComponentID = AmmoLaneEmp }
+    ]
+}
+
+// Launcher binding is type-safe: EMP, HE and nuke modes all expose a component named
+// MissileStorage, so the storage proxy is only active while the launcher's own
+// EMPMissilesToggle (missile_type mode 1) is on. Mode removal is immediate; the
+// next mode's components are added deferred, so an active proxy never ends bound
+// to another mode's storage (see AmmoBeltProbe).
+LauncherEmpModeFront
+{
+    Type = ToggleProxy
+    PartLocation = [0, -1]
+    IsOnWhenNotConnected = false
+    ProxyableComponents [ { PartCriteria = &~/Launcher; ComponentID = EMPMissilesToggle } ]
+}
+LauncherEmpModeRight : ~/LauncherEmpModeFront { PartLocation = [1, 0] }
+LauncherEmpModeLeft : ~/LauncherEmpModeFront { PartLocation = [-1, 0] }
+EmpLauncherFront
+{
+    Type = ResourceStorageProxy
+    ResourceType = missile_part_emp
+    PartLocation = [0, -1]
+    ProxyableComponents [ { PartCriteria = &~/Launcher; ComponentID = MissileStorage } ]
+}
+EmpLauncherRight : ~/EmpLauncherFront { PartLocation = [1, 0] }
+EmpLauncherLeft : ~/EmpLauncherFront { PartLocation = [-1, 0] }
+
+// Splitter filter switches: on = this ammo type may leave by this side.
+Filter
+{
+    Type = UIToggle
+    Default = 1
+    RequiresCommand = false
+    RememberValue = true
+}
+
+BulletSprites
+{
+    Type = ResourceSprites
+    Location = [.3, .5]
+    ResourceStorage = AmmoLaneBullet
+    Layer = "doodads_high"
+    ResourceLevels [ { File = "./Data/resources/bullet/bullet1.png"; Size = [.45, .45] } ]
+}
+EmpSprites
+{
+    Type = ResourceSprites
+    Location = [.7, .5]
+    ResourceStorage = AmmoLaneEmp
+    Layer = "doodads_high"
+    ResourceLevels [ { File = "./Data/resources/missile_part_emp/missile_part_emp1.png"; Size = [.45, .45] } ]
+}
+
+// Visuals: vanilla conveyor floor arrows (point to the output) on corridor floor.
+CommonComponents : <./Data/ships/terran/base_part_terran.rules>/Part/Components
+{
+    Graphics
+    {
+        Type = Graphics
+        Location = [.5, .5]
+        Floor : <./Data/ships/terran/corridor/corridor.rules>/Part/Components/Graphics/Floor {}
+        OperationalDoodad : <./Data/ships/terran/conveyor/conveyor.rules>/Part/Components/Graphics/OperationalDoodad {}
+    }
+    Blueprints
+    {
+        Type = BlueprintSprite
+        File = "./Data/ships/terran/conveyor/blueprints.png"
+        Size = [1, 1]
+    }
+    DestroyedEffects : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_adaptive.rules>/Part/Components/DestroyedEffects {}
+    BulletSprites : ~/BulletSprites {}
+    EmpSprites : ~/EmpSprites {}
+
+    // Lane block (repeat per ammo type). Each part defines AmmoLane<Type>Out.
+    AmmoLaneBullet : ~/Lane { ResourceType = bullet }
+    AmmoLaneBulletIn : ~/PullBullet {}
+    AmmoLaneBulletCanPull : ~/CanPull { Toggles = [AmmoLaneBulletIn, { Toggle = AmmoLaneBullet; Invert = true }] }
+    AmmoLaneBulletPull : ~/Hop { OperationalToggle = AmmoLaneBulletCanPull; FromStorage = AmmoLaneBulletIn; ToStorage = AmmoLaneBullet }
+    AmmoLaneBulletPush : ~/Hop { OperationalToggle = AmmoLaneBullet; FromStorage = AmmoLaneBullet; ToStorage = AmmoLaneBulletOut }
+
+    AmmoLaneEmp : ~/Lane { ResourceType = missile_part_emp }
+    AmmoLaneEmpIn : ~/PullEmp {}
+    AmmoLaneEmpCanPull : ~/CanPull { Toggles = [AmmoLaneEmpIn, { Toggle = AmmoLaneEmp; Invert = true }] }
+    AmmoLaneEmpPull : ~/Hop { OperationalToggle = AmmoLaneEmpCanPull; FromStorage = AmmoLaneEmpIn; ToStorage = AmmoLaneEmp }
+    AmmoLaneEmpPush : ~/Hop { OperationalToggle = AmmoLaneEmp; FromStorage = AmmoLaneEmp; ToStorage = AmmoLaneEmpOut }
+}
+
+// One output side. Straight and merger: front; corners: left or right.
+FrontComponents : ~/CommonComponents
+{
+    AmmoLaneBulletFront : ~/BulletFront {}
+    AmmoLaneBulletOut : ~/Outs { ResourceType = bullet; ResourceStorages = [AmmoLaneBulletFront] }
+    AmmoLaneEmpFront : ~/EmpFront {}
+    LauncherEmpModeFront : ~/LauncherEmpModeFront {}
+    AmmoLaneEmpLauncherFront : ~/EmpLauncherFront { ProxyToggle = LauncherEmpModeFront }
+    AmmoLaneEmpOut : ~/Outs { ResourceType = missile_part_emp; ResourceStorages = [AmmoLaneEmpFront, AmmoLaneEmpLauncherFront] }
+}
+LeftComponents : ~/CommonComponents
+{
+    AmmoLaneBulletLeft : ~/BulletLeft {}
+    AmmoLaneBulletOut : ~/Outs { ResourceType = bullet; ResourceStorages = [AmmoLaneBulletLeft] }
+    AmmoLaneEmpLeft : ~/EmpLeft {}
+    LauncherEmpModeLeft : ~/LauncherEmpModeLeft {}
+    AmmoLaneEmpLauncherLeft : ~/EmpLauncherLeft { ProxyToggle = LauncherEmpModeLeft }
+    AmmoLaneEmpOut : ~/Outs { ResourceType = missile_part_emp; ResourceStorages = [AmmoLaneEmpLeft, AmmoLaneEmpLauncherLeft] }
+}
+RightComponents : ~/CommonComponents
+{
+    AmmoLaneBulletRight : ~/BulletRight {}
+    AmmoLaneBulletOut : ~/Outs { ResourceType = bullet; ResourceStorages = [AmmoLaneBulletRight] }
+    AmmoLaneEmpRight : ~/EmpRight {}
+    LauncherEmpModeRight : ~/LauncherEmpModeRight {}
+    AmmoLaneEmpLauncherRight : ~/EmpLauncherRight { ProxyToggle = LauncherEmpModeRight }
+    AmmoLaneEmpOut : ~/Outs { ResourceType = missile_part_emp; ResourceStorages = [AmmoLaneEmpRight, AmmoLaneEmpLauncherRight] }
+}
+// Splitter: three outputs, each gated by its own (type x side) filter switch.
+SplitterComponents : ~/CommonComponents
+{
+    AmmoFilterBulletFront : ~/Filter { ToggleID = "morgott.crewless_logistics.belt_bullet_front" }
+    AmmoFilterBulletLeft : ~/Filter { ToggleID = "morgott.crewless_logistics.belt_bullet_left" }
+    AmmoFilterBulletRight : ~/Filter { ToggleID = "morgott.crewless_logistics.belt_bullet_right" }
+    AmmoFilterEmpFront : ~/Filter { ToggleID = "morgott.crewless_logistics.belt_emp_front" }
+    AmmoFilterEmpLeft : ~/Filter { ToggleID = "morgott.crewless_logistics.belt_emp_left" }
+    AmmoFilterEmpRight : ~/Filter { ToggleID = "morgott.crewless_logistics.belt_emp_right" }
+
+    AmmoLaneBulletFront : ~/BulletFront { ProxyToggle = AmmoFilterBulletFront }
+    AmmoLaneBulletLeft : ~/BulletLeft { ProxyToggle = AmmoFilterBulletLeft }
+    AmmoLaneBulletRight : ~/BulletRight { ProxyToggle = AmmoFilterBulletRight }
+    AmmoLaneBulletOut : ~/Outs { ResourceType = bullet; ResourceStorages = [AmmoLaneBulletFront, AmmoLaneBulletLeft, AmmoLaneBulletRight] }
+
+    AmmoLaneEmpFront : ~/EmpFront { ProxyToggle = AmmoFilterEmpFront }
+    AmmoLaneEmpLeft : ~/EmpLeft { ProxyToggle = AmmoFilterEmpLeft }
+    AmmoLaneEmpRight : ~/EmpRight { ProxyToggle = AmmoFilterEmpRight }
+    LauncherEmpModeFront : ~/LauncherEmpModeFront {}
+    LauncherEmpModeLeft : ~/LauncherEmpModeLeft {}
+    LauncherEmpModeRight : ~/LauncherEmpModeRight {}
+    AmmoLaneEmpLauncherFrontOk { Type = MultiToggle; Mode = All; Toggles = [AmmoFilterEmpFront, LauncherEmpModeFront] }
+    AmmoLaneEmpLauncherLeftOk { Type = MultiToggle; Mode = All; Toggles = [AmmoFilterEmpLeft, LauncherEmpModeLeft] }
+    AmmoLaneEmpLauncherRightOk { Type = MultiToggle; Mode = All; Toggles = [AmmoFilterEmpRight, LauncherEmpModeRight] }
+    AmmoLaneEmpLauncherFront : ~/EmpLauncherFront { ProxyToggle = AmmoLaneEmpLauncherFrontOk }
+    AmmoLaneEmpLauncherLeft : ~/EmpLauncherLeft { ProxyToggle = AmmoLaneEmpLauncherLeftOk }
+    AmmoLaneEmpLauncherRight : ~/EmpLauncherRight { ProxyToggle = AmmoLaneEmpLauncherRightOk }
+    AmmoLaneEmpOut : ~/Outs
+    {
+        ResourceType = missile_part_emp
+        ResourceStorages = [AmmoLaneEmpFront, AmmoLaneEmpLeft, AmmoLaneEmpRight, AmmoLaneEmpLauncherFront, AmmoLaneEmpLauncherLeft, AmmoLaneEmpLauncherRight]
+    }
+}
+
+// Heat pipe stats: steel 4 + coil 2, 1000 HP, crew blocked, 1x1.
+BasePart : <./Data/ships/terran/heat_pipe_adaptive/heat_pipe_adaptive.rules>/Part
+{
+    OtherIDs = []
+    TypeCategories = [crewless_logistics]
+    EditorGroup = "Power"
+    EditorGroups = ["Power"]
+    DontStackInEditorGroups = ["Power"]
+    EditorParentParts = []
+    IsRotateable = true
+    IsFlippable = false
+    EditorIcon { Texture { File = "./Data/ships/terran/conveyor/icon.png"; SampleMode = Linear }; Size = [32, 32] }
+}

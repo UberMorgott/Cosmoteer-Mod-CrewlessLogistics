@@ -1,0 +1,48 @@
+// Crewless ammo belts (prototype). Output faces the part's "up"; input is its back.
+// Lanes and templates: ammo_belt_common.rules.
+
+Straight : <ammo_belt_common.rules>/BasePart
+{
+    ID = morgott.crewless_logistics.ammo_belt
+    SelectionTypeID = morgott.crewless_logistics.ammo_belt
+    NameKey = "CrewlessLogistics/AmmoBeltName"
+    IconNameKey = "CrewlessLogistics/AmmoBeltName"
+    DescriptionKey = "CrewlessLogistics/AmmoBeltDesc"
+    Components : <ammo_belt_common.rules>/FrontComponents {}
+}
+CornerLeft : <ammo_belt_common.rules>/BasePart
+{
+    ID = morgott.crewless_logistics.ammo_belt_corner_left
+    SelectionTypeID = morgott.crewless_logistics.ammo_belt_corner_left
+    NameKey = "CrewlessLogistics/AmmoBeltCornerLeftName"
+    IconNameKey = "CrewlessLogistics/AmmoBeltCornerLeftName"
+    DescriptionKey = "CrewlessLogistics/AmmoBeltCornerLeftDesc"
+    Components : <ammo_belt_common.rules>/LeftComponents {}
+}
+CornerRight : <ammo_belt_common.rules>/BasePart
+{
+    ID = morgott.crewless_logistics.ammo_belt_corner_right
+    SelectionTypeID = morgott.crewless_logistics.ammo_belt_corner_right
+    NameKey = "CrewlessLogistics/AmmoBeltCornerRightName"
+    IconNameKey = "CrewlessLogistics/AmmoBeltCornerRightName"
+    DescriptionKey = "CrewlessLogistics/AmmoBeltCornerRightDesc"
+    Components : <ammo_belt_common.rules>/RightComponents {}
+}
+Merger : <ammo_belt_common.rules>/BasePart
+{
+    ID = morgott.crewless_logistics.ammo_belt_merger
+    SelectionTypeID = morgott.crewless_logistics.ammo_belt_merger
+    NameKey = "CrewlessLogistics/AmmoBeltMergerName"
+    IconNameKey = "CrewlessLogistics/AmmoBeltMergerName"
+    DescriptionKey = "CrewlessLogistics/AmmoBeltMergerDesc"
+    Components : <ammo_belt_common.rules>/FrontComponents {}
+}
+Splitter : <ammo_belt_common.rules>/BasePart
+{
+    ID = morgott.crewless_logistics.ammo_belt_splitter
+    SelectionTypeID = morgott.crewless_logistics.ammo_belt_splitter
+    NameKey = "CrewlessLogistics/AmmoBeltSplitterName"
+    IconNameKey = "CrewlessLogistics/AmmoBeltSplitterName"
+    DescriptionKey = "CrewlessLogistics/AmmoBeltSplitterDesc"
+    Components : <ammo_belt_common.rules>/SplitterComponents {}
+}

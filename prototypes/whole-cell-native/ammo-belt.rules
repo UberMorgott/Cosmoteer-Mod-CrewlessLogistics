@@ -1,0 +1,10 @@
+// Media-free endpoint stand-ins for AmmoBeltProbe. Group/leaf names are the vanilla
+// part/component IDs the belt proxies bind to; capacities copy vanilla values.
+// Vanilla factory outputs are TypedResourceGrid (crew grid tiles, needs full startup):
+// a plain storage stands in for the proxied BaseResourceStorage.
+AmmoFactory { AmmoStorage { Type = ResourceStorage; ResourceType = bullet; MaxResources = 60; } }
+EmpFactory { MissileStorage { Type = ResourceStorage; ResourceType = missile_part_emp; MaxResources = 30; } }
+// missile_launcher: EMP mode component set (emp/missile_launcher_emp.rules) and nuke set.
+Launcher { EMPMissilesToggle { Type = DebugToggle; DefaultToggle = false; } }
+EmpLauncher { MissileStorage { Type = ResourceStorage; ResourceType = missile_part_emp; MaxResources = 9; DelayBeforeReadyToUse = .5; } }
+NukeLauncher { MissileStorage { Type = ResourceStorage; ResourceType = missile_part_nuke; MaxResources = 12; DelayBeforeReadyToUse = .5; } }

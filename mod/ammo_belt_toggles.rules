@@ -1,0 +1,66 @@
+// Splitter filter switches: one per (ammo type x output side). Choice 1 = allowed.
+Base
+{
+    Style = Switch
+    ShowInEditor = true
+    SortOrder = 2
+}
+BulletBlocked { Texture { File = "./Data/resources/bullet/icon.png"; MipLevels = 2; SampleMode = Linear }; VertexColor = [90, 90, 90]; Size = [64, 64] }
+BulletAllowed : ~/BulletBlocked { VertexColor = [255, 255, 255] }
+EmpBlocked : ~/BulletBlocked { Texture { File = "./Data/resources/missile_part_emp/icon.png"; MipLevels = 2; SampleMode = Linear } }
+EmpAllowed : ~/EmpBlocked { VertexColor = [255, 255, 255] }
+
+BulletFront : ~/Base
+{
+    ToggleID = "morgott.crewless_logistics.belt_bullet_front"
+    Choices
+    [
+        { ChoiceID = "morgott.crewless_logistics.belt_bullet_front.off"; ButtonToolTipKey = "CrewlessLogistics/FilterBulletFront"; ButtonSprite = &~/BulletBlocked }
+        { ChoiceID = "morgott.crewless_logistics.belt_bullet_front.on"; ButtonToolTipKey = "CrewlessLogistics/FilterBulletFront"; ButtonSprite = &~/BulletAllowed }
+    ]
+}
+BulletLeft : ~/Base
+{
+    ToggleID = "morgott.crewless_logistics.belt_bullet_left"
+    Choices
+    [
+        { ChoiceID = "morgott.crewless_logistics.belt_bullet_left.off"; ButtonToolTipKey = "CrewlessLogistics/FilterBulletLeft"; ButtonSprite = &~/BulletBlocked }
+        { ChoiceID = "morgott.crewless_logistics.belt_bullet_left.on"; ButtonToolTipKey = "CrewlessLogistics/FilterBulletLeft"; ButtonSprite = &~/BulletAllowed }
+    ]
+}
+BulletRight : ~/Base
+{
+    ToggleID = "morgott.crewless_logistics.belt_bullet_right"
+    Choices
+    [
+        { ChoiceID = "morgott.crewless_logistics.belt_bullet_right.off"; ButtonToolTipKey = "CrewlessLogistics/FilterBulletRight"; ButtonSprite = &~/BulletBlocked }
+        { ChoiceID = "morgott.crewless_logistics.belt_bullet_right.on"; ButtonToolTipKey = "CrewlessLogistics/FilterBulletRight"; ButtonSprite = &~/BulletAllowed }
+    ]
+}
+EmpFront : ~/Base
+{
+    ToggleID = "morgott.crewless_logistics.belt_emp_front"
+    Choices
+    [
+        { ChoiceID = "morgott.crewless_logistics.belt_emp_front.off"; ButtonToolTipKey = "CrewlessLogistics/FilterEmpFront"; ButtonSprite = &~/EmpBlocked }
+        { ChoiceID = "morgott.crewless_logistics.belt_emp_front.on"; ButtonToolTipKey = "CrewlessLogistics/FilterEmpFront"; ButtonSprite = &~/EmpAllowed }
+    ]
+}
+EmpLeft : ~/Base
+{
+    ToggleID = "morgott.crewless_logistics.belt_emp_left"
+    Choices
+    [
+        { ChoiceID = "morgott.crewless_logistics.belt_emp_left.off"; ButtonToolTipKey = "CrewlessLogistics/FilterEmpLeft"; ButtonSprite = &~/EmpBlocked }
+        { ChoiceID = "morgott.crewless_logistics.belt_emp_left.on"; ButtonToolTipKey = "CrewlessLogistics/FilterEmpLeft"; ButtonSprite = &~/EmpAllowed }
+    ]
+}
+EmpRight : ~/Base
+{
+    ToggleID = "morgott.crewless_logistics.belt_emp_right"
+    Choices
+    [
+        { ChoiceID = "morgott.crewless_logistics.belt_emp_right.off"; ButtonToolTipKey = "CrewlessLogistics/FilterEmpRight"; ButtonSprite = &~/EmpBlocked }
+        { ChoiceID = "morgott.crewless_logistics.belt_emp_right.on"; ButtonToolTipKey = "CrewlessLogistics/FilterEmpRight"; ButtonSprite = &~/EmpAllowed }
+    ]
+}
