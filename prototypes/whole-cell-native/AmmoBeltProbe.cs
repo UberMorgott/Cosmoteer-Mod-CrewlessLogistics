@@ -274,13 +274,9 @@ sealed partial class NativeProbe
         var l = SplitterLayout(true);
         SetCount(l.Factory["AmmoStorage"], 60);
         var cannons = new[] { l.CannonA["AmmoStorage"], l.CannonB["AmmoStorage"], l.CannonC!["AmmoStorage"] };
-        int maxSpread = 0;
-        BeltTicks(300, () => {
-            Require(Total("AmmoLaneBullet", l.Factory["AmmoStorage"], cannons[0], cannons[1], cannons[2]) == 60, "Bullets not conserved through splitter");
-            if (cannons.All(c => Rounds(c) < 15)) maxSpread = Math.Max(maxSpread, cannons.Max(Rounds) - cannons.Min(Rounds));
-        });
-        Require(maxSpread <= 1, "Splitter outputs not shared in turn (spread " + maxSpread + ")");
-        Console.WriteLine($"PASS: splitter native InOrder+CycleStorageOnAdd over 3 output proxies: max cannon spread {maxSpread} while filling.");
+        BeltTicks(900, () => Require(Total("AmmoLaneBullet", l.Factory["AmmoStorage"], cannons[0], cannons[1], cannons[2]) == 60, "Bullets not conserved through splitter"));
+        Require(cannons.All(c => Rounds(c) == 15), "Splitter did not fill all three outputs");
+        SplitterFairness();
 
         l = SplitterLayout(false);
         SetCount(l.Factory["AmmoStorage"], 40);
@@ -298,9 +294,50 @@ sealed partial class NativeProbe
         BeltTicks(300);
         Require(Rounds(full) == 15, "Drained branch did not resume");
         Console.WriteLine($"PASS: backpressure: full cannon_med branch holds (15, lane 1) while other branch fills 0->15; branch resumes after drain; factory left {factoryLeft}. Saturated 10 s: {idlePulses} converter ticks (gate = has round AND output RemainingCapacity>=1).");
-        scenarioResults.Add(new { name = "ammo belt splitter backpressure and cycling", maxSpread, fullBranch = 15, openBranch = 15, resumed = true, saturatedConverterTicks = idlePulses });
+        scenarioResults.Add(new { name = "ammo belt splitter backpressure", fullBranch = 15, openBranch = 15, resumed = true, saturatedConverterTicks = idlePulses });
     }
 
+    // ---- (b2) splitter fairness: every filter combination, both lanes, long run ----
+    // Sinks are drained every tick and the splitter lane is refilled when empty, so
+    // only the native output choice decides the shares.
+    void SplitterFairness()
+    {
+        var sides = new[] { "Front", "Left", "Right" };
+        int combos = 0; double worst = 0;
+        foreach (bool emp in new[] { false, true }) foreach (int mask in Enumerable.Range(0, 8)) {
+            NewBeltGrid();
+            string type = emp ? "Emp" : "Bullet", lane = "AmmoLane" + type;
+            var splitter = Belt(BeltIds[4], 3, 1, 1);
+            var belts = new[] { Belt(BeltIds[0], 4, 1, 1), Belt(BeltIds[0], 3, 0, 0), Belt(BeltIds[0], 3, 2, 2) };
+            object[] sinks = emp
+                ? new[] {
+                    Endpoint("cosmoteer.missile_launcher", 5, 0, 1, 2, 4, Fixture("Launcher/EMPMissilesToggle"), Fixture("EmpLauncher/MissileStorage")),
+                    Endpoint("cosmoteer.missile_launcher", 3, -4, 0, 2, 4, Fixture("Launcher/EMPMissilesToggle"), Fixture("EmpLauncher/MissileStorage")),
+                    Endpoint("cosmoteer.missile_launcher", 3, 3, 0, 2, 4, Fixture("Launcher/EMPMissilesToggle"), Fixture("EmpLauncher/MissileStorage")) }
+                    .Select(p => { SetToggle(p["EMPMissilesToggle"], true); return p["MissileStorage"]; }).ToArray()
+                : new[] { Endpoint("cosmoteer.cannon_med", 5, 0, 0, 2, 2, Vanilla(CannonAmmo)), Endpoint("cosmoteer.cannon_med", 3, -2, 0, 2, 2, Vanilla(CannonAmmo)), Endpoint("cosmoteer.cannon_med", 3, 3, 0, 2, 2, Vanilla(CannonAmmo)) }
+                    .Select(p => p["AmmoStorage"]).ToArray();
+            for (int s = 0; s < 3; s++) SetProperty(splitter["AmmoFilter" + type + sides[s]], "Mode", (mask >> s) & 1);
+            AttachAll();
+            var delivered = new long[3];
+            BeltTicks(mask == 0 ? 300 : 9000, () => {
+                if (Rounds(splitter[lane]) == 0) SetCount(splitter[lane], 1);
+                for (int s = 0; s < 3; s++) { delivered[s] += Rounds(sinks[s]); SetCount(sinks[s], 0); }
+            });
+            var allowed = Enumerable.Range(0, 3).Where(s => ((mask >> s) & 1) == 1).ToArray();
+            for (int s = 0; s < 3; s++) if (!allowed.Contains(s)) Require(delivered[s] == 0 && Rounds(belts[s][lane]) == 0, $"{type} left by blocked {sides[s]} output (mask {mask})");
+            if (allowed.Length > 0) {
+                double mean = allowed.Average(s => (double)delivered[s]);
+                double deviation = allowed.Max(s => Math.Abs(delivered[s] - mean) / mean);
+                Console.WriteLine($"  splitter {type} allowed={string.Join("+", allowed.Select(s => sides[s]))}: delivered F:L:R = {delivered[0]}:{delivered[1]}:{delivered[2]} (max deviation {deviation:P1})");
+                Require(deviation <= 0.15, $"Splitter unfair for {type} mask {mask}: {string.Join(":", delivered)}");
+                worst = Math.Max(worst, deviation);
+            }
+            combos++;
+        }
+        Console.WriteLine($"PASS: splitter fairness: {combos} filter combos (bullet+EMP x 8 masks), 9000 ticks each, allowed outputs within {worst:P1} of mean (limit 15%), blocked outputs 0.");
+        scenarioResults.Add(new { name = "ammo belt splitter fairness", combos, ticks = 9000, worstDeviation = Math.Round(worst, 4), limit = 0.15 });
+    }
     // ---- (c) splitter filter (actual package UIToggle Mode setter) ----
     void BeltSplitterFilter()
     {

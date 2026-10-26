@@ -67,12 +67,13 @@ Hop
     ToQuantity = 1
     Interval = 1/30
 }
-// Outputs share by native cycling: first output with room, then rotate order.
+// Outputs share by native DistributeRandomly: each round goes to a uniformly random
+// output that has room (ship-synced Rand). InOrder+CycleStorageOnAdd rotates past
+// blocked/unbound outputs too, so it favours the output after a blocked one.
 Outs
 {
     Type = MultiResourceStorage
-    AddMode = InOrder
-    CycleStorageOnAdd = true
+    AddMode = DistributeRandomly
 }
 CanPull { Type = MultiToggle; Mode = All }
 // Output free slots (native RemainingCapacity value, minus 0) >= 1.
