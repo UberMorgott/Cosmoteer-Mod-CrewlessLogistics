@@ -43,7 +43,13 @@ sealed partial class NativeProbe
             Require((bool)ReadRuleObject(root, prefix + "/IsRotateable", typeof(bool)) && !(bool)ReadRuleObject(root, prefix + "/IsFlippable", typeof(bool)), "Belts must rotate and never flip (criteria Rot is a raw rotation difference)");
             Require((int)ReadRuleObject(root, prefix + "/MaxHealth", typeof(int)) == (int)ReadRuleObject(root, heatPipe + "MaxHealth", typeof(int)), "Belt must keep heat pipe durability");
             Require(((int[])ReadRuleObject(root, prefix + "/Size", typeof(int[]))).SequenceEqual(new[] { 1, 1 }), "Belts are 1x1");
+            foreach (string lane in new[] { "AmmoLaneBullet", "AmmoLaneEmp" }) {
+                // Native ResourceStorage.OnDestroying / OnRemovedFromPart2 drop nuggets only with these flags.
+                var laneRules = Rules(prefix + "/Components/" + lane, "Cosmoteer.Ships.Parts.PartComponentRules", root);
+                Require((bool)Field(laneRules.GetType(), "DropResourcesWhenDestroyed").GetValue(laneRules)! && (bool)Field(laneRules.GetType(), "DropResourcesWhenRemoved").GetValue(laneRules)!, "Lane would delete rounds on destroy/salvage: " + BeltIds[i] + "/" + lane);
+            }
         }
+        Console.WriteLine("PASS: ammo belt lanes: all 10 lane storages (5 parts x bullet/EMP) parse with native DropResourcesWhenDestroyed=true and DropResourcesWhenRemoved=true.");
         for (int i = 0; i < 6; i++) {
             string toggle = (string)ReadRuleObject(root, "<gui/game/parts/part_toggles.rules>/PartToggles/" + (Nodes(root, "<gui/game/parts/part_toggles.rules>/PartToggles").Length - 6 + i) + "/ToggleID", typeof(string));
             Require(toggle.StartsWith("morgott.crewless_logistics.belt_"), "Splitter filter GUI toggle not registered: " + toggle);
