@@ -31,6 +31,15 @@ internal sealed class BeltManager : ShipComponent
     /// <summary>Single-nugget sprites are one tile with the nugget ~0.55 tile wide; 0.4 tile quad -> ~0.22 tile item, fits a lane.</summary>
     private const float ItemShrink = -0.3f;
     private const string ItemSpritesComponent = "BeltItemSprites";
+    /// <summary>§21 layers: belt surface between part floors (-700) and items (-500); lamps additive above (Factorio order).</summary>
+    private const string SurfaceLayer = "turrets";
+    private const string SurfaceSpritesComponent = "BeltSurfaceSprites";
+    private const string LampLayer = "lights_add";
+    private const string LampSpritesComponent = "BeltLampSprites";
+    private readonly BeltRenderState _render = new();
+    private ManagedShipQuad?[] _surf = Array.Empty<ManagedShipQuad?>();
+    private ManagedShipQuad?[] _lamps = Array.Empty<ManagedShipQuad?>();
+    private bool _visualsDirty;
 
     private readonly List<Node> _nodes = new();
     private readonly List<Part> _nodeParts = new();
@@ -66,6 +75,7 @@ internal sealed class BeltManager : ShipComponent
         ship.Parts.PartRemoved -= OnPartRemoved;
         Unwatch();
         HideQuads(0);
+        DisposeVisuals();
     }
 
     private void OnNeighbourMode(object? sender, EventArgs e) => _flowDirty = true;
@@ -221,6 +231,8 @@ internal sealed class BeltManager : ShipComponent
         {
             HideQuads(0);
         }
+        DisposeVisuals();
+        _visualsDirty = _world != null;
         Unwatch();
         for (int i = 0; i < _nodes.Count; i++)
         {
@@ -229,7 +241,8 @@ internal sealed class BeltManager : ShipComponent
                 continue;
             }
             Node n = _nodes[i];
-            foreach (IntVector2 cell in new[] { new IntVector2(n.X - n.Dx, n.Y - n.Dy), new IntVector2(n.X + n.Dx, n.Y + n.Dy) })
+            // Back, front and both sides (§21 D8 side rooms feed the allowed set too).
+            foreach (IntVector2 cell in new[] { new IntVector2(n.X - n.Dx, n.Y - n.Dy), new IntVector2(n.X + n.Dx, n.Y + n.Dy), new IntVector2(n.X + n.Dy, n.Y - n.Dx), new IntVector2(n.X - n.Dy, n.Y + n.Dx) })
             {
                 if (ship.Parts[cell] is not { } p || BeltState.KindOf(p) != null)
                 {
@@ -277,7 +290,73 @@ internal sealed class BeltManager : ShipComponent
         return room;
     }
 
-    /// <summary>Client visuals only (reads sim state, never writes it): one pooled ship-layer quad per item (§11).</summary>
+    private static AtlasSprite[][]? Sprites(Ship ship, string component, int count)
+    {
+        return ship.Rules.PartsByID.TryGetValue(new ID<PartRules>(BeltState.BeltId), out PartRules? belt)
+            && belt.ComponentsByID.TryGetValue(new ID<PartComponentRules>(component), out PartComponentRules? c)
+            && c is PartSpriteRules { RandomDamageLevelSprites: { } s } && s.Length >= count ? s : null;
+    }
+
+    /// <summary>
+    /// §21 surface + lamp quads, created once per topology epoch (never per tick). Belt tiles: animated surface on
+    /// <see cref="SurfaceLayer"/> over the static rules floor (fallback without DLL). Connector/splitter: lamp overlays.
+    /// </summary>
+    private void BuildVisuals(Ship ship, ShipRenderer renderer, SimRoot sim)
+    {
+        DisposeVisuals();
+        _render.Reset(_nodes);
+        AtlasSprite[][]? surf = Sprites(ship, SurfaceSpritesComponent, (int)Variant.CableCrossing + 1);
+        AtlasSprite[][]? lamps = Sprites(ship, LampSpritesComponent, 3);
+        var surfLayer = new ID<ShipRenderLayerRules>(SurfaceLayer);
+        var lampLayer = new ID<ShipRenderLayerRules>(LampLayer);
+        for (int i = 0; i < _nodes.Count; i++)
+        {
+            Node n = _nodes[i];
+            Part p = _nodeParts[i];
+            var center = (Vector2)p.Location + (Vector2)p.Size / 2f;
+            if (n.Kind == NodeKind.Belt && surf != null)
+            {
+                var (v, flip) = BeltRenderState.Select(n, p.Rules.ID.ToString() switch
+                {
+                    BeltState.HeatCrossingId => Variant.HeatCrossing,
+                    BeltState.CableCrossingId => Variant.CableCrossing,
+                    _ => Variant.Straight,
+                });
+                _surf[i] = new ManagedShipQuad(renderer.GetLayerQuads(surfLayer), surf[(int)v][0], 0, flip ^ p.FlipX, center, Vector2.Zero, p.Direction,
+                    ship.WorldUniformScale, Color.White, ship.Rules.RenderLayers[surfLayer].Inflate, 1f, sim.Clock);
+            }
+            else if (n.Kind != NodeKind.Belt && lamps != null)
+            {
+                for (int k = 0; k < (n.Kind == NodeKind.Splitter ? 2 : 1); k++)
+                {
+                    _lamps[2 * i + k] = new ManagedShipQuad(renderer.GetLayerQuads(lampLayer), lamps[n.Kind == NodeKind.Splitter ? 1 + k : 0][0], 0, p.FlipX, center,
+                        Vector2.Zero, p.Direction, ship.WorldUniformScale, Color.TransparentWhite, ship.Rules.RenderLayers[lampLayer].Inflate, 1f, sim.Clock);
+                }
+            }
+        }
+    }
+
+    private void DisposeVisuals()
+    {
+        for (int i = 0; i < _surf.Length; i++)
+        {
+            if (_surf[i] is { } q)
+            {
+                q.Sprite = null;
+            }
+        }
+        for (int i = 0; i < _lamps.Length; i++)
+        {
+            if (_lamps[i] is { } q)
+            {
+                q.Sprite = null;
+            }
+        }
+        _surf = new ManagedShipQuad?[_nodes.Count];
+        _lamps = new ManagedShipQuad?[2 * _nodes.Count];
+    }
+
+    /// <summary>Client visuals only (reads sim state, never writes it): surfaces, lamps, one pooled quad per item (§11, §21).</summary>
     private void Render(Ship ship, SimRoot sim)
     {
         ShipRenderer? renderer = ship.Renderer;
@@ -285,9 +364,20 @@ internal sealed class BeltManager : ShipComponent
         {
             return;
         }
-        if (!ship.Rules.PartsByID.TryGetValue(new ID<PartRules>(BeltState.BeltId), out PartRules? belt)
-            || !belt.ComponentsByID.TryGetValue(new ID<PartComponentRules>(ItemSpritesComponent), out PartComponentRules? c)
-            || c is not PartSpriteRules { RandomDamageLevelSprites: { } sprites } || sprites.Length < BeltTypes.Ids.Length)
+        if (_visualsDirty)
+        {
+            _visualsDirty = false;
+            BuildVisuals(ship, renderer, sim);
+        }
+        _render.Update(sim.Tick);
+        for (int j = 0; j < _lamps.Length; j++)
+        {
+            if (_lamps[j] is { } q)
+            {
+                q.Color = _render.Lamp[j] ? Color.White : Color.TransparentWhite;
+            }
+        }
+        if (Sprites(ship, ItemSpritesComponent, BeltTypes.Ids.Length) is not { } sprites)
         {
             return;
         }
@@ -295,7 +385,8 @@ internal sealed class BeltManager : ShipComponent
         int used = 0;
         foreach (Node n in _nodes)
         {
-            for (int half = 0; half < n.State.Tiles.Length; half++)
+            // Splitter contents are inside its closed housing (Factorio: structure above items); connectors hold none.
+            for (int half = 0; BeltRenderState.DrawsItems(n) && half < n.State.Tiles.Length; half++)
             {
                 LaneTile t = n.State.Tiles[half];
                 for (int lane = 0; lane < 2; lane++)

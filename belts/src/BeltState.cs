@@ -14,7 +14,7 @@ internal static class BeltState
 {
     public const string PayloadPath = "Components/morgott.belt";
     /// <summary>Integrity-hash protocol (§10); bump with any sim/payload change.</summary>
-    public const int ProtocolVersion = 4;
+    public const int ProtocolVersion = 5;
 
     public const string BeltId = "morgott.crewless_logistics.belt";
     public const string SplitterId = "morgott.crewless_logistics.belt_splitter";

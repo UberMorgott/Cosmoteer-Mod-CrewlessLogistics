@@ -13,7 +13,7 @@ CrewlessLogistics
     SplitterName = "Crewless Logistics Belt Splitter"
     SplitterDesc = "1x2. Two inputs at the back, two outputs at the front. Items alternate between the outputs lane by lane; when one output is blocked or missing everything goes to the other, so it also merges two belts. Lanes are kept. No filter. Costs 8 steel + 4 coils."
     ConnectorName = "Crewless Logistics Belt Connector"
-    ConnectorDesc = "Moves the chosen resource from the cell behind the arrow to the cell in front: room to belt, belt to room, room to room or belt to belt. Works with cargo holds, factories and weapons, never with the electrical network. Pick the resource with the filter button; the default None moves nothing. Needs no power. Costs 4 steel + 2 coils."
+    ConnectorDesc = "Moves the chosen resource to the cell in front of the arrow from the cells behind and beside it (several rooms take turns): room to belt, belt to room, room to room or belt to belt. Works with cargo holds, factories and weapons, never with the electrical network. Pick the resource with the filter button; the default None moves nothing. Needs no power. Costs 4 steel + 2 coils."
     BeltHeatCrossingName = "Crewless Logistics Belt/Heat Pipe Crossing"
     BeltHeatCrossingDesc = "A straight conveyor belt runs over a Heat Pipe: items move along one axis, heat along the other. Rotate to set the belt direction. It never turns; a belt feeding its side puts items on the near lane. Crew can walk along the belt at 80% speed. Vanilla Heat Pipe Crossing stats: 1000 HP, density 1. The belt needs the Yet Another Mod Loader library. Costs 4 steel + 2 coils."
     BeltCableCrossingName = "Crewless Logistics Belt/Cable Crossing"

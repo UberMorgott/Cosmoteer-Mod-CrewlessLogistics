@@ -44,7 +44,7 @@ public sealed class NodeState
 
     public readonly NodeKind Kind;
     public readonly LaneTile[] Tiles;
-    /// <summary>Splitter: next output per lane.</summary>
+    /// <summary>Splitter: next output per lane. Connector: [0] = next source room (back, left, right).</summary>
     public readonly int[] RoundRobin = new int[2];
     public int Cooldown;
     public int Alternate;
@@ -125,7 +125,8 @@ public sealed class NodeState
         {
             return null;
         }
-        s.RoundRobin[0] = rr0 & 1;
+        // Splitter: output per lane (0/1). Connector: [0] = next room to pull from (0..2, §21 D8).
+        s.RoundRobin[0] = kind == NodeKind.Connector ? (rr0 is >= 0 and < 3 ? rr0 : 0) : rr0 & 1;
         s.RoundRobin[1] = rr1 & 1;
         s.Cooldown = Math.Max(0, cd);
         s.Alternate = alt & 1;

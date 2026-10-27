@@ -103,30 +103,34 @@ internal static class PartFlow
     private static IntVector2 Dir(CommonBasePart p) => Cell(p, BeltState.IsCrossing(p.Rules) ? 1 : 0, BeltState.IsCrossing(p.Rules) ? 0 : -1) - Cell(p, 0, 0);
 
     /// <summary>
-    /// Allowed set of a connector (§20 D2) on any parts manager: live ship (<paramref name="isSite"/> = under construction)
-    /// or build-mode blueprint. Out(back room) narrows only when no belt output feeds the connector from a side.
+    /// Allowed set of a connector (§20 D2, §21 D8) on any parts manager: live ship (<paramref name="isSite"/> = under
+    /// construction) or build-mode blueprint. Source = union of Out(room) over the back, left and right rooms; it does not
+    /// narrow when a belt output feeds the connector there (or a belt / site stands at the back) or no room has flows.
     /// </summary>
     public static uint ForConnector(CommonBasePart conn, Func<IntVector2, CommonBasePart?> at, Func<CommonBasePart, bool> isSite,
         Func<CommonBasePart, Func<ID<PartToggleGuiRules>, int?>> modes)
     {
         IntVector2 c = Cell(conn, 0, 0), d = Dir(conn);
-        uint Side(IntVector2 cell, bool output)
+        uint src = 0;
+        bool any = false;
+        foreach (IntVector2 cell in new[] { c - d, c + new IntVector2(-d.Y, d.X), c + new IntVector2(d.Y, -d.X) })
         {
-            if (at(cell) is not { } p || isSite(p) || BeltState.KindOf(p.Rules) != null)
+            bool back = cell == c - d;
+            if (at(cell) is not { } p)
             {
-                return All;
+                continue;
             }
-            var (i, o) = Classify(p.Rules, p.Rotation, p.FlipX, modes(p));
-            return output ? o : i;
+            if (isSite(p) || BeltState.KindOf(p.Rules) != null)
+            {
+                any |= back || SideFeeds(c, cell, at, isSite);
+                continue;
+            }
+            src |= Classify(p.Rules, p.Rotation, p.FlipX, modes(p)).Out;
         }
-        uint back = Side(c - d, output: true);
-        if (back != All && (SideFeeds(c, c + new IntVector2(-d.Y, d.X), at, isSite) || SideFeeds(c, c + new IntVector2(d.Y, -d.X), at, isSite)))
-        {
-            back = All;
-        }
-        return Allowed(back, Side(c + d, output: false));
+        IntVector2 f = c + d;
+        uint frontIn = at(f) is { } q && !isSite(q) && BeltState.KindOf(q.Rules) == null ? Classify(q.Rules, q.Rotation, q.FlipX, modes(q)).In : All;
+        return Allowed(any ? All : src, frontIn);
     }
-
     /// <summary>A built belt/splitter/connector output at <paramref name="side"/> points into <paramref name="c"/> (sites are not in the topology).</summary>
     private static bool SideFeeds(IntVector2 c, IntVector2 side, Func<IntVector2, CommonBasePart?> at, Func<CommonBasePart, bool> isSite)
     {

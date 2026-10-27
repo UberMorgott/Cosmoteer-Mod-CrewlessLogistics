@@ -16,5 +16,6 @@
     <Compile Include="..\src\LaneSim.cs" Link="LaneSim.cs" />
     <Compile Include="..\src\NodeState.cs" Link="NodeState.cs" />
     <Compile Include="..\src\BeltWorld.cs" Link="BeltWorld.cs" />
+    <Compile Include="..\src\BeltRenderState.cs" Link="BeltRenderState.cs" />
   </ItemGroup>
 </Project>

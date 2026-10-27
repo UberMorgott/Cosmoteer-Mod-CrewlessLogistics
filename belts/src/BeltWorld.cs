@@ -55,12 +55,16 @@ public sealed class Node
     internal int Tile0 = -1;
     /// <summary>Belt: non-tile output (connector) of its end. Splitter: output of half i. Connector: [0] = itself as a sink (chain start).</summary>
     internal readonly Sink?[] Out = new Sink?[2];
-    /// <summary>Connector: front output, back room (only where no belt part is), first input kind (diagnostics).</summary>
+    /// <summary>Connector: front output, rooms it pulls from (back, left, right; only where no belt part is, deduped), first input kind (diagnostics).</summary>
     internal Sink? Front;
-    internal IRoom? BackRoom;
+    internal readonly IRoom?[] Rooms = new IRoom?[3];
     internal string? Input;
     /// <summary>Connector: may pass one item this tick (cooldown was 0 at tick start).</summary>
     internal bool Ready;
+    /// <summary>Render only (§21), never read by the sim: belt side inputs (bit 0 left, bit 1 right of travel).</summary>
+    public int SideIn;
+    /// <summary>Render only (§21), never read by the sim, not saved/hashed: items passed (connector [0], splitter output i [i]).</summary>
+    public readonly int[] Events = new int[2];
 
     public Node(NodeState state, int x, int y, int dx, int dy, int sx = 0, int sy = 0, bool noCurve = false)
     {
@@ -77,7 +81,7 @@ public sealed class Node
     public NodeKind Kind => State.Kind;
 
     public string Mode => Kind != NodeKind.Connector ? "-"
-        : (Input ?? (BackRoom != null ? "room" : "none")) + ">" + (Front == null ? "none" : Front.Node?.Kind.ToString().ToLowerInvariant() ?? "room");
+        : (Input ?? (Rooms[0] != null || Rooms[1] != null || Rooms[2] != null ? "room" : "none")) + ">" + (Front == null ? "none" : Front.Node?.Kind.ToString().ToLowerInvariant() ?? "room");
 }
 
 /// <summary>
@@ -103,9 +107,10 @@ public sealed class BeltWorld
             Node n = nodes[i];
             n.Tile0 = n.State.Tiles.Length > 0 ? tiles.Count : -1;
             n.Out[0] = n.Out[1] = n.Front = null;
-            n.BackRoom = null;
+            n.Rooms[0] = n.Rooms[1] = n.Rooms[2] = null;
             n.Input = null;
             n.Shape = Shape.Straight;
+            n.SideIn = 0;
             foreach (LaneTile t in n.State.Tiles)
             {
                 tiles.Add(t);
@@ -141,6 +146,31 @@ public sealed class BeltWorld
                 Entry = rel,
                 Inserter = inserter,
             };
+        }
+
+        // Connector fronts first: a connector entering a belt is one of its feeders for the curve rule (§21 D5, like a
+        // Factorio loader). Tile -1 marks it in the feeder list; its sink stays c.Front.
+        foreach (Node c in nodes)
+        {
+            if (c.Kind != NodeKind.Connector)
+            {
+                continue;
+            }
+            c.Out[0] = new Sink { Node = c };
+            c.Front = SinkAt(c.X, c.Y, c.Dx, c.Dy, true);
+            if (c.Front is { Node: { Kind: NodeKind.Belt } b } fs)
+            {
+                (feeders[_tileNode[b.Tile0]] ??= new()).Add((-1, fs));
+            }
+            // §21 D8: pull from rooms at the back, left and right (left of travel = (Dy, -Dx)), each room once.
+            for (int k = 0; k < 3; k++)
+            {
+                int x = k == 0 ? c.X - c.Dx : k == 1 ? c.X + c.Dy : c.X - c.Dy, y = k == 0 ? c.Y - c.Dy : k == 1 ? c.Y - c.Dx : c.Y + c.Dx;
+                if (nodeAt(x, y) < 0 && roomAt(x, y) is { } r && Array.IndexOf(c.Rooms, r) < 0)
+                {
+                    c.Rooms[k] = r;
+                }
+            }
         }
 
         // Lane tile outputs. Belt and splitter targets of belts become LaneSim moves; everything else is a handoff.
@@ -187,7 +217,11 @@ public sealed class BeltWorld
                 {
                     x.S.Entry = Entry.Rear;
                 }
-                SetOut(x.Tile, x.S);
+                nodes[j].SideIn |= x.S.Entry == Entry.SideLeft ? 1 : x.S.Entry == Entry.SideRight ? 2 : 0;
+                if (x.Tile >= 0)
+                {
+                    SetOut(x.Tile, x.S);
+                }
             }
         }
         void SetOut(int t, Sink s)
@@ -210,17 +244,7 @@ public sealed class BeltWorld
 
         foreach (Node c in nodes)
         {
-            if (c.Kind != NodeKind.Connector)
-            {
-                continue;
-            }
-            if (nodeAt(c.X - c.Dx, c.Y - c.Dy) < 0)
-            {
-                c.BackRoom = roomAt(c.X - c.Dx, c.Y - c.Dy);
-            }
-            c.Out[0] = new Sink { Node = c };
-            c.Front = SinkAt(c.X, c.Y, c.Dx, c.Dy, true);
-            if (c.Front?.Conn is { } m)
+            if (c.Kind == NodeKind.Connector && c.Front?.Conn is { } m)
             {
                 m.Input ??= "connector";
             }
@@ -324,6 +348,7 @@ public sealed class BeltWorld
                 {
                     _sim.TryTakeDrained(n.Tile0 + h, lane, out _);
                     n.State.RoundRobin[lane] = used ^ 1;
+                    n.Events[used]++;
                 }
             }
         }
@@ -380,6 +405,7 @@ public sealed class BeltWorld
         {
             c.Ready = false;
             c.State.Cooldown = ConnectorPeriod - 1;
+            c.Events[0]++;
         }
     }
 
@@ -401,10 +427,13 @@ public sealed class BeltWorld
         return false;
     }
 
-    /// <summary>Connector with a room behind it: pulls one unit per period into its front chain.</summary>
+    /// <summary>
+    /// Connector with rooms at its back/sides (§21 D8): pulls one unit per period into its front chain, trying the
+    /// rooms round-robin from <see cref="NodeState.RoundRobin"/>[0]; the cursor moves past the room that gave.
+    /// </summary>
     private void Extract(Node c)
     {
-        if (c.BackRoom is not { } back)
+        if (c.Rooms[0] == null && c.Rooms[1] == null && c.Rooms[2] == null)
         {
             return;
         }
@@ -413,38 +442,38 @@ public sealed class BeltWorld
         {
             return;
         }
-        if (end.Room is { } front)
+        int lane = -1, pos = -1;
+        if (end.Room == null && !Slot(end, c.State.Alternate, out lane, out pos))
         {
-            if (ReferenceEquals(front, back))
-            {
-                return; // chain loops back into its own room: no-op
-            }
-            int type = back.FindSupply(filter, front);
-            if (type >= 0 && back.Take(type))
-            {
-                if (front.Put(type))
-                {
-                    Commit(self);
-                }
-                else
-                {
-                    back.Put(type); // CanAccept said yes; never lose the unit
-                }
-            }
+            return; // reserve the belt slot first, then take exactly one unit
         }
-        else if (Slot(end, c.State.Alternate, out int lane, out int pos))
+        for (int k = 0; k < 3; k++)
         {
-            // Reserve the belt slot first, then take exactly one unit.
-            int type = back.FindSupply(filter, null);
-            if (type >= 0 && back.Take(type))
+            int i = (c.State.RoundRobin[0] + k) % 3;
+            if (c.Rooms[i] is not { } back || ReferenceEquals(back, end.Room))
+            {
+                continue; // chain loops back into its own room: no-op
+            }
+            int type = back.FindSupply(filter, end.Room);
+            if (type < 0 || !back.Take(type))
+            {
+                continue;
+            }
+            if (end.Room != null && !end.Room.Put(type))
+            {
+                back.Put(type); // CanAccept said yes; never lose the unit
+                continue;
+            }
+            if (end.Room == null)
             {
                 _sim.TryInsert(end.Tile, lane, pos, type);
                 c.State.Alternate = lane ^ 1;
-                Commit(self);
             }
+            c.State.RoundRobin[0] = (i + 1) % 3;
+            Commit(self);
+            return;
         }
     }
-
     /// <summary>
     /// Rendering only (floats never feed the sim): ship-cell point of an item. Lane L is left of travel; curves follow a
     /// quarter arc around the inner corner (§4: inner lane stays inner).

@@ -10,6 +10,7 @@ Published as a separate, unlisted Steam Workshop beta item (id in `docs/workshop
 - Splitter (1x2) divides one belt into two outputs.
 - Directional connector moves resources between a room, a belt or another room; optional filter for one chosen resource (off by default).
 - Belt crossings: a straight belt over a Heat Pipe or over an electrical cable (one axis each, rotate to set the belt direction; crew walk along the belt at 80% speed).
+- Belts animate while the game runs and draw their real shape: curves, and side-loading joints where a belt, splitter or connector enters from the side. Splitter and connector are closed machine boxes (contents hidden) with a small direction chevron and a lamp that blinks for every item passing. The connector now also pulls from rooms on its left and right (rooms take turns), and a connector feeding the side of a belt with no input behind it curves that belt.
 - Requires [Yet Another Mod Loader](https://steamcommunity.com/sharedfiles/filedetails/?id=3577650065) (Workshop 3577650065): the belt simulation ships as `CrewlessLogistics.Belts.dll`. Install: subscribe to the loader, run `Installer.bat` from its Workshop folder (`steamapps\workshop\content\799600\3577650065`), restart the game, enable Crewless Logistics in the Mods list and trust its library. Trust it again after every mod update.
 - Workshop publisher: `-visibility unlisted` (alias of `hidden`), `-dependency <id>` (AddDependency).
 ## 0.3.5

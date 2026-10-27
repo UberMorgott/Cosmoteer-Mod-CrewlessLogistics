@@ -380,7 +380,7 @@ Spot-checked: `Part.cs:827,1371`, `SimRoot.cs:605-618`, `FixedUpdateBuckets.cs` 
   Art: Codex image-gen masters in `tools/belt-sprites/art` (256 px/tile), baked to 64 px/tile + icons by
   `tools/belt-sprites` (Go, trim/downscale only). `belt_curve.png` is baked but not wired: floor art is static per
   part, so curves need a C# floor quad chosen from `Shape.CurveLeft/CurveRight` (CurveRight = mirrored).
-  Splitter and connector are closed machine housings; direction reads from the machinery (back = bulky intake with
+  Splitter and connector are closed machine housings (§21 supersedes: closed boxes + small chevron); direction reads from the machinery (back = bulky intake with
   hazard lip + feeder rollers, front = slim ejector shutter + green light), no painted arrows. Animation-ready layers
   (art only, not baked/wired): `belt_{splitter,connector}_base.png` (housing, moving parts removed) and
   `belt_{splitter,connector}_moving.png` (rollers, diverter shuttle/piston, shutters, lights on alpha); the game
@@ -445,3 +445,51 @@ Decisions (Claude / Codex `codex exec -s read-only`, engine-verified / agreed):
 - Not verified: in-game UI (popout hiding, build-mode display), side-feed detection on a live ship, MP with mixed
   selections/hotkeys.
 - Codex diff review: 1 bug accepted and fixed (a side belt still under construction counted as a side feeder and lifted `Out(back)`; `SideFeeds` now skips sites, like the topology). AGREE on display-only blueprint normalisation and on hotkey/revert correction by D3.
+## 21. Visual overhaul: connection-aware animated belts, closed boxes, lamps (2026-10-27)
+
+Owner reports: a connector feeding a belt side stays straight and the L does not join (`images/10.webp` left), a torn
+belt stub on an unconnected splitter output (right), items drawn on top of the splitter and never on its other half
+(`images/11.png`), splitter direction unreadable and connector intake only from the back (`images/12.png`).
+
+RCA `11.png` (log `topology ... Splitter@10,4>-1,0 ... Connector@11,3/room>splitter`): only half 1 has an input,
+both outputs are connectors into a room; `Route()` hands an item from either input half straight to either output
+(§6) and connectors have no lanes (§7), so half 0 never holds items by design. Items showed on the housing because the
+housing is a `floors` sprite and items draw on `doodads_low`. Fix = Factorio scheme: closed housing hides contents.
+
+### Factorio 2.0.77 scheme mirrored (scheme only, no Factorio art/assets used)
+
+| Factorio (local `data/base/prototypes/entity/transport-belts.lua`, API docs) | Ours |
+| --- | --- |
+| `belt_animation_set`: 20 variants = 4 straight, 8 curves (in/out pairs), 8 starting/ending caps (`:7-47`); [TransportBeltAnimationSet](https://lua-api.factorio.com/2.0.77/types/TransportBeltAnimationSet.html) | `Variant` (`belts/src/BeltRenderState.cs`): straight, join L/R/both, curve (curve right = flipU), heat/cable crossing; rotation = `Part.Direction` like vanilla `BlueprintPartSprite.cs:58`. No caps: boxes close their own ports, belt ends are part edges |
+| Underground `direction_in_side_loading` / `direction_out_side_loading` (`:333,345`): own sprite when side-loaded | join variants: the receiver's rail band opens where a side input enters (belt, splitter or connector) |
+| `frame_count = 16`, `speed = 0.03125`, `animation_speed_coefficient = 32` (`:15,175,180`): surface frames advance with item travel; belts always animate; [Transport_belts/Physics](https://wiki.factorio.com/Transport_belts/Physics) | 16 frames = 1 tile of travel, items move 2 tiles/s -> `AnimationInterval = 1/32 s`, `AnimationStartTime = Zero` (global phase, neighbours seamless), always animating |
+| [RenderLayer](https://lua-api.factorio.com/2.0.77/types/RenderLayer.html) `floor < transport-belt < transport-belt-endings < floor-mechanics < item < lower-object < object` | Cosmoteer `terran.rules` RenderLayers: part floor `floors` (-700) < surface quad `turrets` (-600) < items `doodads_low` (-500) < crew < lamps `lights_add` (200) |
+| Splitter: belt animation under (`:660`), `structure` per direction above items (`:665-711`), `structure_patch` (`:712`); [SplitterPrototype](https://lua-api.factorio.com/2.0.77/prototypes/SplitterPrototype.html) | splitter = opaque closed 2x1 box (rules floor); C# does not draw its lane items (contents hidden, same effect as structure above items) |
+| Loader: belt part + `structure_render_layer = "lower-object"` (`:996`), `direction_in`/`direction_out` sheets (`:999,1009`); [LoaderPrototype](https://lua-api.factorio.com/2.0.77/prototypes/LoaderPrototype.html) | connector = closed 1x1 container box, intake ports back/left/right, output port front, direction from machinery + small stencilled chevron |
+| Loaders/splitters/undergrounds count as belt inputs for curving | a connector entering a belt side is a feeder for §4 auto-curve (D5) |
+
+### Decisions (Claude / Codex `codex exec -s read-only`, agreed)
+
+| # | Claude | Codex | Agreed + why |
+| --- | --- | --- | --- |
+| D1 layers | surface quad on `turrets`, sprites via a never-instantiated Sprite (BeltItemSprites trick); housings stay `floors`, splitter items not drawn | AGREE (`PartRules.cs:1848` registers atlas sprites of uninstantiated components); excluding splitter items is mandatory | as proposed; rules floor stays the fallback without the DLL |
+| D2 variants | straight, joins, curve(+flipU), crossings; no caps | AGREE; joins from every physical feeder incl. connectors; crossings keep `NoCurve` | as proposed |
+| D3 art | frames/curve/joins mechanical from the Codex straight master | DISAGREE "pixel-exact": shift moved rails too, bilinear polar remap differs at the edges (44/64 px) | only the surface band scrolls (rails static); curve edges copied from the straight frame after downscale (`curveEdges`) |
+| D4 animation | 16 frames, 1/32 s, global phase; optional stop when blocked | AGREE; skip the stop detector (state + false stops on full belts) | always animate (Factorio parity); owner nice-to-have "stop when blocked" not built |
+| D5 connector curve | connector at a belt side counts as feeder; protocol 5 | AGREE; collect connector feeders (rear too) before the curve rule | `BeltWorld` computes connector fronts first; curved sink -> `Rear` (preferred lane instead of far lane) |
+| D6 lamps | `Node.Events` counters, render-only, `Color` toggled | AGREE; count only after a successful handoff; splitter counter = output index | `Commit()` (connector chain) and `Route()` (output used); lamp lit `tick - last < 3 && (tick & 2) == 0` |
+| D7 zero-alloc | quads only on rebuild | AGREE for surfaces/lamps (`flipU` fixed per quad -> recreate on rebuild); item pool still frees/creates on hide/show | surfaces+lamps rebuilt per topology epoch; `BeltRenderState.Update` 0 B (bench); item pool unchanged |
+| D8 intake all sides | rooms at back/left/right, round-robin cursor `RoundRobin[0]` 0..2, shared rate; filter union | AGREE; watch side rooms, keep the end-room self-loop check, cursor `(used+1)%3`, Decode by kind; note: a single-type union auto-sets a `none` connector (§20 D3) | built; auto-set accepted (same rule as §20). Multiple outputs: possible option, not built |
+| D9 markers | small chevron on splitter/connector lids | AGREE | Codex image_gen art |
+
+- Art (Codex image_gen via `cx -Img`, masters in `tools/belt-sprites/art`): `belt_connector` (closed container, 3 intakes,
+  1 output, chevron, unlit lamp), `belt_splitter` (closed 2x1 box, closed-shutter outputs, chevron, 2 unlit lamps),
+  `belt_lamp` (glow on black). Mechanical only (`tools/belt-sprites`): `bakeAnim` (band scroll, polar curve,
+  joins, crossings: `mod/assets/belt_anim/<variant>_<k>.png`, also `belt_curve.png`), `bakeLamps` (glow keyed to alpha,
+  pasted at the measured lens centres), `-overhaul` preview PNG + GIF. Old `_base/_moving` layers and the misaligned
+  `belt_curve` master removed.
+- Code: `BeltRenderState` (pure: `Select`, lamps), `BeltManager.BuildVisuals/Render`, `BeltWorld` (D5, D8, `SideIn`,
+  `Events`), `PartFlow.ForConnector` (union of back/left/right room outputs), `NodeState.Decode`, `ProtocolVersion` 5.
+- Tests (`belts/tests`): side connector straight/far lane vs curve, `RenderSelect` (60 cases, 4 rotations), splitter
+  halves render (4 rotations x flip), render client-only (digests equal, lamps, 0 B bench), multi-side intake.
+- Not verified: in-game look (atlas load of animated `turrets` sprites, quad rotation/flip, lamp glow strength), MP.

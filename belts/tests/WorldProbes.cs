@@ -168,6 +168,250 @@ static class WorldProbes
         Chains(check);
         SaveRoundTrip(check);
         FilterChoicesMatchRules(check);
+        RenderSelect(check);
+        SplitterHalvesRender(check);
+        RenderClientOnly(check);
+        MultiSideIntake(check);
+    }
+
+    /// <summary>
+    /// §21 render selection, 4 rotations x feeder layouts (mirrored left/right): the surface sprite follows the sim shape
+    /// (curves only from a lone side feeder, belt or connector), side joins mark every side input, crossings stay their
+    /// own straight sprite. Selection is a pure function of topology (identical on rebuild).
+    /// </summary>
+    static void RenderSelect(Action<bool, string> check)
+    {
+        // feeders: r = rear belt, L/R = side belt, cL/cR = side connector, sL = splitter output into the left side.
+        var cases = new (string Feed, bool Cross, Variant V, bool Flip)[]
+        {
+            ("", false, Variant.Straight, false), ("r", false, Variant.Straight, false),
+            ("L", false, Variant.Curve, false), ("R", false, Variant.Curve, true),
+            ("rL", false, Variant.JoinLeft, false), ("rR", false, Variant.JoinRight, false), ("rLR", false, Variant.JoinBoth, false),
+            ("LR", false, Variant.JoinBoth, false), ("cL", false, Variant.Curve, false), ("cR", false, Variant.Curve, true),
+            ("rcL", false, Variant.JoinLeft, false), ("rsL", false, Variant.JoinLeft, false), ("sL", false, Variant.Curve, false),
+            ("L", true, Variant.HeatCrossing, false), ("rR", true, Variant.HeatCrossing, false),
+        };
+        int bad = 0, total = 0;
+        string first = "";
+        for (int dir = 0; dir < 4; dir++)
+        {
+            var (dx, dy) = Dir[dir];
+            var (lx, ly) = LeftOf(dir);
+            foreach (var c in cases)
+            {
+                total++;
+                var g = new Grid();
+                Node b = c.Cross ? g.Cross(5, 5, dir) : g.Belt(5, 5, dir);
+                string f = c.Feed;
+                if (f.Contains('r'))
+                {
+                    g.Belt(5 - dx, 5 - dy, dir);
+                }
+                foreach (int side in new[] { 1, -1 })
+                {
+                    char s = side > 0 ? 'L' : 'R';
+                    int fx = 5 + lx * side, fy = 5 + ly * side, into = DirOf(-lx * side, -ly * side);
+                    if (f.Contains("c" + s))
+                    {
+                        g.Connector(fx, fy, into, BeltTypes.FilterAny);
+                        g.Room(fx - lx * side, fy - ly * side, new Cargo(1));
+                    }
+                    else if (f.Contains("s" + s))
+                    {
+                        // Splitter pointing into the belt side; its half 1 sits beside half 0 along the belt's travel.
+                        g.Add(NodeKind.Splitter, fx, fy, into, dx, dy);
+                    }
+                    else if (f.Replace("c" + s, "").Contains(s) && !f.Contains("s" + s))
+                    {
+                        g.Belt(fx, fy, into);
+                    }
+                }
+                g.Build();
+                var got = BeltRenderState.Select(b, Variant.HeatCrossing);
+                g.Build();
+                bool ok = got == (c.V, c.Flip) && BeltRenderState.Select(b, Variant.HeatCrossing) == got;
+                if (!ok)
+                {
+                    bad++;
+                    first = first.Length > 0 ? first : $" [dir {dir} feed '{f}' cross {c.Cross}: {got} shape={b.Shape} sideIn={b.SideIn}, want {c.V}/{c.Flip}]";
+                }
+            }
+        }
+        check(bad == 0, $"render select: {total} cases (4 rotations x straight/curve L,R/joins L,R,both/connector/splitter feeders/crossing), bad={bad}{first}");
+    }
+
+    /// <summary>
+    /// Owner bug 11.png: a splitter in all 4 rotations x both half orders (flip), both inputs fed: items show on both
+    /// halves and on both downstream belts, and every item point of splitter halves and output belts lies in its own cell.
+    /// </summary>
+    static void SplitterHalvesRender(Action<bool, string> check)
+    {
+        int bad = 0, cases = 0;
+        string first = "";
+        for (int dir = 0; dir < 4; dir++)
+        {
+            var (dx, dy) = Dir[dir];
+            foreach (int flip in new[] { 1, -1 })
+            {
+                cases++;
+                var (lx, ly) = LeftOf(dir);
+                int sx = -lx * flip, sy = -ly * flip; // half 1 to the right of travel, or to the left when flipped
+                var g = new Grid();
+                Node in0 = g.Belt(5 - dx, 5 - dy, dir), in1 = g.Belt(5 + sx - dx, 5 + sy - dy, dir);
+                Node sp = g.Add(NodeKind.Splitter, 5, 5, dir, sx, sy);
+                Node o0 = g.Belt(5 + dx, 5 + dy, dir), o1 = g.Belt(5 + sx + dx, 5 + sy + dy, dir);
+                BeltWorld w = g.Build();
+                bool[] seen = new bool[4];
+                bool inCell = true;
+                for (int t = 0; t < 400; t++)
+                {
+                    w.Sim.TryPutBack(in0.Tile0, t & 1, Iron);
+                    w.Sim.TryPutBack(in1.Tile0, t & 1, Sulfur);
+                    w.Tick(t);
+                    Node[] watch = { sp, sp, o0, o1 };
+                    for (int k = 0; k < 4; k++)
+                    {
+                        Node n = watch[k];
+                        int half = k == 1 ? 1 : 0;
+                        LaneTile tile = n.State.Tiles[half];
+                        for (int lane = 0; lane < 2; lane++)
+                        {
+                            for (int i = 0; i < tile.Count[lane]; i++)
+                            {
+                                seen[k] = true;
+                                var (x, y) = BeltWorld.ItemPoint(n, half, lane, tile.Pos[lane * LaneSim.K + i]);
+                                int cx = n.X + half * n.Sx, cy = n.Y + half * n.Sy;
+                                inCell &= x >= cx - 1e-4f && x <= cx + 1 + 1e-4f && y >= cy - 1e-4f && y <= cy + 1 + 1e-4f;
+                            }
+                        }
+                    }
+                    // Drain both outputs so the line keeps flowing.
+                    foreach (Node o in new[] { o0, o1 })
+                    {
+                        w.Sim.OpenDrain(o.Tile0, 0);
+                        w.Sim.OpenDrain(o.Tile0, 1);
+                    }
+                }
+                if (!seen.All(s => s) || !inCell || BeltRenderState.DrawsItems(sp) || !BeltRenderState.DrawsItems(o0) || !BeltRenderState.DrawsItems(o1))
+                {
+                    bad++;
+                    first = first.Length > 0 ? first : $" [dir {dir} flip {flip}: seen half0/half1/out0/out1 = {string.Join(",", seen)} inCell={inCell}]";
+                }
+            }
+        }
+        check(bad == 0, $"splitter render: {cases} cases (4 rotations x flip), items on both halves and both outputs, all in their own cells, drawn on output belts only (splitter hidden), bad={bad}{first}");
+    }
+
+    /// <summary>
+    /// §21 D6/D7: lamps are client-only (render state reads Events, never the sim reads them): two identical worlds, one
+    /// with BeltRenderState updated every tick, keep identical NodeState digests; lamps light after transfers on both
+    /// splitter outputs and the connector; render update allocates nothing.
+    /// </summary>
+    static void RenderClientOnly(Action<bool, string> check)
+    {
+        (BeltWorld W, List<Node> Nodes, Node In) Make()
+        {
+            var g = new Grid();
+            g.Room(0, 4, new Cargo(8).With(Iron, 40).With(Sulfur, 40));
+            g.Connector(0, 3, Up, BeltTypes.FilterAny);
+            Node input = g.Belt(0, 2, Up);
+            g.Add(NodeKind.Splitter, 0, 1, Up, 1, 0);
+            g.Belt(0, 0, Up);
+            g.Belt(1, 0, Up);
+            return (g.Build(), g.Nodes, input);
+        }
+        var (a, an, _) = Make();
+        var (b, bn, _) = Make();
+        var render = new BeltRenderState();
+        render.Reset(an);
+        bool same = true;
+        bool[] lit = new bool[2 * an.Count];
+        for (int t = 0; t < 600; t++)
+        {
+            a.Tick(t);
+            b.Tick(t);
+            render.Update(t);
+            for (int i = 0; i < an.Count; i++)
+            {
+                same &= an[i].State.Digest() == bn[i].State.Digest();
+                lit[2 * i] |= render.Lamp[2 * i];
+                lit[2 * i + 1] |= render.Lamp[2 * i + 1];
+            }
+        }
+        int conn = 0, split = 2;
+        check(same && lit[2 * conn] && lit[2 * split] && lit[2 * split + 1] && an[conn].Events[0] > 0 && an[split].Events[0] > 0 && an[split].Events[1] > 0,
+            $"render client-only: digests equal with/without render state, lamps lit conn={lit[0]} split out0/out1={lit[4]}/{lit[5]}, events conn={an[conn].Events[0]} split={an[split].Events[0]}/{an[split].Events[1]}");
+        // Zero-alloc render update over a 400-node network (warm-up first, like the P3 benches).
+        var nodes = new List<Node>();
+        var big = new Grid();
+        for (int i = 0; i < 400; i++)
+        {
+            big.Belt(0, -i, Up);
+        }
+        big.Build();
+        render.Reset(big.Nodes);
+        for (int t = 0; t < 30000; t++)
+        {
+            render.Update(t);
+        }
+        long alloc0 = GC.GetAllocatedBytesForCurrentThread();
+        long ts0 = System.Diagnostics.Stopwatch.GetTimestamp();
+        for (int t = 30000; t < 60000; t++)
+        {
+            render.Update(t);
+        }
+        double us = (System.Diagnostics.Stopwatch.GetTimestamp() - ts0) * 1e6 / System.Diagnostics.Stopwatch.Frequency / 30000;
+        long alloc = GC.GetAllocatedBytesForCurrentThread() - alloc0;
+        check(alloc == 0 && us < 50, $"render bench: 400 nodes {us:F2} us/tick (budget 50), alloc {alloc} B");
+    }
+
+    /// <summary>
+    /// §21 D8: a connector pulls from rooms at its back, left and right in round-robin (fair within 1), shares one rate,
+    /// skips a side room that is also its front room, and the saved cursor round-trips (0..2 for connectors only).
+    /// </summary>
+    static void MultiSideIntake(Action<bool, string> check)
+    {
+        for (int dir = 0; dir < 4; dir++)
+        {
+            var (dx, dy) = Dir[dir];
+            var (lx, ly) = LeftOf(dir);
+            var g = new Grid();
+            Cargo back = g.Room(-dx, -dy, new Cargo(4).With(Iron, 20));
+            Cargo left = g.Room(lx, ly, new Cargo(4).With(Iron, 20));
+            Cargo right = g.Room(-lx, -ly, new Cargo(4).With(Iron, 20));
+            Node c = g.Connector(0, 0, dir, BeltTypes.FilterAny);
+            var sink = g.Room(dx, dy, new Typed());
+            sink.InCap[Iron] = 1000;
+            BeltWorld w = g.Build();
+            for (int t = 0; t < 30; t++)
+            {
+                w.Tick(t);
+            }
+            int b = 20 - back.Total(Iron), l = 20 - left.Total(Iron), r = 20 - right.Total(Iron);
+            check(sink.In[Iron] == 15 && Math.Max(b, Math.Max(l, r)) - Math.Min(b, Math.Min(l, r)) <= 1 && c.Mode == "room>room",
+                $"multi-side intake dir {dir}: 30 ticks -> {sink.In[Iron]} (expect 15 = 1/{BeltWorld.ConnectorPeriod}), back/left/right {b}/{l}/{r}");
+        }
+        {
+            // Same room at the side and in front (an L-shaped neighbour): never pulls from it into itself.
+            var g = new Grid();
+            Cargo room = new Cargo(4).With(Iron, 10);
+            g.Room(-1, 0, room);
+            g.Room(0, -1, room);
+            Node c = g.Connector(0, 0, Up, BeltTypes.FilterAny);
+            BeltWorld w = g.Build();
+            for (int t = 0; t < 60; t++)
+            {
+                w.Tick(t);
+            }
+            check(room.Total(Iron) == 10 && c.Events[0] == 0 && c.State.RoundRobin[0] == 0, $"multi-side intake: side room == front room is a no-op ({room.Total(Iron)}/10, events {c.Events[0]}, cursor {c.State.RoundRobin[0]})");
+        }
+        var s = new NodeState(NodeKind.Connector);
+        s.RoundRobin[0] = 2;
+        var sp = new NodeState(NodeKind.Splitter);
+        int[] bad = sp.Encode();
+        bad[^4] = 2; // rr0 of a splitter must stay 0/1
+        check(NodeState.Decode(NodeKind.Connector, s.Encode())?.RoundRobin[0] == 2 && NodeState.Decode(NodeKind.Splitter, bad)?.RoundRobin[0] == 0,
+            "connector source cursor saved 0..2, splitter rr stays 0/1");
     }
 
     static (int X, int Y) LeftOf(int dir) => (Dir[dir].Y, -Dir[dir].X); // left of travel, screen y down
@@ -768,20 +1012,29 @@ static class WorldProbes
             }
             check(weapon.In[Bullet] == 30 && factory.Out[Bullet] == 10, $"room->room respects sink capacity: weapon {weapon.In[Bullet]}/30, factory stock {factory.Out[Bullet]}");
         }
-        // Belt to belt pass-through and side put -> far lane.
+        // Side put: with a rear feeder the belt stays straight and the connector puts on the far lane (§7); as the only
+        // feeder (no rear) it curves the belt like a belt feeder would and puts on both lanes (§21 D5, owner L case).
+        foreach (bool rear in new[] { true, false })
         {
             var g = new Grid();
             Cargo cargo = g.Room(-1, 1, new Cargo(4).With(Iron, 20));
-            g.Connector(0, 1, Right, Iron); // on the main belt's left side, pushing right
+            Node c = g.Connector(0, 1, Right, Iron); // on the main belt's left side, pushing right
             Node main = g.Belt(1, 1, Up);
             Node end = g.Belt(1, 0, Up);
+            if (rear)
+            {
+                g.Belt(1, 2, Up);
+            }
             BeltWorld w = g.Build();
             int[] got = new int[2];
             for (int t = 0; t < 600; t++)
             {
                 Step(w, t, end.Tile0, got);
             }
-            check(got[1] == 20 && got[0] == 0 && cargo.Total(Iron) == 0, $"side connector -> far lane: L={got[0]} R={got[1]} (expect 0/20)");
+            bool ok = rear ? got[1] == 20 && got[0] == 0 && main.Shape == Shape.Straight && main.SideIn == 1
+                : got[0] == 10 && got[1] == 10 && main.Shape == Shape.CurveLeft && main.SideIn == 0;
+            check(ok && cargo.Total(Iron) == 0 && c.Events[0] == 20,
+                $"side connector, rear {(rear ? "belt -> straight, far lane" : "empty -> curve L, both lanes")}: shape={main.Shape} sideIn={main.SideIn} L={got[0]} R={got[1]} events={c.Events[0]}");
         }
         // Owner layout (live bug): cargo -> connector(sulfur) -> splitter -> connectors(sulfur) -> 2x factory_ammo, no belt
         // tiles between. Factory input = vanilla SulfurStorage TypedResourceGrid 1x1 x sulfur MaxStackSize 5.
