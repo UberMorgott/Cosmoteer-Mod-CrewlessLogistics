@@ -567,7 +567,7 @@ Decisions (Claude / Codex `codex exec -s read-only`, static engine reading / agr
   no claims (claims are not saved, so a rejoining peer computes the same). Regression tests red before, green after.
 - Review 6: P1 (two passes miss a cascade of overflows through two splitters). Fixed: claim passes repeat until no claim
   changes (at most 8, each reading only the previous pass: order-independent); this cascade has no dedicated test.
-- Known limits (`shortcut:`): a cyclic claim dependency keeps the 8th pass; a connector feeder tree deeper than 8
+- Known limits (`shortcut:`): a connector feeder tree deeper than 8 (the fixed pass cap was replaced in §24)
   counts as not pending. Belts feeding a round-robin connector
   still enter in node order (as before; only rooms take turns).
 - Tests (`belts/tests/SettingsProbes.cs`): input priority (16 cases), output priority (16), filter (48: 4 rotations x
@@ -577,3 +577,15 @@ Decisions (Claude / Codex `codex exec -s read-only`, static engine reading / agr
   the payload + rules toggles/registration. `RulesProbes.Assets` (R2, owner crash 9dac7b9): list items
   comma/newline separated, every referenced asset/rules file exists.
 - Not verified: in game (popout icons and tooltips, blueprint copy/paste of the new toggles, save/load, MP late join).
+
+## 24. Claim cascade debt: regression test and exact pass bound (2026-10-28)
+
+Debt from e268d18 (§23 review 6): the claim-pass repetition had no test, no Codex re-check, and a fixed cap of 8.
+
+| Decision | Claude | Codex | Agreed |
+| --- | --- | --- | --- |
+| D1 test | `WorldProbes.ClaimCascade`: S2 (output priority to a side facing no node) only overflows into C_R's priority right side, so C_R is claimed from pass 1; S (output priority right = C_R) then overflows into C_L (priority back, endless side room) only at pass 2. One sulfur lane (a second held item would overflow anyway, §23 review 4); 2 node orders x 4 x 4 feed/room start ticks, because the starvation needs both connector period phases aligned | AGREE: claims go (false,false) -> (false,true) -> (true,true); single lane avoids the reservation bypass | red with 2 passes (pre-fix: 8/32 cases, C_L sulfur 0), green now (32/32) |
+| D2 bound | 1 + connector count passes: pass p reads only pass p-1, acyclic dependency chains have at most K-1 edges | AGREE, plus: the operator is monotone (pass 0 is a subset of any overflow pass; more claims only close first choices, adding overflow), so claims only grow, cycles included -> no oscillation | cap = 1 + connectors (`BeltWorld._claimPasses`), exact in all cases; the cyclic `shortcut:` is gone. `ClaimDepth` (feeder search depth) adds no pass delay |
+| D3 cost | early exit when nothing changes keeps the usual 1-2 passes | a long cascade costs up to K+1 full passes; an exact cheaper scheme is a dirty-connector queue over the claim-read graph | kept the simple loop (no measured need); queue = upgrade path if a tick profile shows it |
+
+- Codex diff review: no real bugs, lockstep-safe. Not measured: tick cost of a long cascade in game.

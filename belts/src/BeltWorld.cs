@@ -129,6 +129,7 @@ public sealed class BeltWorld
             }
         }
         _tileNode = tileNode.ToArray();
+        _claimPasses = 1 + nodes.FindAll(n => n.Kind == NodeKind.Connector).Count;
         _sim = new LaneSim(tiles.ToArray());
         int count = tiles.Count;
         var next = new int[count];
@@ -318,9 +319,11 @@ public sealed class BeltWorld
         _sim.Tick(tick);
         // §23: claims before any handoff, independent of node order: pass 0 without splitter overflow, then each pass judges
         // overflows against the previous pass's claims until nothing changes (cascades through several splitters).
-        // shortcut: stops after ClaimPasses; a cyclic claim dependency keeps the last pass (deterministic, may be suboptimal).
+        // §24 exact bound: pass 0 claims a subset of any overflow pass, and more claims only close more first choices (more
+        // overflow, never less), so claims only grow from pass to pass, cycles included: at most one pass per connector
+        // adds a claim, so 1 + connector count passes always reach the fixed point.
         bool changed = true;
-        for (int pass = 0; changed && pass < ClaimPasses; pass++)
+        for (int pass = 0; changed && pass < _claimPasses; pass++)
         {
             foreach (Node n in _nodes)
             {
@@ -413,8 +416,8 @@ public sealed class BeltWorld
     /// <summary>Connector chains are a few parts long; deeper feeder trees count as not pending (no recursion blow-up).</summary>
     private const int ClaimDepth = 8;
 
-    /// <summary>Claim passes per tick (§23): one without overflow, then up to this many - 1 overflow refinements.</summary>
-    private const int ClaimPasses = 8;
+    /// <summary>Claim passes per tick (§23, §24): one without overflow, then up to one refinement per connector.</summary>
+    private readonly int _claimPasses;
 
     /// <summary>
     /// §23: whether side <paramref name="side"/> of connector <paramref name="c"/> has something that could pass now: a

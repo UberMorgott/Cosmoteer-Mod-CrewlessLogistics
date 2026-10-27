@@ -67,4 +67,7 @@ public class WorldTests
 
     [Fact]
     public void SettingsOutsidePayload() => Probe.Run(WorldProbes.SettingsOutsidePayload);
+
+    [Fact]
+    public void ClaimCascade() => Probe.Run(WorldProbes.ClaimCascade);
 }

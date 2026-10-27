@@ -467,6 +467,57 @@ static partial class WorldProbes
     }
 
     /// <summary>
+    /// §24 overflow cascade through two splitters (debt of e268d18): S2 (left, output priority right = no sink) only ever
+    /// overflows into the right side of C_R (priority right), so C_R is claimed from pass 1; only then is S's priority output
+    /// C_R closed to S, and S's overflow claims C_L (priority back) at pass 2 against C_L's endless side room. With a single
+    /// overflow pass C_L's room takes every slot and S's left lane starves. Both node orders.
+    /// </summary>
+    internal static void ClaimCascade(Action<bool, string> check)
+    {
+        // Start ticks of S2's feed and C_L's room shift the connector period phases (2 ticks): starvation needs them aligned.
+        int bad = 0, cases = 0;
+        string first = "";
+        foreach (var (connFirst, delay, roomAt) in from cf in new[] { true, false } from d in Enumerable.Range(0, 4) from r in Enumerable.Range(0, 4) select (cf, d, r))
+        {
+            var g = new Grid();
+            Node? cl = connFirst ? g.Connector(0, 1, Up, BeltTypes.FilterAny) : null, cr = connFirst ? g.Connector(1, 1, Up, BeltTypes.FilterAny) : null;
+            Node in0 = g.Belt(0, 3, Up), in2 = g.Belt(3, 1, Left), in3 = g.Belt(3, 0, Left);
+            g.Add(NodeKind.Splitter, 0, 2, Up, 1, 0).State.OutPriority = 2;
+            g.Add(NodeKind.Splitter, 2, 1, Left, 0, -1).State.OutPriority = 2; // right half (2, 0) faces no node: never takes
+            cl ??= g.Connector(0, 1, Up, BeltTypes.FilterAny);
+            cr ??= g.Connector(1, 1, Up, BeltTypes.FilterAny);
+            cl.State.SourcePriority = 1;
+            cr.State.SourcePriority = 3;
+            Cargo sideL = g.Room(-1, 1, new Cargo(4));
+            Typed sinkL = g.Room(0, 0, new Typed()), sinkR = g.Room(1, 0, new Typed());
+            sinkL.InCap[Iron] = sinkL.InCap[Sulfur] = sinkR.InCap[Iron] = sinkR.InCap[Sulfur] = 100000;
+            BeltWorld w = g.Build();
+            int fed = 0;
+            for (int t = 0; t < 200; t++)
+            {
+                if (t >= roomAt)
+                {
+                    sideL.With(Iron, 5);
+                }
+                fed += w.Sim.TryPutBack(in0.Tile0, 0, Sulfur) ? 1 : 0; // one held item per tick: no second-item overflow (review 4)
+                foreach (Node b in t >= delay ? new[] { in2, in3 } : Array.Empty<Node>())
+                {
+                    w.Sim.TryPutBack(b.Tile0, t & 1, Iron);
+                }
+                w.Tick(t);
+            }
+            cases++;
+            // In transit at most one belt (8 per lane) plus the held item; the rest reached C_L.
+            if (fed < 50 || fed - sinkL.In[Sulfur] - sinkR.In[Sulfur] > 9 || sinkR.In[Iron] < 50)
+            {
+                first = first.Length > 0 ? first : $" first: {(connFirst ? "connectors" : "splitters")} first, S2 from t{delay}, room from t{roomAt}: fed {fed}, left sulfur {sinkL.In[Sulfur]} iron {sinkL.In[Iron]}, right iron {sinkR.In[Iron]} sulfur {sinkR.In[Sulfur]}";
+                bad++;
+            }
+        }
+        check(bad == 0, $"claim cascade S2 -> C_R -> S -> C_L: {cases} cases (node order x feed phases), S's overflow keeps flowing into C_L, bad={bad}{first}");
+    }
+
+    /// <summary>
     /// Settings live in vanilla UIToggles (RememberValue: saved with the part, copied with blueprints, MP-synced), not in the
     /// payload: encode/decode ignores them and decodes to the defaults; out-of-range modes read as 0; they are hashed; rules
     /// declare the toggles on the parts with Default 0 and the choice order the sim expects.
