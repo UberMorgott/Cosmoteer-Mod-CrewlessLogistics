@@ -20,18 +20,9 @@ Actions : <generated.actions.rules>/Actions
         ]
     }
     {
-        Action = AddMany
+        Action = Add
         AddTo = "<gui/game/parts/part_toggles.rules>/PartToggles"
-        ManyToAdd
-        [
-            &<network_toggle.rules>/Toggle
-            &<ammo_belt_toggles.rules>/BulletFront
-            &<ammo_belt_toggles.rules>/BulletLeft
-            &<ammo_belt_toggles.rules>/BulletRight
-            &<ammo_belt_toggles.rules>/EmpFront
-            &<ammo_belt_toggles.rules>/EmpLeft
-            &<ammo_belt_toggles.rules>/EmpRight
-        ]
+        ToAdd = &<network_toggle.rules>/Toggle
     }
     {
         Action = AddMany
@@ -41,11 +32,6 @@ Actions : <generated.actions.rules>/Actions
             &<cable.rules>/Part
             &<cable_crossing.rules>/Part
             &<cable_heat_crossing.rules>/Part
-            &<ammo_belts.rules>/Straight
-            &<ammo_belts.rules>/CornerLeft
-            &<ammo_belts.rules>/CornerRight
-            &<ammo_belts.rules>/Merger
-            &<ammo_belts.rules>/Splitter
         ]
     }
     {

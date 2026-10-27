@@ -64,7 +64,7 @@ rules naming it fail to parse without the DLL. Without the DLL the rules load, b
 
 Retired prototype IDs (`ammo_belt`, `ammo_belt_corner_left/right`, `ammo_belt_merger`, `ammo_belt_splitter`,
 `mod/ammo_belt_common.rules:10-17`) were never in a Workshop release (0.3.5 description says logistics "planned"), so
-removal only affects branch test saves: delete them, plus the 6 `belt_*` filter toggles (`mod/ammo_belt_toggles.rules`,
+removal only affects branch test saves: deleted (done; `mod/ammo_belt*.rules` line refs in this spec = files at c029386), plus the 6 `belt_*` filter toggles (`mod/ammo_belt_toggles.rules`,
 `mod/mod.rules` AddMany). Base stats reuse current `BasePart` (heat-pipe stats, crew blocked, rotatable,
 `mod/ammo_belt_common.rules:430-441`). Belt and connector `IsFlippable = false` (output is always front; mirroring
 is handled by rotation, no flip state needed). Splitter `IsFlippable = false` (symmetric).

@@ -117,7 +117,6 @@ sealed partial class NativeProbe
             ValidateConsumerCoverage(root);
             ValidateModdedDevices();
             OverlayPlacementProbe(root);
-            AmmoBeltProbe(root);
             scenarioResults.Add(new { name = "installable rules-only package", nativeActions = actions.Count, parsedComponents = added.Count });
             var report = Path.Combine(projectRoot, "artifacts", "whole-cell-native", "package-validation.json");
             File.WriteAllText(report, JsonSerializer.Serialize(new { verifiedAtUtc = DateTimeOffset.UtcNow, nativeActions = actions.Count, parsedComponents = added, physicalCableInitializationCases = 2, limits = "Native mod actions, selected rules and inactive non-rendering cable initialization; no game UI, rendering, full part constructor or live scheduling test." }, new JsonSerializerOptions { WriteIndented = true }));
