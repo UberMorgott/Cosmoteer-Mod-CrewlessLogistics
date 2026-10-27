@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -44,7 +45,15 @@ func main() {
 
 func run() error {
 	dll := flag.String("dll", `D:\Steam\steamapps\common\Cosmoteer\Bin\steam_api64.dll`, "path to steam_api64.dll")
-	appIDFlag := flag.Uint("appid", 0, "Steam AppID (default: SteamAppId env, steam_appid.txt next to exe, else 799600)")
+	var appIDFlag uint32
+	flag.Func("appid", "Steam AppID (default: SteamAppId env, steam_appid.txt next to exe, else 799600)", func(s string) error {
+		v, err := strconv.ParseUint(s, 10, 32)
+		if err != nil {
+			return err
+		}
+		appIDFlag = uint32(v)
+		return nil
+	})
 	content := flag.String("content", "", "installed mod folder (uploaded as item content; holds .workshop)")
 	preview := flag.String("preview", "", "preview image (jpg/png/gif)")
 	textsDir := flag.String("texts", "", "dir with <steamlang>.txt: first line title, rest description; english.txt required")
@@ -92,7 +101,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	appID := resolveAppID(*appIDFlag)
+	appID := resolveAppID(appIDFlag)
 
 	// steam_api reads SteamAppId from the environment; set it so no steam_appid.txt is needed.
 	for _, k := range []string{"SteamAppId", "SteamGameId"} {
@@ -250,7 +259,8 @@ func orNone(s string) string {
 
 // loadTexts returns english first, then other languages sorted.
 func loadTexts(dir string) ([]text, error) {
-	entries, err := os.ReadDir(dir)
+	fsys := os.DirFS(dir)
+	entries, err := fs.ReadDir(fsys, ".")
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +273,7 @@ func loadTexts(dir string) ([]text, error) {
 		if !steamLangs[lang] {
 			return nil, fmt.Errorf("%s: %q is not a Steam API language code", e.Name(), lang)
 		}
-		raw, err := os.ReadFile(filepath.Join(dir, e.Name()))
+		raw, err := fs.ReadFile(fsys, e.Name())
 		if err != nil {
 			return nil, err
 		}
@@ -311,39 +321,45 @@ func isRuntimeJunk(name string) bool {
 }
 
 // stageContent copies src into dst, skipping runtimeJunk files and directories.
+// Both trees are opened as os.Root so a symlink inside src cannot redirect a read or write outside them.
 func stageContent(src, dst string) (n int, skipped []string, err error) {
-	err = filepath.WalkDir(src, func(p string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		rel, err := filepath.Rel(src, p)
-		if err != nil || rel == "." {
+	srcRoot, err := os.OpenRoot(src)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer func() { _ = srcRoot.Close() }() // closes a directory handle only: nothing to lose
+	dstRoot, err := os.OpenRoot(dst)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer func() { _ = dstRoot.Close() }() // each WriteFile already closed its own file
+	err = fs.WalkDir(srcRoot.FS(), ".", func(p string, d fs.DirEntry, err error) error {
+		if err != nil || p == "." {
 			return err
 		}
 		if isRuntimeJunk(d.Name()) {
-			skipped = append(skipped, rel)
+			skipped = append(skipped, filepath.FromSlash(p))
 			if d.IsDir() {
-				return filepath.SkipDir
+				return fs.SkipDir
 			}
 			return nil
 		}
-		out := filepath.Join(dst, rel)
 		if d.IsDir() {
-			return os.MkdirAll(out, 0o755)
+			return dstRoot.MkdirAll(p, 0o755)
 		}
-		raw, err := os.ReadFile(p)
+		raw, err := srcRoot.ReadFile(p)
 		if err != nil {
 			return err
 		}
 		n++
-		return os.WriteFile(out, raw, 0o644)
+		return dstRoot.WriteFile(p, raw, 0o644)
 	})
 	return n, skipped, err
 }
 
 // readWorkshopID mirrors ulong.Parse(File.ReadAllText(folder/.workshop)).
 func readWorkshopID(folder string) (uint64, error) {
-	raw, err := os.ReadFile(filepath.Join(folder, workshopFile))
+	raw, err := fs.ReadFile(os.DirFS(folder), workshopFile)
 	if os.IsNotExist(err) {
 		return 0, nil
 	}
@@ -370,9 +386,9 @@ func writeWorkshopID(folder string, id uint64) error {
 	return syscall.SetFileAttributes(pp, syscall.FILE_ATTRIBUTE_HIDDEN)
 }
 
-func resolveAppID(flagVal uint) uint32 {
+func resolveAppID(flagVal uint32) uint32 {
 	if flagVal != 0 {
-		return uint32(flagVal)
+		return flagVal
 	}
 	if v, err := strconv.ParseUint(os.Getenv("SteamAppId"), 10, 32); err == nil && v != 0 {
 		return uint32(v)
