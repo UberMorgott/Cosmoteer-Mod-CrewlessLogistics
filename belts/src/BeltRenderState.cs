@@ -124,6 +124,9 @@ public sealed class BeltRenderState
     /// <summary>Items drawn per node: belts only; splitter contents sit inside its closed housing, connectors hold none.</summary>
     public static bool DrawsItems(Node n) => n.Kind == NodeKind.Belt;
 
+    /// <summary>§26 damage level of a part sprite with that many levels, as vanilla PartSpriteRules.GetAtlasSpriteForDamage.</summary>
+    public static int DamageLevel(float damageFraction, int levels) => Math.Clamp((int)(damageFraction * levels), 0, levels - 1);
+
     /// <summary>§25 crossing art from what its Up / Down edges link to: one network on both or one edge, both, or none.</summary>
     public static Variant CrossingVariant(CrossLink up, CrossLink down) => (up, down) switch
     {

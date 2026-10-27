@@ -20,7 +20,7 @@ Part : <belt.rules>/Part
                 Layer = "floors"
                 DamageLevels
                 [
-                    { File = "assets/belt_connector.png"; Size = [1, 1] }
+                    { File = "assets/belt_connector.png"; Size = [1, 1] } { File = "assets/belt_connector_33.png"; Size = [1, 1] } { File = "assets/belt_connector_66.png"; Size = [1, 1] }
                 ]
             }
         }

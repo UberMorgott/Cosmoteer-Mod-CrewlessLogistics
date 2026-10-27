@@ -35,7 +35,7 @@ Part : <belt.rules>/Part
                 Layer = "floors"
                 DamageLevels
                 [
-                    { File = "assets/belt_splitter.png"; Size = [2, 1] }
+                    { File = "assets/belt_splitter.png"; Size = [2, 1] } { File = "assets/belt_splitter_33.png"; Size = [2, 1] } { File = "assets/belt_splitter_66.png"; Size = [2, 1] }
                 ]
             }
             Roof

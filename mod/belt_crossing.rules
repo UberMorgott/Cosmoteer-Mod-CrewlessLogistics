@@ -51,7 +51,7 @@ Part : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part
         {
             Type = Graphics
             Location = [.5, .5]
-            Floor { Layer = "floors"; DamageLevels [ { File = "assets/belt_crossing.png"; Size = [1, 1] } ] }
+            Floor { Layer = "floors"; DamageLevels [ { File = "assets/belt_crossing.png"; Size = [1, 1] } { File = "assets/belt_crossing_33.png"; Size = [1, 1] } { File = "assets/belt_crossing_66.png"; Size = [1, 1] } ] }
             Walls : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Graphics/Walls {}
             Roof = &<./Data/ships/terran/corridor/corridor.rules>/Part/Components/Graphics/Roof
         }

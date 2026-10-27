@@ -610,3 +610,18 @@ Debt from e268d18 (§23 review 6): the claim-pass repetition had no test, no Cod
 - Probes: `BeltPartsProbe` (thermal + electric Up/Down ports, none on the belt axis, OtherIDs), `PackageProbe` (electric ports
   `ElectricPort_*`), `LocalizationProbe` (30 keys), `NativeDeviceCatalog` added IDs.
 - Not verified: in game (old saves/blueprints loading as the new part, overlay centering, art switching when a pipe/cable is added).
+
+## 26. Damage stages, item drops on removal, part salvage (2026-10-28)
+
+| Decision | Claude | Codex | Agreed |
+| --- | --- | --- | --- |
+| C1a levels | 3, like the vanilla corridor / heat pipe crossing floors (the animated conveyor doodad has 1); level = `(int)(DamageFraction * 3)` capped (`PartSpriteRules.cs:115`) | AGREE; the C# surface covers the floor, so it must switch too | belt, connector, splitter, crossing floors: `<file>`, `_33`, `_66` |
+| C1b art | 2 Codex image_gen damage decals (light / heavy, magenta key) composited by `tools/belt-sprites` instead of 10 regenerated masters (alignment, seamless edges) | AGREE; mask floor from the clean master, keep decals off joining edges | `art/belt_damage_{33,66}.png` (`keyMagenta`), `damageFrame`: decal only on part pixels of the level-0 bake, vanilla `floor_33/_66` in the margins, 3 px edge fade; static sprites and every animation frame |
+| C1c surface | level 2 one static frame | DISAGREE: a still belt under moving items reads as stopped; animate all levels | `BeltSurfaceSprites` = `RandomDamageLevels` `[variant][0/33/66]`, all animated; C# `BeltRenderState.DamageLevel` per render tick; items unchanged (sim unchanged) |
+| C2 drops | split -> keep (`StructureContiguityManager.IsSplitting`, same Part moved, `:112-145`); Health 0 (weapons and crew deconstruction both, `PartsManager.OnPartDestroyed :812`) -> vanilla `ResourceStorage.OnDestroying` parameters; intact removal (delete, replace, reset) -> everything | AGREE; intact = `(1f, destroyed false, IsHumanPlayerShip)` (`ResourceStorage.cs:197`); use the manager's ship (`part.Ship` is null at `PartRemoved`); `Sim.Rand` keeps MP deterministic | `NodeState.OnRemoved` + `BeltManager.DropItems`; tiles cleared, no double drop |
+| C3 salvage | the engine drops a destroyed / deconstructed part's own `Resources` x drop chance (`PartsManager.cs:832-858`); ours inherit vanilla rules: belt / connector / crossing 4 steel + 2 coils (vanilla crossing 4 + 2, conveyor 4 + 1), splitter 8 + 4 (2 tiles) | AGREE; pin the effective inherited values | test `WorldTests.PartCosts`, no code change |
+| review | - | P2: `SetSprite` on a paused quad re-phases its frozen frame | level/variant switch assigns `Sprite` (same interval, phase kept) |
+
+- Tests: `DamageLevels`, `RemovalDrops`, `PartCosts`, `CrossingVariants` (every surface with 3 levels); `BeltPartsProbe`: 3 floor levels.
+- Preview: `tools/belt-sprites -damage` (crossing arts + damage levels of every part).
+- Not verified: in game (damage switching, nuggets on delete / replace, split keeps items, MP).

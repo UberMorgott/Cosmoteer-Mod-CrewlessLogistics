@@ -7,6 +7,7 @@
 //	go run . -preview out.png                            // also compose new sprites next to vanilla ones
 //	go run . -overhaul out.png                           // §21 cases in game layering + animated out.gif
 //	go run . -blueprints out.png                         // blueprint ghosts in 4 rotations over floor (vanilla arrow)
+//	go run . -damage out.png                             // §25 crossing arts + §26 damage levels of every part
 package main
 
 import (
@@ -60,6 +61,82 @@ func mixedCrossing(base, other *image.NRGBA) *image.NRGBA {
 		}
 	}
 	return out
+}
+
+// §26 damage stages, like vanilla floors (corridor floor.png / floor_33.png / floor_66.png): level k > 0 overlays the
+// Codex damage decal art/belt_damage_<suffix>.png on the part pixels and puts the vanilla damaged corridor floor in the
+// margins. Same alignment by construction: the part art itself is untouched under the decal.
+var damageSuffix = []string{"", "_33", "_66"}
+
+// keyMagenta turns a Codex decal on the flat magenta key into alpha: grey/brown marks blended with magenta (255, 0, 255)
+// keep their own colour (un-mixed), alpha from how far R/B drop toward G.
+func keyMagenta(img *image.NRGBA) *image.NRGBA {
+	out := image.NewNRGBA(img.Rect)
+	for y := img.Rect.Min.Y; y < img.Rect.Max.Y; y++ {
+		for x := img.Rect.Min.X; x < img.Rect.Max.X; x++ {
+			c := img.NRGBAAt(x, y)
+			a := 1 - (float64(min(c.R, c.B))-float64(c.G))/255
+			a = min(max((a-0.08)/0.92, 0), 1) // key noise around pure magenta -> 0
+			if a == 0 {
+				continue
+			}
+			un := func(v uint8, m float64) uint8 { return uint8(min(max((float64(v)-(1-a)*m)/a, 0), 255)) }
+			out.SetNRGBA(x, y, color.NRGBA{un(c.R, 255), un(c.G, 0), un(c.B, 255), uint8(a * 255)})
+		}
+	}
+	return out
+}
+
+// damageFrame: frame m (64 px/tile, before floorMargins) at level k: floor margins from the level's vanilla corridor floor,
+// decal (64 px tile, mirrored on odd tiles) only over part pixels, i.e. pixels the level-0 bake keeps (keep = floorKeep).
+func damageFrame(m *image.NRGBA, floors []*image.NRGBA, decals []*image.NRGBA, k int, post func(*image.NRGBA, *image.NRGBA), keep ...image.Rectangle) *image.NRGBA {
+	base := floorMargins(m, floors[0], keep...)
+	if post != nil {
+		post(base, floors[0])
+	}
+	if k == 0 {
+		return base
+	}
+	out := floorMargins(m, floors[k], keep...)
+	if post != nil {
+		post(out, floors[k])
+	}
+	for ty := 0; ty < m.Rect.Dy(); ty += 64 {
+		for tx := 0; tx < m.Rect.Dx(); tx += 64 {
+			d := decals[k]
+			if (tx/64+ty/64)%2 == 1 {
+				d = flipH(d)
+			}
+			for y := range 64 {
+				for x := range 64 {
+					fp := floors[0].NRGBAAt((tx+x)%floors[0].Rect.Dx(), (ty+y)%floors[0].Rect.Dy())
+					if base.NRGBAAt(tx+x, ty+y) == fp {
+						continue // floor pixel: the vanilla damaged floor already shows the damage
+					}
+					s, o := d.NRGBAAt(x, y), out.NRGBAAt(tx+x, ty+y)
+					// Belt ends and rails join the neighbour tile: fade the decal out over the 3 px next to each tile edge (Codex).
+					edge := min(x, y, 63-x, 63-y)
+					al := float64(s.A) / 255 * min(float64(edge)/3, 1)
+					mix := func(dc, sc uint8) uint8 { return uint8(float64(dc)*(1-al) + float64(sc)*al + .5) }
+					out.SetNRGBA(tx+x, ty+y, color.NRGBA{mix(o.R, s.R), mix(o.G, s.G), mix(o.B, s.B), o.A})
+				}
+			}
+		}
+	}
+	return out
+}
+
+// loadDamage: the vanilla corridor floors and the 64 px decals per level (index 0 unused).
+func loadDamage(game, artDir string) (floors, decals []*image.NRGBA) {
+	for k, sfx := range damageSuffix {
+		floors = append(floors, load(filepath.Join(game, "Data", "ships", "terran", "corridor", "floor"+sfx+".png")))
+		if k == 0 {
+			decals = append(decals, nil)
+			continue
+		}
+		decals = append(decals, resize(load(filepath.Join(artDir, "belt_damage"+sfx+".png")), 64, 64))
+	}
+	return floors, decals
 }
 
 // master loads a master by name; belt_crossing is the mixed heat (left = part Up) / cable (right = part Down) master.
@@ -580,14 +657,18 @@ func animVariants(artDir string) []struct {
 	}
 }
 
-// bakeAnim writes <out>/belt_anim/<variant>_<k>.png (64 px) for k < animFrames.
-func bakeAnim(artDir, outDir string, floor *image.NRGBA) {
+// bakeAnim writes <out>/belt_anim/<variant><damage>_<k>.png (64 px) for k < animFrames and every §26 damage level.
+func bakeAnim(artDir, outDir string, floors, decals []*image.NRGBA) {
 	belt := load(filepath.Join(artDir, "belt.png"))
 	dir := filepath.Join(outDir, "belt_anim")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		fail(err)
 	}
 	for _, v := range animVariants(artDir) {
+		var post func(*image.NRGBA, *image.NRGBA)
+		if v.name == "curve" {
+			post = curveFloor
+		}
 		for k := range animFrames {
 			// Moving up the screen = texture rows scroll up: frame k shows the texture k/animFrames of a tile further on.
 			f := shiftBand(belt, k*masterTile/animFrames)
@@ -595,11 +676,9 @@ func bakeAnim(artDir, outDir string, floor *image.NRGBA) {
 			if v.name == "curve" {
 				curveEdges(m, resize(f, 64, 64))
 			}
-			m = floorMargins(m, floor)
-			if v.name == "curve" {
-				curveFloor(m, floor)
+			for lvl, sfx := range damageSuffix {
+				save(damageFrame(m, floors, decals, lvl, post), filepath.Join(dir, fmt.Sprintf("%s%s_%02d.png", v.name, sfx, k)))
 			}
-			save(m, filepath.Join(dir, fmt.Sprintf("%s_%02d.png", v.name, k)))
 		}
 	}
 }
@@ -861,11 +940,18 @@ func main() {
 	previewPath := flag.String("preview", "", "optional preview PNG path")
 	overhaulPath := flag.String("overhaul", "", "optional §21 overhaul preview PNG path (+ animated .gif next to it)")
 	crossingsPath := flag.String("crossings", "", "optional crossings preview PNG path (belts left/right, pipe or cable above/below)")
+	damagePath := flag.String("damage", "", "optional §25/§26 preview PNG path (crossing arts, damage levels of every part)")
 	blueprintsPath := flag.String("blueprints", "", "optional blueprint ghost preview PNG path (4 rotations over floor, 1x and 2x)")
 	flag.Parse()
 
 	if *importDir != "" {
 		// Only masters present in -import are replaced, so one part can be regenerated without touching the others.
+		for _, name := range []string{"belt_damage_33", "belt_damage_66"} {
+			// §26 Codex damage decals on the magenta key -> alpha, one 256 px tile.
+			if path := filepath.Join(*importDir, name+"_master.png"); exists(path) {
+				save(resize(keyMagenta(load(path)), masterTile, masterTile), filepath.Join(*artDir, name+".png"))
+			}
+		}
 		for _, sp := range append(sprites, layers...) {
 			path := filepath.Join(*importDir, sp.master+"_master.png")
 			if !exists(path) {
@@ -877,7 +963,7 @@ func main() {
 		}
 	}
 	arrow := vanillaArrow(*game)
-	floor := load(filepath.Join(*game, "Data", "ships", "terran", "corridor", "floor.png"))
+	floors, decals := loadDamage(*game, *artDir)
 	for _, sp := range sprites {
 		m := master(*artDir, sp.master)
 		if sp.master == "belt_connector" {
@@ -887,8 +973,11 @@ func main() {
 		if strings.HasSuffix(sp.master, "_crossing") || strings.HasSuffix(sp.file, "_crossing.png") {
 			m, rot = rotateCW(m), 1
 		}
-		if sp.file != "" {
-			save(floorMargins(resize(m, sp.w*64, sp.h*64), floor, floorKeep[sp.master]...), filepath.Join(*outDir, sp.file))
+		for lvl, sfx := range damageSuffix {
+			if sp.file != "" {
+				out := damageFrame(resize(m, sp.w*64, sp.h*64), floors, decals, lvl, nil, floorKeep[sp.master]...)
+				save(out, filepath.Join(*outDir, strings.TrimSuffix(sp.file, ".png")+sfx+".png"))
+			}
 		}
 		if sp.blueprint != "" {
 			save(markBlueprint(blueprintOf(resize(m, sp.w*64, sp.h*64)), arrow, rot), filepath.Join(*outDir, sp.blueprint))
@@ -897,7 +986,7 @@ func main() {
 			save(resize(m, sp.w*32, sp.h*32), filepath.Join(*outDir, sp.icon))
 		}
 	}
-	bakeAnim(*artDir, *outDir, floor)
+	bakeAnim(*artDir, *outDir, floors, decals)
 	bakeLamps(*artDir, *outDir)
 	if *previewPath != "" {
 		preview(*game, *outDir, *previewPath)
@@ -908,7 +997,57 @@ func main() {
 	if *crossingsPath != "" {
 		crossings(*game, *outDir, *crossingsPath)
 	}
+	if *damagePath != "" {
+		damagePreview(*game, *outDir, *damagePath)
+	}
 	if *blueprintsPath != "" {
 		blueprints(*game, *outDir, *blueprintsPath)
 	}
+}
+
+// damagePreview lays out at 2x: row 1 the §25 crossing arts (frame 0: heat, cable, plain, heat+cable, cable+heat) with
+// what they link to above and below; then one row per part (belt, curve, connector, splitter, crossings) at the §26 damage
+// levels 0 / 33 / 66, over vanilla corridor floor.
+func damagePreview(game, assets, path string) {
+	const s = 128
+	pipe := load(filepath.Join(game, "Data", "ships", "terran", "heat_pipe_adaptive", "floor_straight.png"))
+	cable := load(filepath.Join(assets, "cable_body_straight.png"))
+	anim := func(v, sfx string) *image.NRGBA { return load(filepath.Join(assets, "belt_anim", v+sfx+"_00.png")) }
+	parts := []func(sfx string) *image.NRGBA{
+		func(sfx string) *image.NRGBA { return anim("straight", sfx) },
+		func(sfx string) *image.NRGBA { return anim("curve", sfx) },
+		func(sfx string) *image.NRGBA { return load(filepath.Join(assets, "belt_connector"+sfx+".png")) },
+		func(sfx string) *image.NRGBA { return load(filepath.Join(assets, "belt_splitter"+sfx+".png")) },
+		func(sfx string) *image.NRGBA { return anim("heat_crossing", sfx) },
+		func(sfx string) *image.NRGBA { return anim("cable_crossing", sfx) },
+		func(sfx string) *image.NRGBA { return anim("plain_crossing", sfx) },
+	}
+	out := image.NewNRGBA(image.Rect(0, 0, 16+3*(2*s+16), 16+3*s+16+len(parts)*(s+16)))
+	for i := range out.Pix {
+		out.Pix[i] = 40
+		if i%4 == 3 {
+			out.Pix[i] = 255
+		}
+	}
+	for k, c := range []struct {
+		art      string
+		up, down *image.NRGBA
+	}{{"heat_crossing", pipe, pipe}, {"cable_crossing", cable, cable}, {"plain_crossing", nil, nil}, {"heat_cable_crossing", pipe, cable}, {"cable_heat_crossing", cable, pipe}} {
+		x := 16 + k*(s+16)
+		for row, im := range []*image.NRGBA{c.up, anim(c.art, ""), c.down} {
+			if im != nil {
+				paste(out, resize(im, s, s), x, 16+row*s)
+			}
+		}
+	}
+	for r, part := range parts {
+		y := 16 + 3*s + 16 + r*(s+16)
+		x := 16
+		for _, sfx := range damageSuffix {
+			im := part(sfx)
+			paste(out, resize(im, im.Rect.Dx()*2, im.Rect.Dy()*2), x, y)
+			x += im.Rect.Dx()*2 + 16
+		}
+	}
+	save(out, path)
 }

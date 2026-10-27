@@ -43,6 +43,14 @@ public static class BeltTypes
         : FilterNone;
 }
 
+/// <summary>§26 item handling of a removed belt part (<see cref="NodeState.OnRemoved"/>).</summary>
+public enum RemovalDrop : byte
+{
+    Keep,
+    Destroyed,
+    Intact,
+}
+
 /// <summary>
 /// Per-part sim state (§3, §10): lane contents, splitter round-robin, connector cooldown/alternation. Everything that
 /// affects the future is here and in the payload; topology and filter are re-derived.
@@ -169,6 +177,13 @@ public sealed class NodeState
 
     /// <summary>A UIToggle mode as a §23 setting: out of range (rules changed, bad input) -> 0, the pre-§23 behaviour.</summary>
     public static int Setting(int? mode, int choices) => mode is int m && m >= 0 && m < choices ? m : 0;
+
+    /// <summary>
+    /// §26 what a removed belt part does with its items: a ship split moves the Part (state follows it), Health 0
+    /// (weapons or crew deconstruction, PartsManager.OnPartDestroyed) drops like a destroyed vanilla storage, any other
+    /// removal (deleted, replaced, ship reset) drops everything.
+    /// </summary>
+    public static RemovalDrop OnRemoved(bool splitting, bool destroyed) => splitting ? RemovalDrop.Keep : destroyed ? RemovalDrop.Destroyed : RemovalDrop.Intact;
 
     internal static void Add(ref uint h, int v) => h = (h ^ (uint)v) * 16777619;
 

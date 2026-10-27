@@ -51,6 +51,8 @@ sealed partial class NativeProbe
             }
             Require(!Has(p + "Components/Graphics/OperationalDoodad/Layer"), "Belt part still draws the vanilla crew-conveyor animation: " + ids[i]);
             Require((string)ReadRuleObject(root, p + "Components/Graphics/Floor/Layer", typeof(string)) == "floors", "Belt surface must stay under the item layer: " + ids[i]);
+            // §26 vanilla-like damage stages (corridor / heat pipe crossing floors: 3).
+            Require(Has(p + "Components/Graphics/Floor/DamageLevels/2/File") && !Has(p + "Components/Graphics/Floor/DamageLevels/3/File"), "Belt part floor must have 3 damage levels: " + ids[i]);
             Require(Has(p + "Components/BeltFilter/Type") == (i == 2), "Only the connector has the belt filter: " + ids[i]);
         }
         string filter = parts + "101/Components/BeltFilter/";

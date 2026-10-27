@@ -40,6 +40,7 @@ internal sealed class BeltManager : ShipComponent
     private readonly BeltRenderState _render = new();
     private ManagedShipQuad?[] _surf = Array.Empty<ManagedShipQuad?>();
     private Variant[] _surfV = Array.Empty<Variant>();
+    private int[] _surfL = Array.Empty<int>();
     private AtlasSprite[][]? _surfSprites;
     private ManagedShipQuad?[] _lamps = Array.Empty<ManagedShipQuad?>();
     private bool _visualsDirty;
@@ -98,13 +99,14 @@ internal sealed class BeltManager : ShipComponent
     private void OnPartRemoved(Part part)
     {
         _dirty = true;
-        // Split keeps the Part (and its state) alive on the new ship; a destroyed belt drops its items (§3).
-        // shortcut: deconstructed/removed belts lose their items; drop them too once removal vs split is told apart.
-        if (part.IsDestroyed && BeltState.TryGet(part, out NodeState? s))
+        // §26: a split moves the Part (and its state) to the new ship (StructureContiguityManager.cs:112-145); every other
+        // removal drops the items: destroyed / deconstructed (Health 0) or removed intact (deleted, replaced, reset).
+        RemovalDrop drop = NodeState.OnRemoved(Ship?.StructureContiguity.IsSplitting ?? false, part.IsDestroyed);
+        if (drop != RemovalDrop.Keep && BeltState.TryGet(part, out NodeState? s))
         {
             try
             {
-                DropItems(part, s);
+                DropItems(part, s, drop == RemovalDrop.Destroyed);
             }
             catch (Exception ex)
             {
@@ -113,7 +115,12 @@ internal sealed class BeltManager : ShipComponent
         }
     }
 
-    private void DropItems(Part part, NodeState s)
+    /// <summary>
+    /// Items as nuggets, like vanilla ResourceStorage: destroyed = OnDestroying (ResourceStorage.cs:205-222: salvage
+    /// fraction, destroyed unless salvaged), intact = removal drop (ResourceStorage.cs:197: everything). Tiles are cleared,
+    /// so a repeated event drops nothing twice.
+    /// </summary>
+    private void DropItems(Part part, NodeState s, bool destroyed)
     {
         Ship? ship = Ship;
         SimRoot? sim = Sim;
@@ -123,6 +130,7 @@ internal sealed class BeltManager : ShipComponent
         }
         RotRect worldRect = ship.DetTransformShapeToWorld((Rect)part.Rect);
         Vector2 velocity = ship.Physics.Body?.GetLinearVelocityFromWorldPoint(worldRect.Center) ?? default(System.Numerics.Vector2);
+        bool isPlayer = (destroyed && (part.Flags & PartFlags.BuiltByPlayer) != PartFlags.None) || ship.IsHumanPlayerShip;
         Span<int> counts = stackalloc int[BeltTypes.Ids.Length];
         foreach (LaneTile t in s.Tiles)
         {
@@ -143,7 +151,8 @@ internal sealed class BeltManager : ShipComponent
         {
             if (counts[type] > 0)
             {
-                sim.Nuggets.DropNuggets(PartRoom.Ids[type], counts[type], worldRect, NuggetDropSource.Storage, 1f, destroyed: true, ship.IsHumanPlayerShip, ship, velocity);
+                sim.Nuggets.DropNuggets(PartRoom.Ids[type], counts[type], worldRect, NuggetDropSource.Storage, destroyed ? part.SalvageFraction : 1f,
+                    destroyed && (part.Flags & PartFlags.Salvaged) == PartFlags.None, isPlayer, ship, velocity);
             }
         }
     }
@@ -339,7 +348,8 @@ internal sealed class BeltManager : ShipComponent
                 var (v, flip) = BeltRenderState.Select(n, n.NoCurve ? CrossingVariant(ship, p) : Variant.Straight);
                 _surfV[i] = v;
                 // Created still (speed 0 = frozen on the global-phase frame); Render starts it once its lanes move (§22).
-                _surf[i] = new ManagedShipQuad(renderer.GetLayerQuads(surfLayer), surf[(int)v][0], 0, flip ^ p.FlipX, center, Vector2.Zero, p.Direction,
+                _surfL[i] = BeltRenderState.DamageLevel(p.DamageFraction, surf[(int)v].Length);
+                _surf[i] = new ManagedShipQuad(renderer.GetLayerQuads(surfLayer), surf[(int)v][_surfL[i]], 0, flip ^ p.FlipX, center, Vector2.Zero, p.Direction,
                     ship.WorldUniformScale, Color.White, ship.Rules.RenderLayers[surfLayer].Inflate, 0f, sim.Clock);
             }
             else if (n.Kind != NodeKind.Belt && lamps != null)
@@ -371,6 +381,7 @@ internal sealed class BeltManager : ShipComponent
         }
         _surf = new ManagedShipQuad?[_nodes.Count];
         _surfV = new Variant[_nodes.Count];
+        _surfL = new int[_nodes.Count];
         _lamps = new ManagedShipQuad?[2 * _nodes.Count];
     }
 
@@ -425,11 +436,19 @@ internal sealed class BeltManager : ShipComponent
         _render.Update(sim.Tick);
         for (int i = 0; i < _surf.Length; i++)
         {
-            // §25: a crossing follows its links (ports connect after the topology rebuild, neighbours change).
-            if (_surf[i] is { } c && _nodes[i].NoCurve && _surfSprites != null && CrossingVariant(ship, _nodeParts[i]) is var v && v != _surfV[i])
+            // §25: a crossing follows its links (ports connect after the topology rebuild, neighbours change); §26 every
+            // surface follows its part's damage level like vanilla sprites (PartSpriteRules.GetAtlasSpriteForDamage).
+            if (_surf[i] is { } c && _surfSprites != null)
             {
-                _surfV[i] = v;
-                c.SetSprite(_surfSprites[(int)v][0], sim.Clock);
+                Variant v = _nodes[i].NoCurve ? CrossingVariant(ship, _nodeParts[i]) : _surfV[i];
+                int level = BeltRenderState.DamageLevel(_nodeParts[i].DamageFraction, _surfSprites[(int)v].Length);
+                if (v != _surfV[i] || level != _surfL[i])
+                {
+                    _surfV[i] = v;
+                    _surfL[i] = level;
+                    // Same interval and frame count: keep the quad's phase (SetSprite re-phases a paused quad, Codex).
+                    c.Sprite = _surfSprites[(int)v][level];
+                }
             }
             if (_surf[i] is { } q && q.AnimationSpeedFactor != 0f != _render.Moving[i])
             {
