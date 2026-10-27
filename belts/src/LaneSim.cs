@@ -59,6 +59,8 @@ public sealed class LaneSim
     private int[] _next = Array.Empty<int>();
     private Entry[] _entry = Array.Empty<Entry>();
     private int[] _order = Array.Empty<int>();
+    /// <summary>§27 tiles whose drains can be non-Closed at tick end: belt ends (next &lt; 0) and tiles still holding an item after Build.</summary>
+    private int[] _drainTiles;
 
     public LaneSim(int tiles) : this(NewTiles(tiles))
     {
@@ -67,6 +69,11 @@ public sealed class LaneSim
     public LaneSim(LaneTile[] tiles)
     {
         _t = tiles;
+        _drainTiles = new int[tiles.Length];
+        for (int i = 0; i < tiles.Length; i++)
+        {
+            _drainTiles[i] = i;
+        }
     }
 
     private static LaneTile[] NewTiles(int n)
@@ -178,6 +185,16 @@ public sealed class LaneSim
                 }
             }
         }
+        // MoveLane drains only at ends (nt < 0) and callers open drains only there, so no other tile can hold one later.
+        var drains = new List<int>();
+        for (int t = 0; t < n; t++)
+        {
+            if (next[t] < 0 || _t[t].Drain[0] >= 0 || _t[t].Drain[1] >= 0)
+            {
+                drains.Add(t);
+            }
+        }
+        _drainTiles = drains.ToArray();
     }
 
     /// <summary>Puts a held drained item back onto its lane head if it fits; else it stays held.</summary>
@@ -243,7 +260,7 @@ public sealed class LaneSim
     /// <summary>
     /// Connector/splitter take at a belt end (§7): during the next Tick the head that crosses the end edge (matching
     /// filter, -1 = any) leaves into the drain, keeping its overshoot so followers stay exactly spaced. Open lasts one
-    /// Tick; a drained item stays held (saved) until <see cref="TryTakeDrained"/>.
+    /// Tick; a drained item stays held (saved) until <see cref="TryTakeDrained"/>. Only on belt ends (next &lt; 0, §27 drain list).
     /// </summary>
     public void OpenDrain(int tile, int lane, int filter = -1)
     {
@@ -279,7 +296,7 @@ public sealed class LaneSim
             MoveLane(t, first, adv);
             MoveLane(t, first ^ 1, adv);
         }
-        for (int t = 0; t < _t.Length; t++)
+        foreach (int t in _drainTiles) // each step touches only its own tile: order-free
         {
             LaneTile s = _t[t];
             for (int lane = 0; lane < 2; lane++)

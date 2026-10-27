@@ -129,7 +129,8 @@ public sealed class BeltWorld
             }
         }
         _tileNode = tileNode.ToArray();
-        _claimPasses = 1 + nodes.FindAll(n => n.Kind == NodeKind.Connector).Count;
+        _conns = nodes.FindAll(n => n.Kind == NodeKind.Connector).ToArray();
+        _claimPasses = 1 + _conns.Length;
         _sim = new LaneSim(tiles.ToArray());
         int count = tiles.Count;
         var next = new int[count];
@@ -278,7 +279,11 @@ public sealed class BeltWorld
             }
         }
         _sim.Build(next, entry);
+        // §27: only these nodes do anything per tick (a belt without a handoff output is moved by LaneSim alone); ship order kept.
+        _active = nodes.FindAll(n => n.Kind != NodeKind.Belt || n.Out[0] != null).ToArray();
     }
+
+    private readonly Node[] _active, _conns;
 
     public LaneSim Sim => _sim;
 
@@ -295,7 +300,7 @@ public sealed class BeltWorld
 
     public void Tick(int tick)
     {
-        foreach (Node n in _nodes)
+        foreach (Node n in _active)
         {
             if (n.Kind == NodeKind.Connector)
             {
@@ -325,18 +330,19 @@ public sealed class BeltWorld
         bool changed = true;
         for (int pass = 0; changed && pass < _claimPasses; pass++)
         {
-            foreach (Node n in _nodes)
+            // Only connectors claim (every other node's Claim stays false from the ctor).
+            foreach (Node n in _conns)
             {
-                n.ClaimNext = n.Kind == NodeKind.Connector && n.State.SourcePriority > 0 && Pending(n, n.State.SourcePriority - 1, ClaimDepth, pass > 0);
+                n.ClaimNext = n.State.SourcePriority > 0 && Pending(n, n.State.SourcePriority - 1, ClaimDepth, pass > 0);
             }
             changed = pass == 0;
-            foreach (Node n in _nodes)
+            foreach (Node n in _conns)
             {
                 changed |= n.Claim != n.ClaimNext;
                 n.Claim = n.ClaimNext;
             }
         }
-        foreach (Node n in _nodes)
+        foreach (Node n in _active)
         {
             if (n.Kind == NodeKind.Splitter)
             {
