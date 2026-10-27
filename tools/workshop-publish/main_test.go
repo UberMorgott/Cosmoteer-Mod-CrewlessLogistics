@@ -35,7 +35,9 @@ func TestStageContentSkipsRuntimeJunk(t *testing.T) {
 	junk := []string{".workshop", "Mod.log", "SharedShip.LOG", "Autofleet.state.json", "Autofleet.saves/x.json", "Autofleet.profiles.json.bad", "MiningDrone.settings.json"}
 	for _, f := range append(keep, junk...) {
 		p := filepath.Join(src, f)
-		os.MkdirAll(filepath.Dir(p), 0o755)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
 		if err := os.WriteFile(p, []byte("x"), 0o644); err != nil {
 			t.Fatal(err)
 		}

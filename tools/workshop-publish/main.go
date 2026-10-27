@@ -95,8 +95,11 @@ func run() error {
 	appID := resolveAppID(*appIDFlag)
 
 	// steam_api reads SteamAppId from the environment; set it so no steam_appid.txt is needed.
-	os.Setenv("SteamAppId", strconv.FormatUint(uint64(appID), 10))
-	os.Setenv("SteamGameId", strconv.FormatUint(uint64(appID), 10))
+	for _, k := range []string{"SteamAppId", "SteamGameId"} {
+		if err := os.Setenv(k, strconv.FormatUint(uint64(appID), 10)); err != nil {
+			return fmt.Errorf("set %s: %w", k, err)
+		}
+	}
 
 	s, err := loadSteam(*dll)
 	if err != nil {
@@ -121,7 +124,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(stage)
+	defer func() {
+		if err := os.RemoveAll(stage); err != nil {
+			fmt.Printf("warning: could not remove staging dir %s: %v\n", stage, err)
+		}
+	}()
 	n, skipped, err := stageContent(absContent, stage)
 	if err != nil {
 		return fmt.Errorf("staging content: %w", err)
@@ -372,7 +379,7 @@ func resolveAppID(flagVal uint) uint32 {
 	}
 	if exe, err := os.Executable(); err == nil {
 		if f, err := os.Open(filepath.Join(filepath.Dir(exe), "steam_appid.txt")); err == nil {
-			defer f.Close()
+			defer func() { _ = f.Close() }() // read-only file: a close error loses nothing
 			sc := bufio.NewScanner(f)
 			if sc.Scan() {
 				if v, err := strconv.ParseUint(strings.TrimSpace(sc.Text()), 10, 32); err == nil && v != 0 {
