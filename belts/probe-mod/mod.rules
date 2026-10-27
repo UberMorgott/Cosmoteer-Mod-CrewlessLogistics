@@ -1,0 +1,8 @@
+ID = morgott.crewless_logistics.belt_probe
+Name = "Crewless Logistics belt probe (test only)"
+Version = 0.0.1
+CompatibleGameVersions = ["0.30.5"]
+Author = "Morgott"
+Description = "Test-only probe for the Crewless Logistics C# belt sim (docs/BELTS_DESIGN.md section 14, P1-P5). No parts. Attaches a per-ship belt manager, saves a tick counter on corridors, logs to CrewlessLogistics.Belts.log in this folder. Requires Yet Another Mod Loader."
+Dependencies = ["3577650065"]
+ModifiesMultiplayer = true

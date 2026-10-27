@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Headless belt probes (docs/BELTS_DESIGN.md §14 P1, P3). Run via Run-BeltProbes.ps1, which executes this exe on the
+    game's own .NET 10 runtime and assemblies (copied into ignored artifacts\belt-probes\runtime, like whole-cell-native).
+    LaneSim.cs is compiled in directly (no game dependencies); P1 reaches the mod DLL by reflection.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>CrewlessLogistics.BeltProbes</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseAppHost>true</UseAppHost>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\src\LaneSim.cs" Link="LaneSim.cs" />
+  </ItemGroup>
+</Project>
