@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
     C# belt sim for Crewless Logistics (docs/BELTS_DESIGN.md). Loaded by Yet Another Mod Loader (workshop 3577650065).
-    Same toolchain as the owner's working DLL mods (MiningDrone, SharedShip): net8.0 SDK compiling against the net10.0
-    reference pack and publicized game assemblies in lib\ (gitignored, regenerated from the installed game; needs the
+    Game runs on net10.0 (Bin\Cosmoteer.runtimeconfig.json), so the mod targets net10.0 too (as MiningDrone c92a93d).
+    Compiles against publicized game assemblies in lib\ (gitignored, regenerated from the installed game; needs the
     global tool: dotnet tool install -g BepInEx.AssemblyPublicizer.Cli). Game binaries are never committed (*.dll ignored).
   -->
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <AssemblyName>CrewlessLogistics.Belts</AssemblyName>
     <RootNamespace>CrewlessLogistics.Belts</RootNamespace>
     <LangVersion>12.0</LangVersion>
@@ -14,25 +14,10 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <GenerateDependencyFile>false</GenerateDependencyFile>
-    <NoWarn>$(NoWarn);CS1701;CS1702;CS1705;MSB3277</NoWarn>
     <GameBin>D:\Steam\steamapps\common\Cosmoteer\Bin</GameBin>
     <ModLoaderDir>D:\Steam\steamapps\workshop\content\799600\3577650065</ModLoaderDir>
     <DefaultItemExcludes>$(DefaultItemExcludes);tests\**;probe-mod\**</DefaultItemExcludes>
   </PropertyGroup>
-
-  <PropertyGroup>
-    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
-    <NetRefPackVersion>10.0.0</NetRefPackVersion>
-    <NetRefPackDir>$([MSBuild]::EnsureTrailingSlash('$(NuGetPackageRoot)'))microsoft.netcore.app.ref\$(NetRefPackVersion)\ref\net10.0\</NetRefPackDir>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageDownload Include="Microsoft.NETCore.App.Ref" Version="[$(NetRefPackVersion)]" />
-  </ItemGroup>
-  <Target Name="AddNet10RefPack" BeforeTargets="ResolveAssemblyReferences">
-    <ItemGroup>
-      <Reference Include="$(NetRefPackDir)*.dll" Private="false" />
-    </ItemGroup>
-  </Target>
 
   <Target Name="PublicizeGameAssemblies" BeforeTargets="ResolveAssemblyReferences"
           Inputs="$(GameBin)\Cosmoteer.dll;$(GameBin)\HalflingCore.dll"
