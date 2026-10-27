@@ -1,6 +1,6 @@
 ID = morgott.crewless_logistics
 Name = "Crewless Logistics"
-Version = 0.3.4
+Version = 0.3.5
 CompatibleGameVersions = ["0.30.5"]
 ModifiesGameplay = true
 Author = "Morgott"
