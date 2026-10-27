@@ -356,8 +356,11 @@ public sealed class BeltWorld
     /// Rendering only (floats never feed the sim): ship-cell point of an item. Lane L is left of travel; curves follow a
     /// quarter arc around the inner corner (§4: inner lane stays inner).
     /// </summary>
-    /// <summary>Belt surface width in tiles: mod/assets/belt.png plate spans pixels 14..49 of 64, centered.</summary>
-    public const float SurfaceWidth = 36f / 64f;
+    /// <summary>
+    /// Belt surface width in tiles: mod/assets/belt.png (Codex art) dark plate between the rails spans pixels 15..48 of
+    /// 64 (34 px), centered. Connector (13..50, 38 px) and splitter (17..46, 30 px) art differ; belt.png is the reference.
+    /// </summary>
+    public const float SurfaceWidth = 34f / 64f;
 
     /// <summary>Lane center distance from the belt centerline: middle of each surface half.</summary>
     public const float LaneOffset = SurfaceWidth / 4;
