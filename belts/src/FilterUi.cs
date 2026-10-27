@@ -77,7 +77,7 @@ internal static class FilterUi
             }
             foreach (PartUIToggle t in toggles)
             {
-                allowed.Add(BeltState.TryGet(t.Part, out NodeState? st) ? st.Allowed : PartFlow.All);
+                allowed.Add(t.Part is { } part && BeltState.TryGet(part, out NodeState? st) ? st.Allowed : PartFlow.All);
             }
             availableModes.RemoveWhere(m => !allowed.Exists(a => PartFlow.ChoiceAllowed(a, m)));
         }
