@@ -99,18 +99,18 @@ sealed partial class NativeProbe
     static int Count(object target, string property) => (int)target.GetType().GetProperty(property, All)!.GetValue(target)!;
     static void Add(object storage, int quantity) => Call(storage, "AddResources", quantity);
     static void SetCount(object storage, int quantity) => storage.GetType().GetProperty("Resources", All)!.SetValue(storage, quantity);
-    object Id(Type idType, string name) => Activator.CreateInstance(idType, new object[] { name })!;
-    void Route(object rules, string property, string id)
+    static object Id(Type idType, string name) => Activator.CreateInstance(idType, new object[] { name })!;
+    internal static void Route(object rules, string property, string id)
     {
         var p = rules.GetType().GetProperty(property, All)!;
         p.SetValue(rules, Id(Nullable.GetUnderlyingType(p.PropertyType)!, id));
     }
     // Generated device sockets are named CrewlessLogisticsPort_{Direction}_{x}_{y}.
-    static string Socket(string side, int x, int y) => $"CrewlessLogisticsPort_{side}_{x}_{y}";
+    internal static string Socket(string side, int x, int y) => $"CrewlessLogisticsPort_{side}_{x}_{y}";
     static string PerimeterSocket(int size, string side, int i) => side switch { "Up" => Socket(side, i, 0), "Down" => Socket(side, i, size - 1), "Left" => Socket(side, 0, i), _ => Socket(side, size - 1, i) };
-    static string[] PerimeterSockets(int size) => new[] { "Up", "Right", "Down", "Left" }.SelectMany(side => Enumerable.Range(0, size).Select(i => PerimeterSocket(size, side, i))).ToArray();
+    internal static string[] PerimeterSockets(int size) => new[] { "Up", "Right", "Down", "Left" }.SelectMany(side => Enumerable.Range(0, size).Select(i => PerimeterSocket(size, side, i))).ToArray();
     // Vanilla 2x2 thermal port suffix -> electrical socket on the same edge.
-    static readonly (string Thermal, string Electric)[] SmallSockets = {
+    internal static readonly (string Thermal, string Electric)[] SmallSockets = {
         ("TopLeft", Socket("Left", 0, 0)), ("LeftUp", Socket("Up", 0, 0)), ("RightUp", Socket("Up", 1, 0)), ("TopRight", Socket("Right", 1, 0)),
         ("BottomRight", Socket("Right", 1, 1)), ("RightDown", Socket("Down", 1, 1)), ("LeftDown", Socket("Down", 0, 1)), ("BottomLeft", Socket("Left", 0, 1))
     };

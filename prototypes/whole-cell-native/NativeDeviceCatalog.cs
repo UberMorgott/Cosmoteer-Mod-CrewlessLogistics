@@ -240,10 +240,10 @@ sealed partial class NativeProbe
         var path = Game("Cosmoteer.Mods.ModInfo").GetMethod("GetModInfoPath", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, new[] { Activator.CreateInstance(Core("Halfling.IO.AbsolutePath"), directory) });
         return path?.ToString();
     }
-    static readonly JsonSerializerOptions CatalogJson = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    internal static readonly JsonSerializerOptions CatalogJson = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     // Current mod ID first; the legacy ID is the pre-0.3.3 package name.
     static readonly string[] SelfModIds = { "morgott.crewless_logistics", "morgott.powergrid" };
-    static bool IsSelfModId(string id) => Array.IndexOf(SelfModIds, id) >= 0;
+    internal static bool IsSelfModId(string id) => Array.IndexOf(SelfModIds, id) >= 0;
     // The profile's Settings.rules sits next to its Mods folder. Without an
     // explicit Mods folder, a single profile is used even before first install.
     string SettingsPath()
@@ -255,14 +255,14 @@ sealed partial class NativeProbe
         return candidates[0];
     }
     // Generated docs are public: replace the local profile root and Steam ID folder.
-    static string PortablePath(string path)
+    internal static string PortablePath(string path)
     {
         string profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         if (path.StartsWith(profile + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) path = string.Concat("%USERPROFILE%", path.AsSpan(profile.Length));
         return Regex.Replace(path, @"([\\/]Cosmoteer[\\/])\d{17}(?=[\\/]|$)", "$1<SteamID>");
     }
     sealed record CatalogMod(string Id, string Directory, string Manifest, string? Version, IList Actions, string[] DllFiles);
-    sealed class CatalogComponent
+    internal sealed class CatalogComponent
     {
         public string Id { get; set; } = "";
         public string Type { get; set; } = "";
