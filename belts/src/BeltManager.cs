@@ -322,8 +322,9 @@ internal sealed class BeltManager : ShipComponent
                     BeltState.CableCrossingId => Variant.CableCrossing,
                     _ => Variant.Straight,
                 });
+                // Created still (speed 0 = frozen on the global-phase frame); Render starts it once its lanes move (§22).
                 _surf[i] = new ManagedShipQuad(renderer.GetLayerQuads(surfLayer), surf[(int)v][0], 0, flip ^ p.FlipX, center, Vector2.Zero, p.Direction,
-                    ship.WorldUniformScale, Color.White, ship.Rules.RenderLayers[surfLayer].Inflate, 1f, sim.Clock);
+                    ship.WorldUniformScale, Color.White, ship.Rules.RenderLayers[surfLayer].Inflate, 0f, sim.Clock);
             }
             else if (n.Kind != NodeKind.Belt && lamps != null)
             {
@@ -370,6 +371,19 @@ internal sealed class BeltManager : ShipComponent
             BuildVisuals(ship, renderer, sim);
         }
         _render.Update(sim.Tick);
+        for (int i = 0; i < _surf.Length; i++)
+        {
+            if (_surf[i] is { } q && q.AnimationSpeedFactor != 0f != _render.Moving[i])
+            {
+                // Pause freezes the current frame (ManagedShipQuad.cs:234); resume re-syncs to the global phase so moving
+                // neighbours stay seamless.
+                q.UpdateAnimationSpeedFactor(_render.Moving[i] ? 1f : 0f, sim.Clock);
+                if (_render.Moving[i] && q.Sprite is { } s)
+                {
+                    q.AnimationStartTime = s.GetAnimationStartTime(sim.Clock);
+                }
+            }
+        }
         for (int j = 0; j < _lamps.Length; j++)
         {
             if (_lamps[j] is { } q)

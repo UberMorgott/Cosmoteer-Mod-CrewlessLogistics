@@ -17,9 +17,9 @@ public enum Variant : byte
 }
 
 /// <summary>
-/// Client-only render state (§21): which surface sprite each belt draws and which lamps are lit. Surfaces always
-/// animate in the global phase (Factorio parity, agreed with Codex). Reads the sim (node shape, side inputs, transfer
-/// counters), never writes it; nothing here is saved or hashed. Arrays are sized on rebuild only; <see cref="Update"/>
+/// Client-only render state (§21, §22): which surface sprite each belt draws, whether it animates (only while its lanes
+/// move) and which lamps are lit. Reads the sim (node shape, side inputs, lane contents, transfer counters), never writes
+/// it; nothing here is saved or hashed. Arrays are sized on rebuild only; <see cref="Update"/>
 /// does not allocate.
 /// </summary>
 public sealed class BeltRenderState
@@ -27,12 +27,20 @@ public sealed class BeltRenderState
     /// <summary>A lamp shows activity for this many ticks after a transfer, lit on 2-tick on/off phases (blinks at full rate).</summary>
     public const int BlinkTicks = 3;
 
+    /// <summary>A belt surface keeps animating this many ticks after its lanes last moved, so stop-and-go lines do not flicker.</summary>
+    public const int HoldTicks = 6;
+
     private IReadOnlyList<Node> _nodes = Array.Empty<Node>();
     /// <summary>Per node 2 lamps: connector [0], splitter output i [i].</summary>
     private int[] _lastCount = Array.Empty<int>();
     private int[] _lastEvent = Array.Empty<int>();
+    /// <summary>Per node: lane contents signature of the last tick and the tick it last changed.</summary>
+    private int[] _sig = Array.Empty<int>();
+    private int[] _lastMove = Array.Empty<int>();
 
     public bool[] Lamp = Array.Empty<bool>();
+    /// <summary>Per node: its belt surface animates (lanes moved within <see cref="HoldTicks"/>); empty or blocked -> still.</summary>
+    public bool[] Moving = Array.Empty<bool>();
 
     public void Reset(IReadOnlyList<Node> nodes)
     {
@@ -41,12 +49,35 @@ public sealed class BeltRenderState
         _lastCount = new int[2 * n];
         _lastEvent = new int[2 * n];
         Lamp = new bool[2 * n];
+        _sig = new int[n];
+        _lastMove = new int[n];
+        Moving = new bool[n];
         Array.Fill(_lastEvent, int.MinValue / 2);
+        Array.Fill(_lastMove, int.MinValue / 2);
         for (int i = 0; i < n; i++)
         {
             _lastCount[2 * i] = nodes[i].Events[0];
             _lastCount[2 * i + 1] = nodes[i].Events[1];
+            _sig[i] = Signature(nodes[i]);
         }
+    }
+
+    /// <summary>Lane counts + positions of a node (any move changes a position: items advance >= 17 units per moving tick).</summary>
+    private static int Signature(Node n)
+    {
+        uint h = 2166136261;
+        foreach (LaneTile t in n.State.Tiles)
+        {
+            for (int lane = 0; lane < 2; lane++)
+            {
+                NodeState.Add(ref h, t.Count[lane]);
+                for (int i = 0; i < t.Count[lane]; i++)
+                {
+                    NodeState.Add(ref h, t.Pos[lane * LaneSim.K + i]);
+                }
+            }
+        }
+        return (int)h;
     }
 
     public void Update(int tick)
@@ -54,6 +85,16 @@ public sealed class BeltRenderState
         for (int i = 0; i < _nodes.Count; i++)
         {
             Node n = _nodes[i];
+            if (n.Kind == NodeKind.Belt)
+            {
+                int s = Signature(n);
+                if (s != _sig[i])
+                {
+                    _sig[i] = s;
+                    _lastMove[i] = tick;
+                }
+                Moving[i] = tick - _lastMove[i] < HoldTicks;
+            }
             for (int k = 0; k < 2; k++)
             {
                 int j = 2 * i + k;

@@ -171,7 +171,50 @@ static class WorldProbes
         RenderSelect(check);
         SplitterHalvesRender(check);
         RenderClientOnly(check);
+        RenderMoving(check);
         MultiSideIntake(check);
+    }
+
+    /// <summary>
+    /// §22: a belt surface animates only while its lanes move (+ hold): empty chain still, items travelling animate each
+    /// tile they cross (crossing too) without flicker, all still again once the items are blocked at the chain end.
+    /// </summary>
+    static void RenderMoving(Action<bool, string> check)
+    {
+        var g = new Grid();
+        Node a = g.Belt(0, 2, Up);
+        g.Cross(0, 1, Up);
+        g.Belt(0, 0, Up);
+        BeltWorld w = g.Build();
+        var r = new BeltRenderState();
+        r.Reset(g.Nodes);
+        int t = 0;
+        bool idle = true;
+        for (; t < 10; t++)
+        {
+            w.Tick(t);
+            r.Update(t);
+            idle &= !r.Moving.Any(m => m);
+        }
+        w.Sim.TryInsert(a.Tile0, 0, 10, Iron);
+        w.Sim.TryInsert(a.Tile0, 1, 10, Sulfur);
+        var moved = new bool[3];
+        var switches = new int[3];
+        var prev = new bool[3];
+        for (; t < 400; t++)
+        {
+            w.Tick(t);
+            r.Update(t);
+            for (int i = 0; i < 3; i++)
+            {
+                moved[i] |= r.Moving[i];
+                switches[i] += r.Moving[i] != prev[i] ? 1 : 0;
+                prev[i] = r.Moving[i];
+            }
+        }
+        bool still = !r.Moving.Any(m => m), blocked = w.Sim.Count(g.Nodes[2].Tile0, 0) == 1 && w.Sim.Count(g.Nodes[2].Tile0, 1) == 1;
+        check(idle && moved.All(m => m) && switches.All(s => s == 2) && still && blocked,
+            $"render moving: empty still={idle}, belt/crossing/end animated={string.Join(",", moved)}, on/off switches={string.Join(",", switches)} (expect 2 each), still once blocked at the end={still && blocked}");
     }
 
     /// <summary>
