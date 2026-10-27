@@ -21,6 +21,18 @@ catch (Exception ex)
 {
     Check(false, "P1 threw: " + ex);
 }
+try
+{
+    var flow = Assembly.LoadFrom(Path.Combine(AppContext.BaseDirectory, "CrewlessLogistics.Belts.dll")).GetType("CrewlessLogistics.Belts.PartFlowProbe", true)!;
+    foreach (var (ok, what) in (List<(bool, string)>)flow.GetMethod("SelfTest", BindingFlags.Public | BindingFlags.Static)!.Invoke(null, new object[] { args[0] })!)
+    {
+        Check(ok, what);
+    }
+}
+catch (Exception ex)
+{
+    Check(false, "F threw: " + (ex.InnerException ?? ex));
+}
 P3();
 WorldProbes.Run(Check);
 RulesProbes.Run(Check, args[0], args[1]);

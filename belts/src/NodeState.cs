@@ -24,6 +24,9 @@ public static class BeltTypes
         "bullet", "missile_part_he", "missile_part_emp", "missile_part_nuke", "missile_part_thermal", "mine_part",
     };
 
+    /// <summary>Bit per type in <see cref="Ids"/>: every carriable type (connector allowed set, §20).</summary>
+    public const uint AllMask = (1u << 21) - 1;
+
     public const int FilterNone = -2;
     public const int FilterAny = -1;
 
@@ -45,6 +48,8 @@ public sealed class NodeState
     public readonly int[] RoundRobin = new int[2];
     public int Cooldown;
     public int Alternate;
+    /// <summary>Connector: types it may pass (§20), derived from the neighbour parts on rebuild/mode change; not saved.</summary>
+    public uint Allowed = BeltTypes.AllMask;
 
     public NodeState(NodeKind kind)
     {

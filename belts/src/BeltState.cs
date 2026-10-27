@@ -14,7 +14,7 @@ internal static class BeltState
 {
     public const string PayloadPath = "Components/morgott.belt";
     /// <summary>Integrity-hash protocol (§10); bump with any sim/payload change.</summary>
-    public const int ProtocolVersion = 3;
+    public const int ProtocolVersion = 4;
 
     public const string BeltId = "morgott.crewless_logistics.belt";
     public const string SplitterId = "morgott.crewless_logistics.belt_splitter";
@@ -26,7 +26,9 @@ internal static class BeltState
 
     private static readonly ConditionalWeakTable<Part, NodeState> States = new();
 
-    public static NodeKind? KindOf(Part part) => part.Rules.ID.ToString() switch
+    public static NodeKind? KindOf(Part part) => KindOf(part.Rules);
+
+    public static NodeKind? KindOf(PartRules rules) => rules.ID.ToString() switch
     {
         BeltId or HeatCrossingId or CableCrossingId => NodeKind.Belt,
         SplitterId => NodeKind.Splitter,
@@ -35,7 +37,9 @@ internal static class BeltState
     };
 
     /// <summary>Crossings are belts that never auto-curve and run along the part Left/Right axis (front = part cell (1, 0)).</summary>
-    public static bool IsCrossing(Part part) => part.Rules.ID.ToString() is HeatCrossingId or CableCrossingId;
+    public static bool IsCrossing(Part part) => IsCrossing(part.Rules);
+
+    public static bool IsCrossing(PartRules rules) => rules.ID.ToString() is HeatCrossingId or CableCrossingId;
 
     public static bool TryGet(Part part, [NotNullWhen(true)] out NodeState? state) => States.TryGetValue(part, out state);
 

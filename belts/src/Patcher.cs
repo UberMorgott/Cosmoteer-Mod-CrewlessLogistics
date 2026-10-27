@@ -73,6 +73,7 @@ internal static class Patcher
                 }
             }
             Enabled = true;
+            FilterUi.Apply(harmony);
             Log.Info($"P1 patched {t.Length} targets in {sw.ElapsedMilliseconds} ms: "
                 + string.Join("; ", t.Select(m => m.FullDescription())));
         }
@@ -101,6 +102,10 @@ internal static class Patcher
         foreach (MethodBase m in t)
         {
             r.Add((Harmony.GetPatchInfo(m)?.Postfixes.Count(p => p.owner == HarmonyId) == 1, $"P1 one postfix on {m.DeclaringType?.Name}.{m.Name}"));
+        }
+        foreach (MethodBase m in FilterUi.Targets())
+        {
+            r.Add((Harmony.GetPatchInfo(m)?.Owners.Contains(HarmonyId) == true, $"F5 filter UI patch on {m.DeclaringType?.Name}.{m.Name}"));
         }
         r.Add((new BeltManager().ConfiguredBucket == Cosmoteer.FixedUpdateBuckets.Commands, "P1 BeltManager type loads on game runtime, FixedUpdateBucket = -11"));
         new Harmony(HarmonyId).UnpatchAll(HarmonyId);

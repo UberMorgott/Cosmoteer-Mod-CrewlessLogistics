@@ -42,6 +42,9 @@ internal sealed class BeltManager : ShipComponent
     private int _lastTick = int.MinValue;
     private int _dumpAtTick = -1;
     private ID<PartToggleGuiRules> _filterToggle;
+    /// <summary>UI toggles of the parts in front of / behind connectors: a mode change (launcher type) re-derives §20 sets.</summary>
+    private readonly List<PartUIToggle> _watched = new();
+    private bool _flowDirty;
 
     public BeltManager()
     {
@@ -61,7 +64,19 @@ internal sealed class BeltManager : ShipComponent
     {
         ship.Parts.PartAdded -= OnPartAdded;
         ship.Parts.PartRemoved -= OnPartRemoved;
+        Unwatch();
         HideQuads(0);
+    }
+
+    private void OnNeighbourMode(object? sender, EventArgs e) => _flowDirty = true;
+
+    private void Unwatch()
+    {
+        foreach (PartUIToggle t in _watched)
+        {
+            t.ModeChanged -= OnNeighbourMode;
+        }
+        _watched.Clear();
     }
 
     // Dirty flag only; topology is rebuilt inside FixedUpdate (§3).
@@ -142,11 +157,23 @@ internal sealed class BeltManager : ShipComponent
             }
             if (_world != null)
             {
+                if (_flowDirty)
+                {
+                    _flowDirty = false;
+                    UpdateAllowed(ship);
+                }
                 for (int i = 0; i < _nodes.Count; i++)
                 {
                     if (_nodes[i].Kind == NodeKind.Connector)
                     {
-                        _nodes[i].Filter = BeltTypes.FilterFromMode(PartUIToggle.GetOnPart(_nodeParts[i], _filterToggle)?.Mode ?? 0);
+                        // §20 D3: auto-set a single type / reset a choice the neighbours rule out. Sim state on every peer.
+                        PartUIToggle? toggle = PartUIToggle.GetOnPart(_nodeParts[i], _filterToggle);
+                        int mode = toggle?.Mode ?? 0, normal = PartFlow.Normalize(_nodes[i].State.Allowed, mode);
+                        if (toggle != null && normal != mode)
+                        {
+                            toggle.Mode = normal;
+                        }
+                        _nodes[i].Filter = BeltTypes.FilterFromMode(normal);
                     }
                 }
                 _world.Tick(tick);
@@ -193,6 +220,44 @@ internal sealed class BeltManager : ShipComponent
         if (_world == null)
         {
             HideQuads(0);
+        }
+        Unwatch();
+        for (int i = 0; i < _nodes.Count; i++)
+        {
+            if (_nodes[i].Kind != NodeKind.Connector)
+            {
+                continue;
+            }
+            Node n = _nodes[i];
+            foreach (IntVector2 cell in new[] { new IntVector2(n.X - n.Dx, n.Y - n.Dy), new IntVector2(n.X + n.Dx, n.Y + n.Dy) })
+            {
+                if (ship.Parts[cell] is not { } p || BeltState.KindOf(p) != null)
+                {
+                    continue;
+                }
+                foreach (ID<PartToggleGuiRules> id in p.Rules.UIToggleComponentsByID.Keys)
+                {
+                    if (PartUIToggle.GetOnPart(p, id) is { } t && !_watched.Contains(t))
+                    {
+                        t.ModeChanged += OnNeighbourMode;
+                        _watched.Add(t);
+                    }
+                }
+            }
+        }
+        _flowDirty = true;
+    }
+
+    /// <summary>§20 D2 allowed set per connector from the live neighbours (rules + current toggle modes, no endpoint scan).</summary>
+    private void UpdateAllowed(Ship ship)
+    {
+        for (int i = 0; i < _nodes.Count; i++)
+        {
+            if (_nodes[i].Kind == NodeKind.Connector)
+            {
+                _nodes[i].State.Allowed = PartFlow.ForConnector(_nodeParts[i], cell => ship.Parts[cell], p => ((Part)p).IsUnderConstruction,
+                    p => PartFlow.LiveModes((Part)p));
+            }
         }
     }
 

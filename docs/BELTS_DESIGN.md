@@ -420,3 +420,28 @@ Decisions (Claude / Codex `codex exec -s read-only`, engine-verified / agreed):
 - Tests: `belts/tests` matrix source/target `cross`, `Crossings` (4 rotations x rear/left/right feeder), crossing in
   the save round-trip; native `BeltPartsProbe` (registry, tabs, doors/.8, vanilla crossing stats, Up/Down port types,
   nothing above items) and the cable loop in `PackageProbe` (electric port runtime links) cover both parts.
+
+## 20. Smart connector filter (2026-10-27, owner: offer only what the neighbour building can take / give)
+
+Decisions (Claude / Codex `codex exec -s read-only`, engine-verified / agreed):
+
+| # | Claude | Codex | Agreed + why |
+|---|---|---|---|
+| D1 classification | per component the engine's crew-supply contract: inputs = `CanBeResourceSupplierTargetForTypes` (`ResourceConsumerRules.cs:81`), outputs = `CanBeResourceSupplierForTypes` (`BaseResourceStorageRules.cs:168`, only `SuppliesResources`), `ResourceRules.Stackable` (`FlexResourceGridRules.cs:86,97`) = generic = all 21 types; `ToggledComponents` expanded only when `IsBlueprintToggleOn` (its own CanBe* unions all modes, `PartToggledComponentsRules.cs:58-63,142`); modes: live `PartUIToggle.Mode`, build mode metadata (`BaseBuildState.cs:889`) | AGREE; also apply `OnlyWithRotation`/`OnlyWithFlip`/`IncludeWhenNotUnderConstruction` like `Part.cs:778-805`, `PartToggledComponents.cs:118` | `PartFlow.Classify` over `PhysicalComponents` with those filters; unsupported toggle chain -> counted (conservative). Construction/repair/status sinks are not rules flows -> excluded (§7 P2). Generic only within `CanBe*` + 21 `BeltTypes` |
+| D2 allowed set | `Out(back part) & In(front part)`; belt/empty/construction side or a part with no belt-type flow (reactor, armor) does not narrow | DISAGREE as a general rule: side belt inputs into a connector with a room behind it would be blocked by `Out(back)`; define `Allowed == 0` | `Out(back)` narrows only when no belt/splitter/connector output feeds a connector side; two buildings without a common type -> only `none` (`any` also normalises to none). Chains: each connector narrows by its own neighbours only |
+| D3 normalise | sim (bucket -11, before `Filter`/`Tick`) writes `PartUIToggle.Mode`: single type -> it; choice not offered -> none; on rebuild + neighbour `ModeChanged` (launcher type) | AGREE; bump `ProtocolVersion` (sim behaviour changed); blueprint-only values are not normalised | `ProtocolVersion` 4. Unbuilt blueprint metadata is not mutated (no writes outside MP input from UI/render hooks); build UI shows the normalised value, the sim applies it once built. Old saves/blueprints with an impossible filter: reset on the first tick (owner edge case) |
+| D4 UI | engine lock `GameModeManager.IsToggleChoiceLocked` is per `PartRules` (`GameModeManager.cs:487`) -> unusable; prefix `PartPopoutToggleButton.UpdateDisplayedToggleValues` (live: remove modes no selected connector allows, union) + postfix `SelectPartsState.UpdateToggleButtons` (build: `SetAvailableChoices` ∩ vanilla set, `SetMultipleSelected` normalised, under the vanilla `_updatingToggleButtons` guard) | AGREE for build; live hotkeys (`BasePartToggleButton.cs:236`), `CycleMode`, `RevertMode`->`PrevMode` bypass the visible set | kept; any bypassed choice is corrected by D3 within one tick (deterministic, all peers). UI patches are non-fatal (failure = vanilla full list, sim unaffected). Brush before placing: full list |
+| D5 choices | ALL -> none, any, 21 types (unchanged); single -> only it; set M -> none, any, M | AGREE after defining 0 | 0 -> none only |
+
+- Code: `belts/src/PartFlow.cs` (classify, `ForConnector` on any parts manager, `Allowed`, `ChoiceAllowed`, `Normalize`),
+  `BeltManager` (allowed per connector in `NodeState.Allowed`, derived, not saved; neighbour toggle watch; mode write),
+  `FilterUi.cs` (2 UI patches, applied after the 4 sim patches).
+- Not used: `PrevMode` for resets (not serialized -> host/rejoiner could diverge).
+- Tests (`belts/tests`, F1-F5): real vanilla component rules deserialized from `Data` with the game serializer; components
+  whose media cannot load headless are uninitialised instances of their real rules class with flow/toggle fields read
+  from Data (engine `CanBe*`/toggle code unchanged). cannon_med/cannon_large/chaingun/railgun_loader/flak in bullet;
+  missile_launcher modes 0-4 in he/emp/nuke/mine/thermal (no state = 0 HE); factory_ammo sulfur->bullet; factory_emp
+  iron,copper->emp; factory_coil2 copper,coil->coil2; factory_steel iron->steel; reactor_small none; storage ALL/ALL.
+- Not verified: in-game UI (popout hiding, build-mode display), side-feed detection on a live ship, MP with mixed
+  selections/hotkeys.
+- Codex diff review: 1 bug accepted and fixed (a side belt still under construction counted as a side feeder and lifted `Out(back)`; `SideFeeds` now skips sites, like the topology). AGREE on display-only blueprint normalisation and on hotkey/revert correction by D3.
