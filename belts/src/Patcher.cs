@@ -146,9 +146,9 @@ internal static class Hooks
 
     public static void PartWritePostfix(Part __instance, GenericSerialWriter writer)
     {
-        if (BeltState.TryGet(__instance, out BeltState? s))
+        if (BeltState.TryGet(__instance, out NodeState? s))
         {
-            s.Write(writer.GetWriterForPath(BeltState.PayloadPath));
+            BeltState.Write(s, writer.GetWriterForPath(BeltState.PayloadPath));
         }
     }
 
@@ -157,9 +157,9 @@ internal static class Hooks
         iHash.AddHash(BeltState.ProtocolVersion);
         foreach (Part part in __instance.Parts)
         {
-            if (BeltState.TryGet(part, out BeltState? s))
+            if (BeltState.TryGet(part, out NodeState? s))
             {
-                s.Hash(iHash);
+                BeltState.Hash(s, iHash);
             }
         }
     }

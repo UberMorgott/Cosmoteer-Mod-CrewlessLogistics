@@ -7,39 +7,55 @@ using Halfling.Serialization.Generic;
 namespace CrewlessLogistics.Belts;
 
 /// <summary>
-/// Per-part sim state; lives on the Part (weak table) so it moves with the part on ship split (§3).
+/// Part -> <see cref="NodeState"/> (weak table), so contents move with the part on ship split (§3).
 /// Saved as versioned subtree Components/morgott.belt (§10); vanilla ignores the unknown path.
-/// shortcut: probe payload is one tick counter; lane items, speed remainder, splitter/connector state replace it in step 3.
 /// </summary>
-internal sealed class BeltState
+internal static class BeltState
 {
     public const string PayloadPath = "Components/morgott.belt";
-    public const int ProtocolVersion = 1;
+    /// <summary>Integrity-hash protocol (§10); bump with any sim/payload change.</summary>
+    public const int ProtocolVersion = 2;
 
-    private static readonly ConditionalWeakTable<Part, BeltState> States = new();
+    public const string BeltId = "morgott.crewless_logistics.belt";
+    public const string SplitterId = "morgott.crewless_logistics.belt_splitter";
+    public const string ConnectorId = "morgott.crewless_logistics.belt_connector";
+    public const string FilterToggleId = "morgott.crewless_logistics.belt_filter";
 
-    public int Counter;
+    private static readonly ConditionalWeakTable<Part, NodeState> States = new();
 
-    public static bool TryGet(Part part, [NotNullWhen(true)] out BeltState? state) => States.TryGetValue(part, out state);
+    public static NodeKind? KindOf(Part part) => part.Rules.ID.ToString() switch
+    {
+        BeltId => NodeKind.Belt,
+        SplitterId => NodeKind.Splitter,
+        ConnectorId => NodeKind.Connector,
+        _ => null,
+    };
 
-    public static BeltState GetOrCreate(Part part) => States.GetValue(part, _ => new BeltState());
+    public static bool TryGet(Part part, [NotNullWhen(true)] out NodeState? state) => States.TryGetValue(part, out state);
+
+    public static NodeState GetOrCreate(Part part, NodeKind kind) => States.GetValue(part, _ => new NodeState(kind));
 
     public static void Read(Part part, GenericSerialReader r)
     {
-        int version = r.ReadOptionalFromPath("V", 0);
-        if (version != ProtocolVersion)
+        if (KindOf(part) is not { } kind)
         {
-            Log.Info($"payload version {version} != {ProtocolVersion} on {part.Rules.ID}, dropped");
             return;
         }
-        GetOrCreate(part).Counter = r.ReadOptionalFromPath("Counter", 0);
+        int version = r.ReadOptionalFromPath("V", 0);
+        NodeState? s = version == NodeState.PayloadVersion ? NodeState.Decode(kind, r.ReadOptionalFromPath<int[]?>("D", null)) : null;
+        if (s == null)
+        {
+            Log.Info($"payload v{version} on {part.Rules.ID} invalid or unsupported, contents dropped");
+            return;
+        }
+        States.AddOrUpdate(part, s);
     }
 
-    public void Write(GenericSerialWriter w)
+    public static void Write(NodeState s, GenericSerialWriter w)
     {
-        w.WriteToPath("V", ProtocolVersion);
-        w.WriteToPath("Counter", Counter);
+        w.WriteToPath("V", NodeState.PayloadVersion);
+        w.WriteToPath("D", s.Encode());
     }
 
-    public void Hash(IntegrityHash h) => h.AddHash(Counter);
+    public static void Hash(NodeState s, IntegrityHash h) => h.AddHash(s.Digest());
 }

@@ -110,6 +110,30 @@ internal static class Probes
         }
     }
 
+    /// <summary>One line per belt network rebuild on the local player's ships: node kinds, curves, connector modes.</summary>
+    public static void DumpTopology(Ship ship, List<Node> nodes, List<Part> parts)
+    {
+        if (!IsLocal(ship) || nodes.Count == 0)
+        {
+            return;
+        }
+        var sb = new System.Text.StringBuilder($"topology nodes={nodes.Count}:");
+        for (int i = 0; i < nodes.Count && i < 64; i++)
+        {
+            Node n = nodes[i];
+            sb.Append($" {n.Kind}@{n.X},{n.Y}>{n.Dx},{n.Dy}");
+            if (n.Kind == NodeKind.Belt && n.Shape != Shape.Straight)
+            {
+                sb.Append('/').Append(n.Shape);
+            }
+            if (n.Kind == NodeKind.Connector)
+            {
+                sb.Append('/').Append(n.Mode).Append(" f=").Append(n.Filter);
+            }
+        }
+        Log.Info(sb.ToString());
+    }
+
     private static (List<string> Src, List<string> Snk) Entry(Dictionary<Part, (List<string>, List<string>)> d, Part p)
     {
         if (!d.TryGetValue(p, out var e))
