@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"unsafe"
 )
 
 func TestVisibilityFor(t *testing.T) {
@@ -26,6 +27,13 @@ func TestVisibilityFor(t *testing.T) {
 	}
 	if _, err := visibilityFor("bogus", false); err == nil {
 		t.Error("bogus visibility accepted")
+	}
+}
+
+// GetAPICallResult rejects a buffer whose size differs from the callback struct.
+func TestCallbackStructSizes(t *testing.T) {
+	if s := unsafe.Sizeof(steamUGCQueryCompleted{}); s != 280 {
+		t.Errorf("SteamUGCQueryCompleted_t size %d, want 280", s)
 	}
 }
 
