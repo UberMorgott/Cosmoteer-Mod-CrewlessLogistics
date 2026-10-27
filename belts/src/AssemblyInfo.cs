@@ -6,7 +6,7 @@ using System.Runtime.Versioning;
 [assembly: IgnoresAccessChecksTo("Cosmoteer")]
 [assembly: IgnoresAccessChecksTo("HalflingCore")]
 [assembly: SupportedOSPlatform("windows7.0")]
-[assembly: InternalsVisibleTo("CrewlessLogistics.BeltProbes")]
+[assembly: InternalsVisibleTo("CrewlessLogistics.Belts.Tests")]
 
 namespace System.Runtime.CompilerServices
 {

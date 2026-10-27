@@ -86,7 +86,7 @@ internal static class Patcher
         }
     }
 
-    /// <summary>Headless P1 (tests/Run-BeltProbes.ps1, called by reflection): apply, verify, roll back.</summary>
+    /// <summary>Headless P1 (belts/tests GameTests, called by reflection): apply, verify, roll back.</summary>
     public static List<(bool Ok, string What)> SelfTest()
     {
         var r = new List<(bool, string)>();

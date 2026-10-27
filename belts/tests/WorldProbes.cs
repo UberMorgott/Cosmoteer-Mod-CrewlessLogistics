@@ -1,6 +1,8 @@
 using System.Text.RegularExpressions;
 using CrewlessLogistics.Belts;
 
+namespace CrewlessLogistics.Belts.Tests;
+
 /// <summary>
 /// Headless v1 behaviour probes on the pure belt world (topology, splitter, connector, save payload).
 /// Rooms are fakes with the vanilla endpoint semantics that matter: FlexResourceGrid cargo (per-tile type, stack cap,
@@ -156,30 +158,11 @@ static class WorldProbes
         public bool Put(int type) => CanAccept(type) && ++In[type] > 0;
     }
 
-    public static void Run(Action<bool, string> check)
-    {
-        AutoCurve(check);
-        Crossings(check);
-        ItemRender(check);
-        Sideload(check);
-        SplitterSplitMerge(check);
-        Connectors(check);
-        AdjacencyMatrix(check);
-        Chains(check);
-        SaveRoundTrip(check);
-        FilterChoicesMatchRules(check);
-        RenderSelect(check);
-        SplitterHalvesRender(check);
-        RenderClientOnly(check);
-        RenderMoving(check);
-        MultiSideIntake(check);
-    }
-
     /// <summary>
     /// §22: a belt surface animates only while its lanes move (+ hold): empty chain still, items travelling animate each
     /// tile they cross (crossing too) without flicker, all still again once the items are blocked at the chain end.
     /// </summary>
-    static void RenderMoving(Action<bool, string> check)
+    internal static void RenderMoving(Action<bool, string> check)
     {
         var g = new Grid();
         Node a = g.Belt(0, 2, Up);
@@ -222,7 +205,7 @@ static class WorldProbes
     /// (curves only from a lone side feeder, belt or connector), side joins mark every side input, crossings stay their
     /// own straight sprite. Selection is a pure function of topology (identical on rebuild).
     /// </summary>
-    static void RenderSelect(Action<bool, string> check)
+    internal static void RenderSelect(Action<bool, string> check)
     {
         // feeders: r = rear belt, L/R = side belt, cL/cR = side connector, sL = splitter output into the left side.
         var cases = new (string Feed, bool Cross, Variant V, bool Flip)[]
@@ -287,7 +270,7 @@ static class WorldProbes
     /// Owner bug 11.png: a splitter in all 4 rotations x both half orders (flip), both inputs fed: items show on both
     /// halves and on both downstream belts, and every item point of splitter halves and output belts lies in its own cell.
     /// </summary>
-    static void SplitterHalvesRender(Action<bool, string> check)
+    internal static void SplitterHalvesRender(Action<bool, string> check)
     {
         int bad = 0, cases = 0;
         string first = "";
@@ -350,7 +333,7 @@ static class WorldProbes
     /// with BeltRenderState updated every tick, keep identical NodeState digests; lamps light after transfers on both
     /// splitter outputs and the connector; render update allocates nothing.
     /// </summary>
-    static void RenderClientOnly(Action<bool, string> check)
+    internal static void RenderClientOnly(Action<bool, string> check)
     {
         (BeltWorld W, List<Node> Nodes, Node In) Make()
         {
@@ -405,7 +388,7 @@ static class WorldProbes
     /// §21 D8: a connector pulls from rooms at its back, left and right in round-robin (fair within 1), shares one rate,
     /// skips a side room that is also its front room, and the saved cursor round-trips (0..2 for connectors only).
     /// </summary>
-    static void MultiSideIntake(Action<bool, string> check)
+    internal static void MultiSideIntake(Action<bool, string> check)
     {
         for (int dir = 0; dir < 4; dir++)
         {
@@ -479,7 +462,7 @@ static class WorldProbes
     /// past an iron filter, flow > 0 when valid, flow == 0 for filter none and for front entry (outputs facing: no-op),
     /// and that a lone belt/splitter side feeder curves a target belt. Inner side of a splitter half = its other half.
     /// </summary>
-    static void AdjacencyMatrix(Action<bool, string> check)
+    internal static void AdjacencyMatrix(Action<bool, string> check)
     {
         string[] srcNames = { "belt", "curveL", "curveR", "conn*", "connIron", "connNone", "splitA", "splitB", "cross" };
         string[] tgtNames = { "belt", "conn*", "connIron", "connNone", "splitA", "splitB", "cross" };
@@ -487,140 +470,140 @@ static class WorldProbes
         int cases = 0, valid = 0, noop = 0, impossible = 0, bad = 0;
         string first = "";
         for (int sk = 0; sk < srcNames.Length; sk++)
-        for (int tk = 0; tk < tgtNames.Length; tk++)
-        for (int r = 0; r < 4; r++)
-        for (int e = 0; e < 4; e++)
-        {
-            var (dx, dy) = Dir[r];
-            var (lx, ly) = LeftOf(r);
-            if ((tk == 4 && e == 2) || (tk == 5 && e == 1))
-            {
-                impossible++; // that side of the half is the splitter's other half
-                continue;
-            }
-            cases++;
-            var g = new Grid();
-            var rooms = new List<IRoom>();
-            int initial = 0;
-            var (sx, sy) = e switch { 0 => (-dx, -dy), 1 => (lx, ly), 2 => (-lx, -ly), _ => (dx, dy) };
-            int sdir = DirOf(-sx, -sy); // source points into the target cell
-            var (sdx, sdy) = Dir[sdir];
-            var (slx, sly) = LeftOf(sdir);
-            int feedTile = -1;
-            Node? src = null;
-            if (sk == 8)
-            {
-                src = g.Cross(sx, sy, sdir);
-            }
-            else if (sk <= 2)
-            {
-                src = g.Belt(sx, sy, sdir);
-                if (sk > 0)
-                {
-                    int side = sk == 1 ? 1 : -1;
-                    g.Belt(sx + slx * side, sy + sly * side, DirOf(-slx * side, -sly * side));
-                }
-            }
-            else if (sk <= 5)
-            {
-                g.Connector(sx, sy, sdir, sk == 3 ? BeltTypes.FilterAny : sk == 4 ? Iron : BeltTypes.FilterNone);
-                rooms.Add(g.Room(sx - sdx, sy - sdy, new Cargo(8).With(Iron, 20).With(Sulfur, 20)));
-                initial = 40;
-            }
-            else
-            {
-                // Half offset = right of travel; half B case puts the splitter's half 1 on the source cell.
-                int ox = -slx, oy = -sly, h = sk - 6;
-                src = g.Add(NodeKind.Splitter, sx - h * ox, sy - h * oy, sdir, ox, oy);
-                feedTile = h;
-            }
-            int collisions = 0;
-            Node Place(NodeKind kind, int x, int y, int dir, int ox = 0, int oy = 0, bool noCurve = false)
-            {
-                collisions += g.Free(x, y) && (kind != NodeKind.Splitter || g.Free(x + ox, y + oy)) ? 0 : 1;
-                return g.Add(kind, x, y, dir, ox, oy, noCurve: noCurve);
-            }
-            Node tgt;
-            var drains = new List<Node>();
-            Typed? tgtRoom = null;
-            if (tk == 0 || tk == 6)
-            {
-                drains.Add(tgt = Place(NodeKind.Belt, 0, 0, r, noCurve: tk == 6));
-            }
-            else if (tk <= 3)
-            {
-                tgt = Place(NodeKind.Connector, 0, 0, r);
-                tgt.Filter = tk == 1 ? BeltTypes.FilterAny : tk == 2 ? Iron : BeltTypes.FilterNone;
-                if (g.Free(dx, dy))
-                {
-                    tgtRoom = g.Room(dx, dy, new Typed());
-                    tgtRoom.InCap[Iron] = tgtRoom.InCap[Sulfur] = 1000;
-                    rooms.Add(tgtRoom);
-                }
-            }
-            else
-            {
-                int ox = -lx, oy = -ly, h = tk - 4;
-                tgt = Place(NodeKind.Splitter, -h * ox, -h * oy, r, ox, oy);
-                for (int k = 0; k < 2; k++)
-                {
-                    int cx = -h * ox + k * ox + dx, cy = -h * oy + k * oy + dy;
-                    if (g.Free(cx, cy))
+            for (int tk = 0; tk < tgtNames.Length; tk++)
+                for (int r = 0; r < 4; r++)
+                    for (int e = 0; e < 4; e++)
                     {
-                        drains.Add(Place(NodeKind.Belt, cx, cy, r));
-                    }
-                }
-            }
-            BeltWorld w = g.Build();
-            int fed = 0, iron = 0, sulfur = 0;
-            for (int t = 0; t < 600; t++)
-            {
-                if (src != null)
-                {
-                    int tile = src.Tile0 + Math.Max(feedTile, 0);
-                    fed += (w.Sim.TryPutBack(tile, 0, Iron) ? 1 : 0) + (w.Sim.TryPutBack(tile, 1, Sulfur) ? 1 : 0);
-                }
-                foreach (Node d in drains)
-                {
-                    w.Sim.OpenDrain(d.Tile0, 0);
-                    w.Sim.OpenDrain(d.Tile0, 1);
-                }
-                w.Tick(t);
-                foreach (Node d in drains)
-                {
-                    for (int lane = 0; lane < 2; lane++)
-                    {
-                        if (w.Sim.TryTakeDrained(d.Tile0, lane, out int type))
+                        var (dx, dy) = Dir[r];
+                        var (lx, ly) = LeftOf(r);
+                        if ((tk == 4 && e == 2) || (tk == 5 && e == 1))
                         {
-                            iron += type == Iron ? 1 : 0;
-                            sulfur += type == Sulfur ? 1 : 0;
+                            impossible++; // that side of the half is the splitter's other half
+                            continue;
+                        }
+                        cases++;
+                        var g = new Grid();
+                        var rooms = new List<IRoom>();
+                        int initial = 0;
+                        var (sx, sy) = e switch { 0 => (-dx, -dy), 1 => (lx, ly), 2 => (-lx, -ly), _ => (dx, dy) };
+                        int sdir = DirOf(-sx, -sy); // source points into the target cell
+                        var (sdx, sdy) = Dir[sdir];
+                        var (slx, sly) = LeftOf(sdir);
+                        int feedTile = -1;
+                        Node? src = null;
+                        if (sk == 8)
+                        {
+                            src = g.Cross(sx, sy, sdir);
+                        }
+                        else if (sk <= 2)
+                        {
+                            src = g.Belt(sx, sy, sdir);
+                            if (sk > 0)
+                            {
+                                int side = sk == 1 ? 1 : -1;
+                                g.Belt(sx + slx * side, sy + sly * side, DirOf(-slx * side, -sly * side));
+                            }
+                        }
+                        else if (sk <= 5)
+                        {
+                            g.Connector(sx, sy, sdir, sk == 3 ? BeltTypes.FilterAny : sk == 4 ? Iron : BeltTypes.FilterNone);
+                            rooms.Add(g.Room(sx - sdx, sy - sdy, new Cargo(8).With(Iron, 20).With(Sulfur, 20)));
+                            initial = 40;
+                        }
+                        else
+                        {
+                            // Half offset = right of travel; half B case puts the splitter's half 1 on the source cell.
+                            int ox = -slx, oy = -sly, h = sk - 6;
+                            src = g.Add(NodeKind.Splitter, sx - h * ox, sy - h * oy, sdir, ox, oy);
+                            feedTile = h;
+                        }
+                        int collisions = 0;
+                        Node Place(NodeKind kind, int x, int y, int dir, int ox = 0, int oy = 0, bool noCurve = false)
+                        {
+                            collisions += g.Free(x, y) && (kind != NodeKind.Splitter || g.Free(x + ox, y + oy)) ? 0 : 1;
+                            return g.Add(kind, x, y, dir, ox, oy, noCurve: noCurve);
+                        }
+                        Node tgt;
+                        var drains = new List<Node>();
+                        Typed? tgtRoom = null;
+                        if (tk == 0 || tk == 6)
+                        {
+                            drains.Add(tgt = Place(NodeKind.Belt, 0, 0, r, noCurve: tk == 6));
+                        }
+                        else if (tk <= 3)
+                        {
+                            tgt = Place(NodeKind.Connector, 0, 0, r);
+                            tgt.Filter = tk == 1 ? BeltTypes.FilterAny : tk == 2 ? Iron : BeltTypes.FilterNone;
+                            if (g.Free(dx, dy))
+                            {
+                                tgtRoom = g.Room(dx, dy, new Typed());
+                                tgtRoom.InCap[Iron] = tgtRoom.InCap[Sulfur] = 1000;
+                                rooms.Add(tgtRoom);
+                            }
+                        }
+                        else
+                        {
+                            int ox = -lx, oy = -ly, h = tk - 4;
+                            tgt = Place(NodeKind.Splitter, -h * ox, -h * oy, r, ox, oy);
+                            for (int k = 0; k < 2; k++)
+                            {
+                                int cx = -h * ox + k * ox + dx, cy = -h * oy + k * oy + dy;
+                                if (g.Free(cx, cy))
+                                {
+                                    drains.Add(Place(NodeKind.Belt, cx, cy, r));
+                                }
+                            }
+                        }
+                        BeltWorld w = g.Build();
+                        int fed = 0, iron = 0, sulfur = 0;
+                        for (int t = 0; t < 600; t++)
+                        {
+                            if (src != null)
+                            {
+                                int tile = src.Tile0 + Math.Max(feedTile, 0);
+                                fed += (w.Sim.TryPutBack(tile, 0, Iron) ? 1 : 0) + (w.Sim.TryPutBack(tile, 1, Sulfur) ? 1 : 0);
+                            }
+                            foreach (Node d in drains)
+                            {
+                                w.Sim.OpenDrain(d.Tile0, 0);
+                                w.Sim.OpenDrain(d.Tile0, 1);
+                            }
+                            w.Tick(t);
+                            foreach (Node d in drains)
+                            {
+                                for (int lane = 0; lane < 2; lane++)
+                                {
+                                    if (w.Sim.TryTakeDrained(d.Tile0, lane, out int type))
+                                    {
+                                        iron += type == Iron ? 1 : 0;
+                                        sulfur += type == Sulfur ? 1 : 0;
+                                    }
+                                }
+                            }
+                        }
+                        int delivered = iron + sulfur + (tgtRoom != null ? tgtRoom.In[Iron] + tgtRoom.In[Sulfur] : 0);
+                        int deliveredSulfur = sulfur + (tgtRoom?.In[Sulfur] ?? 0);
+                        bool flows = e != 3 && sk != 5 && tk != 3;
+                        bool ironOnly = sk == 4 || tk == 2;
+                        // A crossing target never curves (side feeders side-load); a crossing source curves a plain belt like a belt.
+                        bool curveOk = tk == 6 ? tgt.Shape == Shape.Straight : !(tk == 0 && (e == 1 || e == 2) && (sk <= 2 || sk >= 6)) || tgt.Shape != Shape.Straight;
+                        bool conserved = Held(w, rooms) + iron + sulfur == initial + fed;
+                        bool ok = collisions == 0 && conserved && (flows ? delivered > 0 : delivered == 0) && (!ironOnly || deliveredSulfur == 0) && curveOk;
+                        valid += flows ? 1 : 0;
+                        noop += e == 3 ? 1 : 0;
+                        if (!ok)
+                        {
+                            bad++;
+                            if (bad <= 5)
+                            {
+                                first += $" [{srcNames[sk]}->{tgtNames[tk]} rot{r} {entryNames[e]}: delivered={delivered} sulfur={deliveredSulfur} conserved={conserved} collisions={collisions} shape={tgt.Shape}]";
+                            }
                         }
                     }
-                }
-            }
-            int delivered = iron + sulfur + (tgtRoom != null ? tgtRoom.In[Iron] + tgtRoom.In[Sulfur] : 0);
-            int deliveredSulfur = sulfur + (tgtRoom?.In[Sulfur] ?? 0);
-            bool flows = e != 3 && sk != 5 && tk != 3;
-            bool ironOnly = sk == 4 || tk == 2;
-            // A crossing target never curves (side feeders side-load); a crossing source curves a plain belt like a belt.
-            bool curveOk = tk == 6 ? tgt.Shape == Shape.Straight : !(tk == 0&& (e == 1 || e == 2) && (sk <= 2 || sk >= 6)) || tgt.Shape != Shape.Straight;
-            bool conserved = Held(w, rooms) + iron + sulfur == initial + fed;
-            bool ok = collisions == 0 && conserved && (flows ? delivered > 0 : delivered == 0) && (!ironOnly || deliveredSulfur == 0) && curveOk;
-            valid += flows ? 1 : 0;
-            noop += e == 3 ? 1 : 0;
-            if (!ok)
-            {
-                bad++;
-                if (bad <= 5)
-                {
-                    first += $" [{srcNames[sk]}->{tgtNames[tk]} rot{r} {entryNames[e]}: delivered={delivered} sulfur={deliveredSulfur} conserved={conserved} collisions={collisions} shape={tgt.Shape}]";
-                }
-            }
-        }
         check(bad == 0, $"adjacency matrix: {cases} cases ({valid} flowing, {noop} front-facing no-op, rest filter none; {impossible} inner-splitter-side skipped), bad={bad}{first}");
     }
 
-    static void Chains(Action<bool, string> check)
+    internal static void Chains(Action<bool, string> check)
     {
         // room -> connector(any) -> connector(iron) -> room: only iron, rate 1 / period.
         {
@@ -745,7 +728,7 @@ static class WorldProbes
         }
     }
 
-    static void AutoCurve(Action<bool, string> check)
+    internal static void AutoCurve(Action<bool, string> check)
     {
         // A at (0,1) points right into B's left side; B points up. One side feeder, no rear -> curve, lanes kept.
         var g = new Grid();
@@ -786,7 +769,7 @@ static class WorldProbes
     /// crossing stays Straight, a lone side feeder side-loads onto the near lane only, rear feed keeps both lanes, and
     /// every item is conserved (lanes + held + delivered == fed).
     /// </summary>
-    static void Crossings(Action<bool, string> check)
+    internal static void Crossings(Action<bool, string> check)
     {
         int bad = 0, cases = 0;
         string first = "";
@@ -830,7 +813,7 @@ static class WorldProbes
     /// tile and inside the belt plate; straight lanes sit at +-LaneOffset (lane 0 left of travel), curve lanes on arcs
     /// of radius 0.5 -+ LaneOffset around the inner corner.
     /// </summary>
-    static void ItemRender(Action<bool, string> check)
+    internal static void ItemRender(Action<bool, string> check)
     {
         const float eps = 1e-4f, itemHalf = 0.11f; // ~0.22 tile nugget (BeltManager.ItemShrink)
         float o = BeltWorld.LaneOffset;
@@ -893,7 +876,7 @@ static class WorldProbes
         check(bad == 0, $"item render: {total} lane points (4 rotations x straight/curveL/curveR) inside tile and lane, bad={bad} {first}");
     }
 
-    static void Sideload(Action<bool, string> check)
+    internal static void Sideload(Action<bool, string> check)
     {
         foreach (bool fromLeft in new[] { true, false })
         {
@@ -917,7 +900,7 @@ static class WorldProbes
         }
     }
 
-    static void SplitterSplitMerge(Action<bool, string> check)
+    internal static void SplitterSplitMerge(Action<bool, string> check)
     {
         // Splitter halves at (0,1),(1,1) pointing up; input belt behind half 0; output belts in front of both halves.
         {
@@ -984,7 +967,7 @@ static class WorldProbes
         }
     }
 
-    static void Connectors(Action<bool, string> check)
+    internal static void Connectors(Action<bool, string> check)
     {
         // Extractor: cargo (0,3) -> connector (0,2 up) -> belt (0,1),(0,0) -> loader connector (0,-1 up) -> weapon (0,-2).
         {
@@ -1168,10 +1151,10 @@ static class WorldProbes
     static int Digest(Grid g, Cargo src, Typed a, Typed b) =>
         g.Nodes.Aggregate(17, (h, n) => h * 31 + n.State.Digest()) * 31 + src.Total(Sulfur) * 7 + src.Total(Iron) + a.In.Sum() * 13 + b.In.Sum() * 29;
 
-    static void SaveRoundTrip(Action<bool, string> check)
+    internal static void SaveRoundTrip(Action<bool, string> check)
     {
         const int saveAt = 47;
-        var (ga, sa, aa, ba) = Busy(_ => null);
+        var (ga, sa, a, b) = Busy(_ => null);
         BeltWorld wa = ga.Build();
         for (int t = 0; t < saveAt; t++)
         {
@@ -1197,12 +1180,12 @@ static class WorldProbes
         {
             wa.Tick(t);
             wb.Tick(t);
-            if (Digest(ga, sa, aa, ba) != Digest(gb, sb, ab, bb))
+            if (Digest(ga, sa, a, b) != Digest(gb, sb, ab, bb))
             {
                 diverged = t;
             }
         }
-        check(diverged < 0 && aa.In.Sum() + ba.In.Sum() == 40, $"save round-trip: reloaded world matches original for 1153 ticks (diverged={diverged}), all 40 items delivered ({aa.In.Sum()}+{ba.In.Sum()})");
+        check(diverged < 0 && a.In.Sum() + b.In.Sum() == 40, $"save round-trip: reloaded world matches original for 1153 ticks (diverged={diverged}), all 40 items delivered ({a.In.Sum()}+{b.In.Sum()})");
         int[] truncated = payloads[1][..^1];
         int[] badPos = payloads[1].ToArray();
         bool hasItem = badPos[2] > 0;
@@ -1214,9 +1197,9 @@ static class WorldProbes
             && (!hasItem || NodeState.Decode(NodeKind.Belt, badPos) == null) && NodeState.Decode(NodeKind.Belt, null) == null,
             $"save payload validation rejects truncated, wrong-kind, out-of-range (checked={hasItem}) and missing payloads");
     }
-    static void FilterChoicesMatchRules(Action<bool, string> check)
+    internal static void FilterChoicesMatchRules(Action<bool, string> check)
     {
-        string path = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "mod", "belt_filter_toggle.rules");
+        string path = Path.Combine(Env.ProjectRoot, "mod", "belt_filter_toggle.rules");
         if (!File.Exists(path))
         {
             check(false, "filter toggle rules not found: " + Path.GetFullPath(path));

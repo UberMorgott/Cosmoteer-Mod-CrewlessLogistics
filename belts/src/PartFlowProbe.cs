@@ -13,7 +13,7 @@ using Cosmoteer.Ships.Parts.UI;
 namespace CrewlessLogistics.Belts;
 
 /// <summary>
-/// Headless §20 check (tests/Run-BeltProbes.ps1, called by reflection): deserializes the real vanilla component rules of
+/// Headless §20 check (belts/tests GameTests, called by reflection): deserializes the real vanilla component rules of
 /// a part from the game's Data with the game's own serializer and runs <see cref="PartFlow.Classify"/> on them.
 /// </summary>
 internal static class PartFlowProbe

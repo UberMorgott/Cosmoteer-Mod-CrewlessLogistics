@@ -1,5 +1,7 @@
 using System.Text.RegularExpressions;
 
+namespace CrewlessLogistics.Belts.Tests;
+
 // Rules lint: ToggledComponents children are added to the part's flat component dictionary, so an ID declared inside a
 // nested Components block must be unique across the part, including the IDs inherited from vanilla corridor/conveyor.
 // A collision crashes the game on placement (Part.AddComponentsNoQueue: "An item with the same key has already been added").
