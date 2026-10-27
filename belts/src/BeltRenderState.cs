@@ -65,15 +65,35 @@ public sealed class BeltRenderState
         _sig = new int[n];
         _lastMove = new int[n];
         Moving = new bool[n];
+        Rebase();
+    }
+
+    /// <summary>
+    /// §27 forgets the history (no allocation): after a stretch without <see cref="Update"/> (ship out of view, zoomed out)
+    /// the accumulated transfers and moves would read as fresh activity (false lamp flash, surfaces starting at once).
+    /// </summary>
+    public void Rebase()
+    {
         Array.Fill(_lastEvent, int.MinValue / 2);
         Array.Fill(_lastMove, int.MinValue / 2);
-        for (int i = 0; i < n; i++)
+        Array.Clear(Lamp);
+        Array.Clear(Moving);
+        for (int i = 0; i < _nodes.Count; i++)
         {
-            _lastCount[2 * i] = nodes[i].Events[0];
-            _lastCount[2 * i + 1] = nodes[i].Events[1];
-            _sig[i] = Signature(nodes[i]);
+            _lastCount[2 * i] = _nodes[i].Events[0];
+            _lastCount[2 * i + 1] = _nodes[i].Events[1];
+            _sig[i] = Signature(_nodes[i]);
         }
     }
+
+    /// <summary>
+    /// §27 zoom LOD: above this many ship tiles across the most detailed view showing the ship (~7 px per tile at 1080p,
+    /// items &lt; 2 px) items are hidden, surfaces frozen, lamps off; the static rules floor stays.
+    /// </summary>
+    public const float CoarseTiles = 160;
+
+    /// <summary>Coarse LOD with 10% hysteresis around <see cref="CoarseTiles"/>, so a zoom at the threshold does not thrash.</summary>
+    public static bool Coarse(bool wasCoarse, float viewTiles) => viewTiles > CoarseTiles * (wasCoarse ? 0.9f : 1.1f);
 
     /// <summary>Lane counts + positions of a node (any move changes a position: items advance >= 17 units per moving tick).</summary>
     private static int Signature(Node n)

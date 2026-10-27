@@ -44,6 +44,9 @@ internal sealed class BeltManager : ShipComponent
     private AtlasSprite[][]? _surfSprites;
     private ManagedShipQuad?[] _lamps = Array.Empty<ManagedShipQuad?>();
     private bool _visualsDirty;
+    /// <summary>§27 client view state: drawn in the last frame, coarse LOD, tick last rendered, item quads shown / resident.</summary>
+    private bool _shown, _coarse;
+    private int _renderedTick = int.MinValue, _live, _resident, _shownSurfaces, _shownLamps;
 
     private readonly List<Node> _nodes = new();
     private readonly List<Part> _nodeParts = new();
@@ -209,7 +212,6 @@ internal sealed class BeltManager : ShipComponent
                     }
                 }
                 _world.Tick(tick);
-                Render(ship, sim);
             }
         }
         catch (Exception ex)
@@ -222,7 +224,66 @@ internal sealed class BeltManager : ShipComponent
             Probes.DumpTopology(ship, _nodes, _nodeParts);
         }
         Probes.PushP5(ship, tick);
-        Probes.OnTick(sim, tick, duplicate, _nodes.Count, Stopwatch.GetTimestamp() - t0);
+        Probes.OnTick(sim, tick, duplicate, _nodes.Count, _world?.Sim.Tiles ?? 0, Stopwatch.GetTimestamp() - t0);
+    }
+
+    /// <summary>
+    /// §27 client visuals per frame (SceneComponent.Update), heavy work only on a new tick or a view / LOD change, so a paused
+    /// game still shows a ship that just came into view correctly. Reads sim state only.
+    /// </summary>
+    public override void Update(SceneRoot root)
+    {
+        Ship? ship = Ship;
+        SimRoot? sim = Sim;
+        if (ship == null || sim == null || _world == null || ship.Renderer is not { } renderer)
+        {
+            return;
+        }
+        long t0 = Stopwatch.GetTimestamp();
+        bool worked = false;
+        try
+        {
+            float tiles = ViewTiles(ship, sim);
+            if (tiles == float.PositiveInfinity)
+            {
+                _shown = false; // not drawn (ShipRenderer culls per ship): quads keep their last state
+            }
+            else
+            {
+                bool coarse = BeltRenderState.Coarse(_coarse, tiles);
+                if (!_shown || coarse != _coarse || sim.Tick != _renderedTick || _visualsDirty)
+                {
+                    worked = true;
+                    Render(ship, sim, renderer, coarse, rebase: !_shown || coarse != _coarse);
+                    _shown = true;
+                    _coarse = coarse;
+                    _renderedTick = sim.Tick;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error("render", ex);
+        }
+        Probes.OnRender(Stopwatch.GetTimestamp() - t0, worked, _shown, _coarse, _live, _shownSurfaces, _shownLamps);
+    }
+
+    /// <summary>
+    /// §27 ship tiles across the most detailed view showing this ship (main view incl. its near margin, miniview), or
+    /// infinity when neither does. Client-only (camera), never feeds the sim.
+    /// </summary>
+    private static float ViewTiles(Ship ship, SimRoot sim)
+    {
+        float tiles = float.PositiveInfinity, scale = ship.WorldUniformScale;
+        if (ship.IsNearOnScreen)
+        {
+            tiles = sim.WorldViewRect.Size.Y / scale;
+        }
+        if (sim.WorldMiniviewRect is { } m && m.IntersectsWith(ship.WorldBoundingCircle))
+        {
+            tiles = Math.Min(tiles, m.Size.Y / scale);
+        }
+        return tiles;
     }
 
     /// <summary>§23 setting of node i from its UIToggle (synced sim state on every peer).</summary>
@@ -404,7 +465,8 @@ internal sealed class BeltManager : ShipComponent
         {
             IntVector2 c = Cell(p, 0, 0);
             string edge = Cell(p, 0, -1) - c == d ? "Up" : Cell(p, 0, 1) - c == d ? "Down" : "";
-            bool heat = edge.Length > 0 && Linked(p, "Port_" + edge), cable = edge.Length > 0 && Linked(p, "ElectricPort_" + edge);
+            bool up = edge == "Up";
+            bool heat = edge.Length > 0 && Linked(p, up ? PortUp : PortDown), cable = edge.Length > 0 && Linked(p, up ? CablePortUp : CablePortDown);
             if (!heat && !cable)
             {
                 return CrossLink.None;
@@ -418,28 +480,56 @@ internal sealed class BeltManager : ShipComponent
         return CrossLink.None;
     }
 
-    private static bool Linked(Part p, string port) => p.TryGetComponent(new ID<PartComponentRules>(port), out IComponentToggleProvider? t) && t.IsToggleOn;
+    /// <summary>§27 port component IDs built once (string concat + ID per crossing per tick allocated before).</summary>
+    private static readonly ID<PartComponentRules> PortUp = new("Port_Up"), PortDown = new("Port_Down"),
+        CablePortUp = new("ElectricPort_Up"), CablePortDown = new("ElectricPort_Down");
 
-    /// <summary>Client visuals only (reads sim state, never writes it): surfaces, lamps, one pooled quad per item (§11, §21).</summary>
-    private void Render(Ship ship, SimRoot sim)
+    private static bool Linked(Part p, ID<PartComponentRules> port) => p.TryGetComponent(port, out IComponentToggleProvider? t) && t.IsToggleOn;
+
+    /// <summary>
+    /// Client visuals only (reads sim state, never writes it): surfaces, lamps, one pooled quad per item (§11, §21). §27
+    /// coarse LOD: items freed, surfaces frozen, lamps off, nothing per tick; rebase = first frame after a gap in updates.
+    /// </summary>
+    private void Render(Ship ship, SimRoot sim, ShipRenderer renderer, bool coarse, bool rebase)
     {
-        ShipRenderer? renderer = ship.Renderer;
-        if (renderer == null)
-        {
-            return;
-        }
         if (_visualsDirty)
         {
             _visualsDirty = false;
-            BuildVisuals(ship, renderer, sim);
+            BuildVisuals(ship, renderer, sim); // surfaces created still, lamps unlit (item quads are not touched)
+        }
+        if (coarse && rebase)
+        {
+            HideQuads(0);
+            foreach (ManagedShipQuad? q in _surf)
+            {
+                q?.UpdateAnimationSpeedFactor(0f, sim.Clock);
+            }
+            foreach (ManagedShipQuad? q in _lamps)
+            {
+                if (q != null)
+                {
+                    q.Color = Color.TransparentWhite;
+                }
+            }
+        }
+        if (coarse)
+        {
+            _shownSurfaces = _shownLamps = 0;
+            return;
+        }
+        if (rebase)
+        {
+            _render.Rebase();
         }
         _render.Update(sim.Tick);
+        _shownSurfaces = _shownLamps = 0;
         for (int i = 0; i < _surf.Length; i++)
         {
             // §25: a crossing follows its links (ports connect after the topology rebuild, neighbours change); §26 every
             // surface follows its part's damage level like vanilla sprites (PartSpriteRules.GetAtlasSpriteForDamage).
             if (_surf[i] is { } c && _surfSprites != null)
             {
+                _shownSurfaces++;
                 Variant v = _nodes[i].NoCurve ? CrossingVariant(ship, _nodeParts[i]) : _surfV[i];
                 int level = BeltRenderState.DamageLevel(_nodeParts[i].DamageFraction, _surfSprites[(int)v].Length);
                 if (v != _surfV[i] || level != _surfL[i])
@@ -465,6 +555,7 @@ internal sealed class BeltManager : ShipComponent
         {
             if (_lamps[j] is { } q)
             {
+                _shownLamps++;
                 q.Color = _render.Lamp[j] ? Color.White : Color.TransparentWhite;
             }
         }
@@ -495,22 +586,42 @@ internal sealed class BeltManager : ShipComponent
                         }
                         else
                         {
-                            _quads[used].SetSprite(sprite, sim.Clock);
-                            _quads[used].Location = loc;
+                            ManagedShipQuad q = _quads[used];
+                            q.Color = Color.White; // a resident surplus quad was transparent (no-op when already white)
+                            q.SetSprite(sprite, sim.Clock);
+                            q.Location = loc;
                         }
                         used++;
                     }
                 }
             }
         }
+        _resident = Math.Max(_resident, used);
         HideQuads(used);
     }
 
+    /// <summary>§27 transparent surplus item quads kept resident per ship, so a small count change neither frees nor creates atlas quads.</summary>
+    private const int PoolSlack = 64;
+
+    /// <summary>
+    /// Hides item quads from <paramref name="from"/>: up to <see cref="PoolSlack"/> stay resident transparent, the rest are
+    /// freed (from 0: all freed, LOD / rebuild / detach).
+    /// </summary>
     private void HideQuads(int from)
     {
-        for (int i = from; i < _quads.Count; i++)
+        int keep = from == 0 ? 0 : from + PoolSlack;
+        for (int i = from; i < _resident; i++)
         {
-            _quads[i].Sprite = null;
+            if (i < keep)
+            {
+                _quads[i].Color = Color.TransparentWhite;
+            }
+            else
+            {
+                _quads[i].Sprite = null;
+            }
         }
+        _resident = Math.Min(_resident, keep);
+        _live = from;
     }
 }

@@ -11,6 +11,9 @@ public class ScaleTests
 
     [Fact]
     public void FleetGolden() => Probe.Run(WorldProbes.FleetGolden);
+
+    [Fact]
+    public void RenderLod() => Probe.Run(WorldProbes.RenderLod);
 }
 
 /// <summary>
@@ -184,13 +187,53 @@ static partial class WorldProbes
     internal static void FleetGolden(Action<bool, string> check)
     {
         var fleet = new Fleet(20);
-        for (int t = 0; t < 3000; t++)
+        for (int t = 0; t < 9000; t++)
         {
             fleet.Tick(t);
         }
-        const int golden = 1320860079;
+        const int golden = 768269553;
         int d = fleet.Digest();
-        check(d == golden, $"fleet golden digest after 3000 ticks: {d} (golden {golden})");
+        check(d == golden, $"fleet golden digest after 9000 ticks: {d} (golden {golden})");
+    }
+
+    /// <summary>
+    /// §27 client LOD: coarse threshold with hysteresis (out of every view = infinity = coarse), and Rebase after a gap in
+    /// render updates shows no stale activity (no lamp flash, surfaces still) until the next transfer / move.
+    /// </summary>
+    internal static void RenderLod(Action<bool, string> check)
+    {
+        float c = BeltRenderState.CoarseTiles;
+        check(!BeltRenderState.Coarse(false, c * 1.1f - 1) && BeltRenderState.Coarse(false, c * 1.1f + 1)
+            && BeltRenderState.Coarse(true, c * 0.9f + 1) && !BeltRenderState.Coarse(true, c * 0.9f - 1) && BeltRenderState.Coarse(false, float.PositiveInfinity),
+            $"coarse LOD at {c} tiles: fine->coarse above {c * 1.1f}, coarse->fine below {c * 0.9f}, no view = coarse");
+        var fleet = new Fleet(1);
+        BeltRenderState r = fleet.Render[0];
+        int t = 0;
+        bool litBefore = false, movingBefore = false;
+        for (; t < 600; t++)
+        {
+            fleet.Tick(t);
+            r.Update(t);
+            litBefore |= t >= 590 && r.Lamp.Any(x => x);
+            movingBefore |= t >= 590 && r.Moving.Any(x => x);
+        }
+        for (; t < 700; t++) // out of view: sim runs, render state does not
+        {
+            fleet.Tick(t);
+        }
+        r.Rebase();
+        r.Update(t);
+        bool litAfter = r.Lamp.Any(x => x), movingAfter = r.Moving.Any(x => x);
+        bool litLater = false, movingLater = false;
+        for (t++; t < 720; t++)
+        {
+            fleet.Tick(t);
+            r.Update(t);
+            litLater |= r.Lamp.Any(x => x);
+            movingLater |= r.Moving.Any(x => x);
+        }
+        check(litBefore && movingBefore && !litAfter && !movingAfter && litLater && movingLater,
+            $"rebase after 100 unrendered ticks: lamps/moving before {litBefore}/{movingBefore}, right after {litAfter}/{movingAfter} (want false), later {litLater}/{movingLater}");
     }
 
     /// <summary>

@@ -28,7 +28,28 @@ internal static class Probes
     private static readonly HashSet<string> Dumped = new();
     private static readonly HashSet<string>? P5Parts = LoadP5Parts();
 
-    public static void OnTick(SimRoot sim, int tick, bool duplicate, int tracked, long cost)
+    /// <summary>§27 render accumulators of the current log window (client only, BeltManager.Update).</summary>
+    private static long _renderCost;
+    private static int _renderCalls, _renderWork, _shownShips, _coarseShips, _beltShipsThisTick, _tilesThisTick;
+    private static long _items, _surfaces, _lamps;
+
+    /// <summary>§27 one BeltManager.Update: cost, whether it rendered (new tick / view change), what the ship shows now.</summary>
+    public static void OnRender(long cost, bool worked, bool shown, bool coarse, int items, int surfaces, int lamps)
+    {
+        _renderCost += cost;
+        _renderCalls++;
+        if (worked)
+        {
+            _renderWork++;
+            _shownShips += shown ? 1 : 0;
+            _coarseShips += coarse ? 1 : 0;
+            _items += items;
+            _surfaces += surfaces;
+            _lamps += lamps;
+        }
+    }
+
+    public static void OnTick(SimRoot sim, int tick, bool duplicate, int tracked, int tiles, long cost)
     {
         if (!ReferenceEquals(sim, _sim))
         {
@@ -50,6 +71,13 @@ internal static class Probes
                 Log.Info($"P1 tick={_tick} calls/tick={_callsThisTick} simShips={ships} duplicates={_duplicates} bucket={BeltManager.Bucket} "
                     + $"| P3 rate={_ticksWindow / secs:F1} ticks/s cost={_costWindow * 1e6 / Stopwatch.Frequency / _ticksWindow:F1} us/tick "
                     + $"trackedParts={_trackedThisTick}");
+                // §27 perf (rate-limited with this line): sim = FixedUpdate incl. rebuilds, render = per-frame Update; quads = per rendered ship tick.
+                double perTick = 1e6 / Stopwatch.Frequency / _ticksWindow, frames = _renderCalls / (double)Math.Max(1, _beltShipsThisTick);
+                Log.Info($"perf beltShips={_beltShipsThisTick} tiles={_tilesThisTick} sim={_costWindow * perTick:F0} us/tick render={_renderCost * perTick:F0} us/tick "
+                    + $"({_renderCost * 1e6 / Stopwatch.Frequency / Math.Max(1, frames):F0} us/frame, {frames / secs:F0} fps) shownShips/tick={_shownShips / (double)_ticksWindow:F1} "
+                    + $"coarse={_coarseShips / (double)_ticksWindow:F1} quads/tick items={_items / _ticksWindow} surfaces={_surfaces / _ticksWindow} lamps={_lamps / _ticksWindow}");
+                _renderCost = _items = _surfaces = _lamps = 0;
+                _renderCalls = _renderWork = _shownShips = _coarseShips = 0;
                 _windowStart = Stopwatch.GetTimestamp();
                 _ticksWindow = 0;
                 _costWindow = 0;
@@ -57,9 +85,12 @@ internal static class Probes
             _tick = tick;
             _callsThisTick = 0;
             _trackedThisTick = 0;
+            _beltShipsThisTick = _tilesThisTick = 0;
         }
         _callsThisTick++;
         _trackedThisTick += tracked;
+        _beltShipsThisTick += tracked > 0 ? 1 : 0;
+        _tilesThisTick += tiles;
         _costWindow += cost;
         if (duplicate)
         {

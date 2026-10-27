@@ -229,6 +229,7 @@ Example chains: cargo -> connector(sulfur) -> belt -> connector -> factory_ammo;
 - C# side per ship per tick: O(belt tiles + items + connectors), staged. No sleep in v1 (no consumption events
   from weapons/factories to wake on; connectors poll at their fixed rate). Add sleep/segments only if P3 needs it.
 - Target: 500 belt tiles, 2000 items, < 0.2 ms/tick on one ship (measure in P3). No allocations in FixedUpdate.
+- §27: 20 ships x 2080 tiles measured at ~0.4 ms/tick for the fleet; sleep still not needed; render is view / LOD gated.
 
 ## 10. Save / blueprint / MP
 
@@ -625,3 +626,54 @@ Debt from e268d18 (§23 review 6): the claim-pass repetition had no test, no Cod
 - Tests: `DamageLevels`, `RemovalDrops`, `PartCosts`, `CrossingVariants` (every surface with 3 levels); `BeltPartsProbe`: 3 floor levels; `tools/belt-sprites` `go test`: level 0 unchanged, surface damage scrolls 4 px / frame, damaged tile borders = undamaged.
 - Preview: `tools/belt-sprites -damage` (crossing arts + damage levels of every part; animated `.gif` next to it: scrolling damage on straight, curve, crossing).
 - Not verified: in game (damage switching, nuggets on delete / replace, split keeps items, MP).
+
+## 27. Scale: 20 big ships, off-screen / zoom LOD (2026-10-28)
+
+Owner target: ~20 big ships full of belts without lag. Measured first (`belts/tests/ScaleBench.cs`, Release, this PC):
+20 ships x 20 modules (100-tile clockwise loop with 4 curves, source connector sideloading from an endless room, splitter
+with mixed §23 settings + 3-tile branch + sink connector) = 41600 lane tiles, 42000 nodes, ~119k items (saturated).
+
+| Metric | Before | After |
+| --- | --- | --- |
+| fleet sim `BeltWorld.Tick` (20 ships) | 858-918 us/tick (LaneSim 435-466 of it), 0 B | 360-405 us/tick, 0 B (budget 1000 = 3% of a 30 Hz tick) |
+| render state per tick (`BeltRenderState.Update` + item points, all 20 ships in view) | 1008-1118 us | same work per visible ship (~48 us/ship); 0 for ships out of every view and for coarse-LOD ships |
+| quads per ship | 5934-6060 items + 2040 surfaces + 80 lamps | same when in view and fine; coarse: 0 items, surfaces frozen, lamps off |
+| item quad writes (`ManagedShipQuad` SetSprite + Location per item per tick) | every ship every tick, in view or not | only ships in view at fine LOD |
+| topology rebuild of one ship (2100 nodes) | 0.5-0.7 ms, once in the tick after any part change of that ship | unchanged (bounded, kept full) |
+| Debug (unoptimised JIT) | - | sim 1335 us, render state 3607 us (budgets x4) |
+
+Engine facts (Decompiled, scout + Codex):
+- `ShipRenderer` culls per ship by its render bounds and skips ships with screen radius^2 < 0.0625
+  (`Cosmoteer.Ships.Rendering/ShipRenderer.cs:964-997`); no per-quad culling, one batch per texture (`:962`).
+- No zoom LOD for any part graphics: `ShipRenderLayerRules` has no zoom fields; storage items (`TypedResourceGrid.cs:368`)
+  and part animations are plain `ManagedShipQuad`s without view checks; animation runs in the shader from
+  `AnimationStartTime`. Only shield arcs check `Ship.IsInView` (`PartShieldArcsMimic.cs:121`); zoom fields exist only for
+  `CustomShipIconRules.ShowAtZoom` and particle `MaxEmissionZoom` (`ParticleEffect.cs:257`, `Sim.Camera.UniformScale`).
+- `ManagedShipQuad` setters compare, then rebuild the quad data at once, visible or not (`ManagedShipQuad.cs:41-88,266-271`);
+  `Sprite = null` disposes the atlas quad, a sprite creates one again (`:41-72`).
+- The miniview renders the same scene (`Miniview.cs:668`); `SimRoot.WorldMiniviewRect` (`SimRoot.cs:433,796`);
+  `Ship.IsNearOnScreen` = main view rect inflated by its size vs `WorldBoundingCircle` (`Ship.cs:683`). Ship icons /
+  screenshots (`ShipRenderer.cs:316,408`) draw all layers.
+- Per-frame hook: `SceneComponent.Update`, registered when overridden (HalflingCore `SceneComponent` override detection by
+  delegate `DeclaringType`); parallel update buckets are 8/10/12/15 (`SimRoot.cs:606-609`), ours is the default 0.
+
+Decisions (Claude / Codex `codex exec -s read-only`, agreed):
+
+| # | Claude | Codex | Agreed + why |
+| --- | --- | --- | --- |
+| S1 | `BeltWorld` loops only nodes that act (`_active`: not a belt, or a belt with a handoff output) and claim passes only connectors (`_conns`), ship order kept | AGREE; lists after the topology is final, claim phases stay separate | built; bit-identical |
+| S2 | `LaneSim` closes drains only on `_drainTiles` = belt ends (next < 0) + tiles still holding an item after `Build` (MoveLane drains only at ends) | AGREE; `OpenDrain` is public: restrict it to ends (documented) | built; bit-identical |
+| S golden | protocol bump + golden digest | AGREE (bump 7 -> 8) | `ScaleTests.FleetGolden`: fleet digest after 9000 ticks = value from the pre-§27 code (8c073fa worktree), plus all existing claim / held-drain tests |
+| S3 sleep | no idle-segment sleep: saturated / blocked lines still move every tick, wake rules (downstream frees, inserts, rebuild) = determinism risk | AGREE | deferred; sim is 3% of the tick budget for the target |
+| R1 | skip render work of a ship in no view: `IsNearOnScreen` or miniview rect (not `IsWithinSightOfLocalPlayer`) | DISAGREE with per-tick only: a paused game / camera move would show stale quads | render moved to per-frame `Update`; heavy work only on a new tick, on coming into view, on an LOD change, or after a rebuild |
+| R2 | coarse LOD above `CoarseTiles` = 160 ship tiles across the view (~7 px/tile at 1080p, item < 2 px), 10% hysteresis | count both cameras: the most detailed view showing the ship wins; skip signatures / item points / quad loops entirely when coarse | coarse: item quads freed (once), surfaces frozen, lamps off, nothing per tick; static rules floor stays |
+| R2b | - | skipped `Update`s leave old transfer counters: false lamp flash on return | `BeltRenderState.Rebase()` (no allocation) on coming into view / leaving coarse |
+| R3 | keep surplus item quads resident transparent instead of freeing the tail on every count change | AGREE; transparent quads are still drawn: bound it | up to `PoolSlack` = 64 transparent per ship, the rest freed (closes the §21 D7 / §22 churn gap) |
+| R4 | crossing port IDs built once | AGREE | static `ID<PartComponentRules>`; was a string concat + ID per crossing per tick (allocation) |
+| P1 | perf line in the belts log | split sim / render, count only shown ships | every 300 ticks with the P1/P3 line: `perf beltShips tiles sim us/tick render us/tick (us/frame, fps) shownShips/tick coarse quads/tick items surfaces lamps` |
+
+- Codex extra risk, not changed: crossing art walks each crossing chain from every crossing per rendered tick (O(n^2) on
+  long chains, bound 1024); only ships in view at fine LOD pay it now. Upgrade path: cache per chain, invalidate on port change.
+- Tests: `ScaleTests.FleetBench` (budgets: sim 1000 us, render state 2000 us all in view, rebuild 20 ms, 0 B; Debug x4),
+  `FleetGolden`, `RenderLod` (hysteresis, no view = coarse, rebase: no stale lamp / move, activity returns).
+- Not verified: in game (quad write cost per item, LOD threshold feel, miniview, pause + pan, frame time with 20 ships), MP.
