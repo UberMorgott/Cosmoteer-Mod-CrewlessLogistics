@@ -173,7 +173,8 @@ internal sealed class BeltManager : ShipComponent
         _rooms.Clear();
         foreach (Part part in ship.Parts) // ordered list, never hash-set order
         {
-            if (BeltState.KindOf(part) is not { } kind)
+            // Construction completion replaces the Part (PartConstructionTracker.cs:258-259), so a site must not hold items.
+            if (part.IsUnderConstruction || BeltState.KindOf(part) is not { } kind)
             {
                 continue;
             }
@@ -197,7 +198,7 @@ internal sealed class BeltManager : ShipComponent
 
     private IRoom? RoomAt(Ship ship, int x, int y)
     {
-        if (ship.Parts[new IntVector2(x, y)] is not { } p || BeltState.KindOf(p) != null)
+        if (ship.Parts[new IntVector2(x, y)] is not { } p || p.IsUnderConstruction || BeltState.KindOf(p) != null)
         {
             return null;
         }
