@@ -5289,7 +5289,9 @@
             "Storage": "BatteryStorage",
             "OperationalToggle": "FtlDrive"
           },
-          "values": {},
+          "values": {
+            "AllowNonOperationalMinPriorityDelivery": false
+          },
           "metadataWarnings": []
         }
       ],
@@ -5390,7 +5392,9 @@
             "Storage": "BatteryStorage",
             "OperationalToggle": "FtlDrive"
           },
-          "values": {},
+          "values": {
+            "AllowNonOperationalMinPriorityDelivery": false
+          },
           "metadataWarnings": []
         }
       ],
@@ -5491,7 +5495,9 @@
             "Storage": "BatteryStorage",
             "OperationalToggle": "FtlDrive"
           },
-          "values": {},
+          "values": {
+            "AllowNonOperationalMinPriorityDelivery": false
+          },
           "metadataWarnings": []
         }
       ],

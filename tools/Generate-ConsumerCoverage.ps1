@@ -50,6 +50,15 @@ foreach ($device in @($vanilla) + @($modded)) {
     [void]$body.AppendLine("$group : <$adapterBase>/Components")
     [void]$body.AppendLine('{')
     if ($receiver -ne 'BatteryStorage') { [void]$body.AppendLine("    CrewlessLogisticsReceivingAggregate : ^/0/CrewlessLogisticsReceivingAggregate { ResourceStorages = [$receiver, CrewlessLogisticsReceivingBias] }") }
+    # Mirror the vanilla crew battery consumer: AllowNonOperationalMinPriorityDelivery = false
+    # means crew deliver only while its OperationalToggle is on (hyperdrives: FtlDrive spool-up).
+    $crewConsumer = @($device.batteryReceivers | Select-Object -First 1)
+    $acceptToggle = if ($crewConsumer.Count -and $crewConsumer[0].values.AllowNonOperationalMinPriorityDelivery -eq $false) { [string]$crewConsumer[0].references.OperationalToggle } else { $null }
+    if ($acceptToggle) {
+        [void]$body.AppendLine("    CrewlessLogisticsAcceptGate { Type = MultiToggle; Mode = All; Toggles = [CrewlessLogisticsToggle, $acceptToggle] }")
+        [void]$body.AppendLine('    CrewlessLogisticsReceiver : ^/0/CrewlessLogisticsReceiver { OperationalToggle = CrewlessLogisticsAcceptGate }')
+        [void]$body.AppendLine('    CrewlessLogisticsRoomInlet : ^/0/CrewlessLogisticsRoomInlet { ProxyToggle = CrewlessLogisticsAcceptGate }')
+    }
     $ports = @(); $used = @{}
     foreach ($edge in $edges) {
         $x = [int]$edge.Location[0]; $y = [int]$edge.Location[1]; $direction = [string]$edge.Direction
@@ -71,7 +80,7 @@ foreach ($device in @($vanilla) + @($modded)) {
         $moddedIndex++
     }
     $crewReceiver = if (@($device.batteryReceivers).Count) { $device.batteryReceivers[0].references.Storage } else { $null }
-    $entry = [ordered]@{part=$name;id=$device.id;path=$partPath;registryIndex=$device.registryIndex;modId=$device.modId;sourcePath=$device.sourcePath;backingStorage=$physical;receiverStorage=$receiver;originalCrewReceiver=$crewReceiver;capacity=$capacity;geometry=[ordered]@{size=@($device.size);physicalRect=$device.physicalRect;prohibitRects=@($device.prohibitRects);prohibitSides=$device.prohibitSides;prohibits=@($device.prohibits);prohibitedBy=@($device.prohibitedBy)};ports=$ports;sourceSha256=(Get-FileHash -LiteralPath $device.sourcePath -Algorithm SHA256).Hash}
+    $entry = [ordered]@{part=$name;id=$device.id;path=$partPath;registryIndex=$device.registryIndex;modId=$device.modId;sourcePath=$device.sourcePath;backingStorage=$physical;receiverStorage=$receiver;originalCrewReceiver=$crewReceiver;acceptToggle=$acceptToggle;capacity=$capacity;geometry=[ordered]@{size=@($device.size);physicalRect=$device.physicalRect;prohibitRects=@($device.prohibitRects);prohibitSides=$device.prohibitSides;prohibits=@($device.prohibits);prohibitedBy=@($device.prohibitedBy)};ports=$ports;sourceSha256=(Get-FileHash -LiteralPath $device.sourcePath -Algorithm SHA256).Hash}
     if ($isVanilla) { $vanillaMap += $entry } else { $moddedMap += $entry }
 }
 # Reactors and the capacitor relay through one shared bus on every permitted perimeter edge.
