@@ -25,4 +25,9 @@ public class GameTests
         Env.RequireGame();
         Probe.Run(check => RulesProbes.Run(check, Env.GameRoot, Env.ProjectRoot));
     }
+
+    /// <summary>Runs without the game too (mod-local references only); with it, vanilla "./Data/" references as well.</summary>
+    [Fact]
+    public void R2RulesFileListsAndAssets() =>
+        Probe.Run(check => RulesProbes.Assets(check, File.Exists(Path.Combine(Env.GameRoot, "Bin", "Cosmoteer.dll")) ? Env.GameRoot : null, Env.ProjectRoot));
 }
