@@ -18,7 +18,7 @@ As esteiras transportadoras funcionam por meio de uma biblioteca C#. Ela precisa
 Tudo da versão estável (rede elétrica sem transporte pela tripulação), mais logística de recursos nas abas [b]Armazenamento[/b] e [b]Energia[/b]:
 [list]
 [*][b]Esteira transportadora[/b]: duas faixas. A tripulação pode andar sobre ela. Faz curvas sozinha e aceita recursos pela lateral.
-[*][b]Conector de esteira[/b]: funciona em uma direção. Move recursos entre uma sala e uma esteira, ou entre duas salas. Filtro opcional para um recurso escolhido (desligado por padrão).
+[*][b]Conector de esteira[/b]: funciona em uma direção. Move recursos entre uma sala e uma esteira, ou entre duas salas. Filtro: Auto por padrão (deixa passar o único recurso que ambos os lados podem usar), Qualquer, um recurso escolhido ou Nenhum.
 [*][b]Divisor de esteira[/b] (1x2): divide uma esteira em duas saídas.
 [/list]
 
@@ -26,5 +26,5 @@ Tudo da versão estável (rede elétrica sem transporte pela tripulação), mais
 Todos os jogadores precisam da mesma versão beta, do mesmo carregador e da mesma versão do jogo.
 
 [h2]Achou um bug?[/h2]
-Relate somente no GitHub, não nos comentários. Informe a versão do mod (0.4.0 beta):
+Relate somente no GitHub, não nos comentários. Informe a versão do mod (0.4.1 beta):
 [url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]

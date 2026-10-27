@@ -18,7 +18,7 @@ Crewless Logistics (BETA 0.4)
 包含稳定版的全部功能（无需船员搬运的电网），并在[b]储存[/b]和[b]能源[/b]标签页中加入资源物流部件：
 [list]
 [*][b]传送带[/b]：两条车道，船员可以在上面行走。自动转弯，支持从侧面送入资源。
-[*][b]传送带连接器[/b]：按指定方向搬运资源。可在舱室与传送带之间或两个舱室之间传输。可选用过滤器，只传输一种选定资源（默认关闭）。
+[*][b]传送带连接器[/b]：按指定方向搬运资源。可在舱室与传送带之间或两个舱室之间传输。筛选：默认Auto（仅允许两侧都能使用的唯一一种资源通过）、任意、指定一种资源或无。
 [*][b]传送带分流器[/b] (1x2)：将一条传送带分成两个出口。
 [/list]
 
@@ -26,5 +26,5 @@ Crewless Logistics (BETA 0.4)
 所有玩家都需要使用相同的测试版、相同的加载器和相同的游戏版本。
 
 [h2]发现错误？[/h2]
-请只在 GitHub 上反馈，不要在评论区报告。请注明模组版本 (0.4.0 beta)：
+请只在 GitHub 上反馈，不要在评论区报告。请注明模组版本 (0.4.1 beta)：
 [url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]

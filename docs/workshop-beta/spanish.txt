@@ -18,7 +18,7 @@ Las cintas transportadoras funcionan mediante una biblioteca de C#. Necesita [ur
 Todo lo de la versión estable (red eléctrica sin transporte por la tripulación), más logística de recursos en las pestañas [b]Almacenamiento[/b] y [b]Potencia[/b]:
 [list]
 [*][b]Cinta transportadora[/b]: dos carriles. La tripulación puede caminar sobre ella. Gira sola y acepta recursos por los lados.
-[*][b]Conector de cinta[/b]: funciona en una dirección. Mueve recursos entre una sala y una cinta, o entre dos salas. Filtro opcional para un recurso elegido (desactivado por defecto).
+[*][b]Conector de cinta[/b]: funciona en una dirección. Mueve recursos entre una sala y una cinta, o entre dos salas. Filtro: Auto por defecto (deja pasar el único recurso que ambos lados pueden usar), Cualquiera, un recurso elegido o Ninguno.
 [*][b]Divisor de cinta[/b] (1x2): divide una cinta en dos salidas.
 [/list]
 
@@ -26,5 +26,5 @@ Todo lo de la versión estable (red eléctrica sin transporte por la tripulació
 Todos los jugadores necesitan la misma versión beta, el mismo cargador y la misma versión del juego.
 
 [h2]¿Encontraste un error?[/h2]
-Informa solo en GitHub, no en los comentarios. Incluye la versión del mod (0.4.0 beta):
+Informa solo en GitHub, no en los comentarios. Incluye la versión del mod (0.4.1 beta):
 [url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]

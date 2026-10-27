@@ -2,6 +2,20 @@
 
 All notable changes to Crewless Logistics (formerly Powergrid). Versions match `mod/mod.rules` `Version`.
 
+## 0.4.1-beta
+
+Update of the unlisted Steam Workshop beta item. Saves and multiplayer use belt protocol 8: everyone in a game needs the same mod version.
+
+- Belts are connection-aware and animated Factorio-style: they draw their real shape (straight, curves, side-loading joints) and move only while their items move.
+- Connector and splitter are closed machine boxes with a direction chevron and a lamp that blinks per item. The connector takes items from three sides (back, left, right).
+- Connector filter: Auto (default) passes the only resource both neighbours can use; None stops it and is never changed automatically. Connectors have a source priority.
+- Splitter: Factorio-style input and output priority and a resource filter.
+- One adaptive belt crossing replaces the two old ones: it follows the Heat Pipe or electrical cable under it. Ships with the old crossings still load.
+- Crew walk belts at 70% speed and cannot walk through connectors or splitters.
+- Belt parts show damage stages, and the surface damage scrolls with the belt. Items on a belt part drop whenever it is removed (destroyed, deconstructed or sold).
+- Vanilla floor around belt parts; flow direction shown on blueprint ghosts.
+- Performance: belts render only when on screen and at a readable zoom (lower detail when zoomed out); idle belts are skipped each tick.
+
 ## 0.4.0-beta
 
 Published as a separate, unlisted Steam Workshop beta item (id in `docs/workshop-beta/beta.workshop`); the stable item keeps 0.3.5.

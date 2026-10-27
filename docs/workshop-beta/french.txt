@@ -18,7 +18,7 @@ Les tapis roulants fonctionnent grâce à une bibliothèque C#. Elle nécessite 
 Tout le contenu de la version stable (réseau électrique sans transport par l'équipage), plus la logistique des ressources dans les onglets [b]Soutes[/b] et [b]Alimentation[/b] :
 [list]
 [*][b]Tapis roulant[/b] : deux voies. L'équipage peut marcher dessus. Tourne automatiquement et accepte les ressources par les côtés.
-[*][b]Connecteur de tapis[/b] : fonctionne dans un seul sens. Déplace les ressources entre une salle et un tapis, ou entre deux salles. Filtre facultatif pour une ressource choisie (désactivé par défaut).
+[*][b]Connecteur de tapis[/b] : fonctionne dans un seul sens. Déplace les ressources entre une salle et un tapis, ou entre deux salles. Filtre : Auto par défaut (laisse passer la seule ressource utilisable des deux côtés), Toutes, une ressource choisie ou Aucune.
 [*][b]Répartiteur de tapis[/b] (1x2) : divise un tapis en deux sorties.
 [/list]
 
@@ -26,5 +26,5 @@ Tout le contenu de la version stable (réseau électrique sans transport par l'�
 Tous les joueurs doivent avoir la même version bêta, le même chargeur et la même version du jeu.
 
 [h2]Un bug ?[/h2]
-Signalez-le uniquement sur GitHub, pas dans les commentaires. Indiquez la version du mod (0.4.0 beta) :
+Signalez-le uniquement sur GitHub, pas dans les commentaires. Indiquez la version du mod (0.4.1 beta) :
 [url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]

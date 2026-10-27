@@ -643,6 +643,7 @@ with mixed §23 settings + 3-tile branch + sink connector) = 41600 lane tiles, 4
 | Debug (unoptimised JIT) | - | sim 1335 us, render state 3607 us (budgets x4) |
 
 Engine facts (Decompiled, scout + Codex):
+
 - `ShipRenderer` culls per ship by its render bounds and skips ships with screen radius^2 < 0.0625
   (`Cosmoteer.Ships.Rendering/ShipRenderer.cs:964-997`); no per-quad culling, one batch per texture (`:962`).
 - No zoom LOD for any part graphics: `ShipRenderLayerRules` has no zoom fields; storage items (`TypedResourceGrid.cs:368`)

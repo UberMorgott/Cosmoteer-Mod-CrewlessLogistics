@@ -18,7 +18,7 @@ The conveyor belts run in a C# library, which needs [url=https://steamcommunity.
 Everything from the stable version (crewless electrical network) plus resource logistics in the [b]Storage[/b] and [b]Power[/b] tabs:
 [list]
 [*][b]Conveyor belt[/b]: two lanes, crew can walk on it, curves automatically and accepts side-loading.
-[*][b]Connector[/b]: directional; moves resources between a room, a belt or another room. Optional filter for one chosen resource (off by default).
+[*][b]Connector[/b]: directional; moves resources between a room, a belt or another room. Filter: Auto by default (passes the only resource both sides can use), Any, one chosen resource or None.
 [*][b]Splitter[/b] (1x2): splits one belt into two outputs.
 [/list]
 
@@ -26,5 +26,5 @@ Everything from the stable version (crewless electrical network) plus resource l
 All players need the same beta version, the same loader and the same game version.
 
 [h2]Found a bug?[/h2]
-Report it only on GitHub, not in the comments, and include the mod version (0.4.0 beta):
+Report it only on GitHub, not in the comments, and include the mod version (0.4.1 beta):
 [url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]
