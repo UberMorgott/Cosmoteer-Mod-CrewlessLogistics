@@ -262,14 +262,14 @@ after belts ship.
 6. Ship-layer quads: animated surface, sliding items.
 7. Art from Codex image gen; strings EN/RU; Workshop description + migration notice.
 
-## 16. Open questions for owner
+## 16. Owner decisions (2026-10-27)
 
-- Q1: lane cap K=4 and speed ~2 tiles/s/lane OK? Tiers (fast belt) wanted?
-- Q2: belt build cost (keep heat-pipe 4 steel + 2 coil)?
-- Q3: connector throughput (items/s) and does it need power?
-- Q4: splitter priority/filter in v1?
-- Q5: connector "any" filter default, or none (idle until set)?
-- Q6: should belts pass through crew corridors (crew walkable belts) or stay crew-blocked?
+- Q1: one belt tier in v1, K=4 per lane, ~2 tiles/s. Faster tiers later if needed.
+- Q2: open (default: heat-pipe cost 4 steel + 2 coil).
+- Q3: connector needs no power; throughput constant still open (tune in probe).
+- Q4: open (default: no splitter priority/filter in v1).
+- Q5: new connector filter = none (passes nothing until a type is chosen).
+- Q6: belts are crew-walkable like corridors.
 
 ## 17. Decisions with Codex (2 rounds, `codex exec -s read-only`, static engine reading)
 
