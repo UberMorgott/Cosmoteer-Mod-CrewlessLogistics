@@ -1,6 +1,6 @@
-# Belts design (Factorio-style logistics) — spec, not implemented
+# Belts design (Factorio-style logistics) — spec, v1 implemented (§18)
 
-Status: design draft, branch `feat/ammo-belts`. Game 0.30.5. Engine refs are to `E:\DEV\cosmoteer\Decompiled`
+Status: v1 implemented on branch `feat/ammo-belts`, in-game verification pending. Game 0.30.5. Engine refs are to `E:\DEV\cosmoteer\Decompiled`
 (`D:` = vanilla `D:\Steam\steamapps\common\Cosmoteer\Data\ships\terran`). Codex review folded in at the end.
 
 ## 0. Scope (owner decisions, latest wins)
@@ -342,3 +342,23 @@ loop (not in local decompile), `PartsManager.cs:223`, `Ship.cs:1540,3198,2194`, 
 Spot-checked: `Part.cs:827,1371`, `SimRoot.cs:605-618`, `FixedUpdateBuckets.cs` (-11 Commands),
 `ResourceManager.cs:500-506`, `StructureContiguityManager.cs:134-142`, `SimOverlayRenderer.cs:1520-1524`,
 `FlexResourceGrid.cs:452`, `cosmoteer.rules:76`.
+
+## 18. v1 implementation (2026-10-27)
+
+- One package: `CrewlessLogistics.Belts.dll` ships in `Mods\CrewlessLogistics` next to `mod.rules`
+  (`Install-Mod.ps1` builds and hash-checks it, removes the test-only `Mods\CrewlessLogisticsBeltProbe`);
+  `Dependencies = ["3577650065"]`, `ModifiesMultiplayer = true`. Energy rules unchanged.
+- Parts (rules, vanilla components only): `belt.rules` (rotatable vanilla conveyor body, crew speed 1 every way,
+  static darker plates + vanilla chevron on `floors`), `belt_splitter.rules` (2x1), `belt_connector.rules` (+ UIToggle
+  `BeltFilter`, Popout `belt_filter_toggle.rules`: none (default), any, 21 types). Build tabs: Storage and Power.
+  Temporary art: `tools/belt-sprites` (Go, mechanical compose of vanilla conveyor/corridor/roof-decal arrows).
+- Core (pure, headless-tested): `LaneSim` (lanes on per-part `LaneTile`s), `BeltWorld` (topology §4-§7 + tick),
+  `NodeState` (payload v2). Changes vs §3/§10: speed remainder is derived from `Sim.Tick`
+  (`floor((t+1)*512/30) - floor(t*512/30)`), so no accumulator is saved; drains open for one tick only (held items
+  are saved); carriable types = 21 vanilla stackable resources (`BeltTypes.Ids`, append-only); connector rate
+  1 item / 2 ticks (Q3); splitter output straight into a connector is idle (use a belt tile between).
+- Glue: `BeltManager` rebuilds from `ship.Parts` order and `ship.Parts[cell]`; `PartRoom` = live
+  `ResourceManager._sources/_sinks` of the part with the P2 gate; items drawn as `ManagedShipQuad` on `doodads_low`
+  with each resource's `StackSprites[0]` (updated per tick, no frame interpolation); destroyed belts drop nuggets.
+- Not in v1: curve/splitter surface art per state (rules art is a straight arrow), animated surface,
+  items on deconstructed belts are lost (destroyed belts drop them), frame interpolation of item positions.
