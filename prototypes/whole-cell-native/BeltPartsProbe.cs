@@ -23,13 +23,16 @@ sealed partial class NativeProbe
             Require(((string[])ReadRuleObject(root, p + "EditorGroups", typeof(string[]))).SequenceEqual(new[] { "Storage", "Power" }), "Belt part must be in the Storage and Power build tabs: " + ids[i]);
             Require((bool)ReadRuleObject(root, p + "IsRotateable", typeof(bool)) && !(bool)ReadRuleObject(root, p + "IsFlippable", typeof(bool)), "Belt part must rotate and not flip: " + ids[i]);
             if (i < 3) {
-                Require((float)ReadRuleObject(root, p + "CrewSpeedFactor/Up", typeof(float)) == 1 && (float)ReadRuleObject(root, p + "CrewSpeedFactor/Down", typeof(float)) == 1, "Belt part must be crew-walkable at corridor speed: " + ids[i]);
+                // Q6 (owner): belt walkable any way at .7; splitter and connector block crew (0, like armor).
+                float crew = i == 0 ? 0.7f : 0f;
+                foreach (var dir in new[] { "Up", "Left", "Right", "Down" })
+                    Require(Math.Abs((float)ReadRuleObject(root, p + "CrewSpeedFactor/" + dir, typeof(float)) - crew) < 0.0001f, "Belt part crew speed must be " + crew + " " + dir + ": " + ids[i]);
             } else {
-                // Crossings keep the vanilla heat pipe crossing body: crew walk along the belt (Left/Right doors) at .8,
+                // Crossings keep the vanilla heat pipe crossing body: crew walk along the belt (Left/Right doors) at .7 (Q6),
                 // and its health, density and penetration (owner: pipe stats parity, no armor exploit).
                 var doors = (int[][])ReadRuleObject(root, p + "AllowedDoorLocations", typeof(int[][]));
                 Require(doors.Length == 2 && doors[0].SequenceEqual(new[] { -1, 0 }) && doors[1].SequenceEqual(new[] { 1, 0 })
-                    && Math.Abs((float)ReadRuleObject(root, p + "CrewSpeedFactor", typeof(float)) - 0.8f) < 0.0001f, "Belt crossing must keep vanilla crossing doors along the belt and crew speed .8: " + ids[i]);
+                    && Math.Abs((float)ReadRuleObject(root, p + "CrewSpeedFactor", typeof(float)) - 0.7f) < 0.0001f, "Belt crossing must keep vanilla crossing doors along the belt and crew speed .7: " + ids[i]);
                 foreach (var stat in new[] { "MaxHealth", "Density", "InitialPenetrationResistance", "ContinuingPenetrationResistance" })
                     Require((float)ReadRuleObject(root, p + stat, typeof(float)) == (float)ReadRuleObject(root, vanillaCrossing + stat, typeof(float)), ids[i] + " " + stat + " differs from the vanilla heat pipe crossing");
                 // Nothing may draw above the belt items: no pipe cylinder, darkness overlay or heat glow.
@@ -49,6 +52,6 @@ sealed partial class NativeProbe
         Require((string)ReadRuleObject(root, filter + "ToggleID", typeof(string)) == "morgott.crewless_logistics.belt_filter"
             && (int)ReadRuleObject(root, filter + "Default", typeof(int)) == 0 && (bool)ReadRuleObject(root, filter + "RememberValue", typeof(bool)), "Connector filter must default to None and be remembered (blueprints)");
         Require(((int[])ReadRuleObject(root, parts + "100/Size", typeof(int[]))).SequenceEqual(new[] { 2, 1 }), "Splitter must be 1x2");
-        Console.WriteLine("PASS: belt, splitter, connector, belt/heat and belt/cable crossings registered after the cables; Storage+Power tabs, rotatable, crew-walkable, connector filter default None; crossings keep vanilla crossing stats/doors/.8 crew speed, Up/Down thermal resp. electric ports only, nothing drawn above items");
+        Console.WriteLine("PASS: belt, splitter, connector, belt/heat and belt/cable crossings registered after the cables; Storage+Power tabs, rotatable, belt crew .7 / splitter+connector crew-blocked, connector filter default None; crossings keep vanilla crossing stats/doors, crew .7, Up/Down thermal resp. electric ports only, nothing drawn above items");
     }
 }

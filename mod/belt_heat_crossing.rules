@@ -1,5 +1,5 @@
 // Straight conveyor belt over a heat pipe (docs/BELTS_DESIGN.md §19). The vanilla heat pipe crossing keeps its thermal
-// Port_Up/Port_Down, nodes, pipe connectors, stats, Left/Right doors and crew speed .8; the belt runs Left/Right (C#
+// Port_Up/Port_Down, nodes, pipe connectors, stats, Left/Right doors (crew speed .7, owner Q6); the belt runs Left/Right (C#
 // front = part cell (1, 0), BeltState.IsCrossing) and crew walk along it. Only the art is replaced: the belt is drawn
 // on top as the floor and the pipe shows at the Up/Down edges entering tunnels under it, so nothing covers the items.
 Part : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part
@@ -14,6 +14,7 @@ Part : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part
     DontStackInEditorGroups = ["Storage", "Power"]
     EditorParentParts = []
     SelectionTypeID = morgott.crewless_logistics.belt_heat_crossing
+    CrewSpeedFactor = .7
     IsFlippable = false
     EditorIcon { Texture { File = "assets/belt_heat_crossing_icon.png"; SampleMode = Linear }; Size = [32, 32] }
     Components : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components

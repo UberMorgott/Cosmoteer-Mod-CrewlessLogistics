@@ -7,6 +7,8 @@ Part : <belt.rules>/Part
     IconNameKey = "CrewlessLogistics/SplitterName"
     DescriptionKey = "CrewlessLogistics/SplitterDesc"
     SelectionTypeID = morgott.crewless_logistics.belt_splitter
+    // Q6 (owner): crew cannot pass, like armor (speed 0 = impassable in PathManager; engine zeroes congested speed).
+    CrewSpeedFactor { Up = 0; Left = 0; Right = 0; Down = 0 }
     Size = [2, 1]
     Resources = [[steel, 8], [coil, 4]]
     EditorIcon { Texture { File = "assets/belt_splitter_icon.png"; SampleMode = Linear }; Size = [64, 32] }

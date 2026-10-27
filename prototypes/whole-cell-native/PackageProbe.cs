@@ -103,7 +103,8 @@ sealed partial class NativeProbe
                 if (crossing) {
                     var doors = (int[][])ReadRuleObject(cableFile, "Part/AllowedDoorLocations", typeof(int[][]));
                     Require(doors.Length == 2 && doors[0].SequenceEqual(new[] { -1, 0 }) && doors[1].SequenceEqual(new[] { 1, 0 }), "Crew crossing must preserve perpendicular vanilla doors");
-                    Require(Math.Abs((float)ReadRuleObject(cableFile, "Part/CrewSpeedFactor", typeof(float)) - 0.8f) < 0.0001f, "Crew crossing changed vanilla speed");
+                    // Vanilla crossing speed .8; the belt/cable crossing is .7 like belts (owner Q6).
+                    Require(Math.Abs((float)ReadRuleObject(cableFile, "Part/CrewSpeedFactor", typeof(float)) - (cable.StartsWith("belt_") ? 0.7f : 0.8f)) < 0.0001f, "Crew crossing changed vanilla speed");
                 }
                 if (!crossing) Require(((string[])ReadRuleObject(cableFile, "Part/Components/CableBlueprints/SituationToggles", typeof(string[]))).SequenceEqual(new[] { "Port_Up", "Port_Right", "Port_Down", "Port_Left" }), "Adaptive electrical preview must follow its actual four native ports");
             }

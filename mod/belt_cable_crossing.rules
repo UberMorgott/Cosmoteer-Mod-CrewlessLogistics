@@ -1,5 +1,5 @@
 // Straight conveyor belt over an electrical cable (docs/BELTS_DESIGN.md §19). Same body as cable_crossing.rules (vanilla
-// heat pipe crossing: stats, Left/Right doors, crew speed .8) with our electric ports on Up/Down; the belt runs
+// heat pipe crossing: stats, Left/Right doors; crew speed .7, owner Q6) with our electric ports on Up/Down; the belt runs
 // Left/Right (C# front = part cell (1, 0), BeltState.IsCrossing) and crew walk along it. The belt is drawn on top as the
 // floor and the cable shows at the Up/Down edges entering tunnels under it, so nothing covers the items.
 Part : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part
@@ -15,6 +15,7 @@ Part : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part
     DontStackInEditorGroups = ["Storage", "Power"]
     EditorParentParts = []
     SelectionTypeID = morgott.crewless_logistics.belt_cable_crossing
+    CrewSpeedFactor = .7
     IsFlippable = false
     EditorIcon { Texture { File = "assets/belt_cable_crossing_icon.png"; SampleMode = Linear }; Size = [32, 32] }
     Components : <cable_graphics.rules>/CommonComponents

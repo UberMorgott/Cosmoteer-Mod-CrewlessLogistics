@@ -353,7 +353,9 @@ Owner steps (single player first):
 - Q3: connector needs no power; throughput constant still open (tune in probe).
 - Q4: open (default: no splitter priority/filter in v1).
 - Q5: new connector filter = none (passes nothing until a type is chosen).
-- Q6: belts are crew-walkable like corridors.
+- Q6 (owner, 2026-10-28): crew walk belts (straight/curved) any way at .7 (congested .35) and belt crossings along the
+  belt at .7; connectors and splitters block crew (`CrewSpeedFactor` 0, like armor). The crew pathfinder already
+  weighs speed: `PathManager.GetTravelCost` = mean of `1 / Part.GetCrewSpeedFactor` of both cells, 0 = impassable.
 
 ## 17. Decisions with Codex (2 rounds, `codex exec -s read-only`, static engine reading)
 
@@ -380,7 +382,7 @@ Spot-checked: `Part.cs:827,1371`, `SimRoot.cs:605-618`, `FixedUpdateBuckets.cs` 
 - One package: `CrewlessLogistics.Belts.dll` ships in `Mods\CrewlessLogistics` next to `mod.rules`
   (`Install-Mod.ps1` builds and hash-checks it, removes the test-only `Mods\CrewlessLogisticsBeltProbe`);
   `Dependencies = ["3577650065"]`, `ModifiesMultiplayer = true`. Energy rules unchanged.
-- Parts (rules, vanilla components only): `belt.rules` (rotatable vanilla conveyor body, crew speed 1 every way,
+- Parts (rules, vanilla components only): `belt.rules` (rotatable vanilla conveyor body, crew speed .7 every way (Q6),
   static belt floor art on `floors`), `belt_splitter.rules` (2x1), `belt_connector.rules` (+ UIToggle
   `BeltFilter`, Popout `belt_filter_toggle.rules`: none (default), any, 21 types). Build tabs: Storage and Power.
   Art: Codex image-gen masters in `tools/belt-sprites/art` (256 px/tile), baked to 64 px/tile + icons by

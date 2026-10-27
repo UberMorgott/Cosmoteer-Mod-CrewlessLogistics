@@ -8,6 +8,8 @@ Part : <belt.rules>/Part
     IconNameKey = "CrewlessLogistics/ConnectorName"
     DescriptionKey = "CrewlessLogistics/ConnectorDesc"
     SelectionTypeID = morgott.crewless_logistics.belt_connector
+    // Q6 (owner): crew cannot pass, like armor (speed 0 = impassable in PathManager; engine zeroes congested speed).
+    CrewSpeedFactor { Up = 0; Left = 0; Right = 0; Down = 0 }
     EditorIcon { Texture { File = "assets/belt_connector_icon.png"; SampleMode = Linear }; Size = [32, 32] }
     Components : <belt.rules>/Part/Components
     {
