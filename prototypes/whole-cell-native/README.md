@@ -5,7 +5,8 @@ The current host applies 55 real native mod actions, validates all 47 consumer a
 Native per-device physical battery fixtures preserve original IDs and capacities but omit media effects because graphics/audio factories require full game startup. Proxy membership is explicitly supplied for isolated consumer tests; source/cable topology tests use real spatial discovery. Converter ticks are stepped manually. No live game, renderer, actual overclock controller, save/load, ship-split lifecycle or multiplayer is exercised. Fresh counts and scenario results are recorded by `Run-Probe.ps1` in `artifacts/whole-cell-native/result.json` and the coverage reports.
 
 The following sections describe the original focused spike and earlier count snapshots.
-# Whole-cell native component spike
+
+## Whole-cell native component spike
 
 - Status: passed as an isolated native-component prototype on 2026-10-25. This is not an installable Crewless Logistics mod or a live-game test.
 - Result: whole standard cells can be transferred by existing rule-defined components using the vanilla network distributor, without a Crewless Logistics gameplay DLL or a custom graph, allocation algorithm, or fairness queue.
@@ -79,4 +80,3 @@ The following sections describe the original focused spike and earlier count sna
 - Actual reactor production, crew-delivery events, capacitor heat costs, save/load and multiplayer are not tested.
 - Shared-connector rendering, blueprint interaction and actual overclock-mode GUI/controller behavior are not tested.
 - The next step is a minimal ordinary `.rules` mod circuit with physical ports and native automatic updates. This spike provides no evidence that YAML is required for whole-cell transfer; it also does not claim the full mod is complete.
-

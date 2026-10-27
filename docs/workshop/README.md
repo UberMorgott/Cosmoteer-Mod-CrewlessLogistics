@@ -14,7 +14,7 @@ One file per Steam language. Line 1 is the item title (always `Crewless Logistic
 | `schinese.txt` | `schinese` | `zh-cn` |
 
 Keep all eight in sync when features change. Each text keeps the "do not report bugs in the comments" block pointing to
-https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues. Terms follow the game's own strings (`Data/strings/<lang>.rules`).
+<https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues>. Terms follow the game's own strings (`Data/strings/<lang>.rules`).
 
 Keywords: power, energy, cables, automation, logistics, crewless.
 
