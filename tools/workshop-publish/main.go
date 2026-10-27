@@ -31,7 +31,7 @@ var steamLangs = map[string]bool{
 }
 
 // ERemoteStoragePublishedFileVisibility.
-var visibilities = map[string]int{"public": 0, "friends": 1, "private": 2, "hidden": 3 /* Unlisted */}
+var visibilities = map[string]int{"public": 0, "friends": 1, "private": 2, "hidden": 3, "unlisted": 3}
 
 type text struct{ lang, title, desc string }
 
@@ -48,10 +48,11 @@ func run() error {
 	content := flag.String("content", "", "installed mod folder (uploaded as item content; holds .workshop)")
 	preview := flag.String("preview", "", "preview image (jpg/png/gif)")
 	textsDir := flag.String("texts", "", "dir with <steamlang>.txt: first line title, rest description; english.txt required")
-	visFlag := flag.String("visibility", "", "public|friends|private|hidden (empty = leave unchanged on update, public on create)")
+	visFlag := flag.String("visibility", "", "public|friends|private|unlisted (alias hidden) (empty = leave unchanged on update, public on create)")
 	changeNote := flag.String("changenote", "", "change note for the content update")
 	minVer := flag.String("min-version", "", "required min game branch version, e.g. 0.30.0 (SetRequiredGameVersions; set only if min or max given)")
 	maxVer := flag.String("max-version", "", "required max game branch version")
+	depFlag := flag.Uint64("dependency", 0, "required Workshop item id to add as dependency (AddDependency; idempotent)")
 	dryRun := flag.Bool("dry-run", false, "init Steam and validate only; never create or submit")
 	flag.Parse()
 
@@ -210,6 +211,12 @@ func run() error {
 		needsAgreement = needsAgreement || res.NeedsAgreement
 	}
 
+	if *depFlag != 0 {
+		if err := s.addDependency(fileID, *depFlag); err != nil {
+			return fmt.Errorf("AddDependency %d -> %d: %w", fileID, *depFlag, err)
+		}
+		fmt.Printf("dependency %d -> %d OK\n", fileID, *depFlag)
+	}
 	fmt.Printf("item %d\nhttps://steamcommunity.com/sharedfiles/filedetails/?id=%d\n", fileID, fileID)
 	fmt.Printf("userNeedsToAcceptWorkshopLegalAgreement=%v\n", needsAgreement)
 	if needsAgreement {

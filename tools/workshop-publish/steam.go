@@ -24,6 +24,7 @@ const (
 	kISteamUGCCallbacks                        = 3400
 	kCreateItemResult                          = kISteamUGCCallbacks + 3
 	kSubmitItemUpdateResult                    = kISteamUGCCallbacks + 4
+	kAddUGCDependencyResult                    = kISteamUGCCallbacks + 12
 	kCchPublishedDocumentTitleMax              = 128 + 1
 	kCchPublishedDocumentDescriptionMax        = 8000
 	kEWorkshopFileTypeCommunity                = 0
@@ -47,6 +48,14 @@ type submitItemUpdateResult struct {
 	NeedsAgreement bool
 	_              [3]byte
 	FileID         uint64
+}
+
+// AddUGCDependencyResult_t, Pack=8 (offsets 0/8/16 per Cosmoteer Bin\Steamworks.NET.dll).
+type addUGCDependencyResult struct {
+	Result  int32
+	_       [4]byte
+	FileID  uint64
+	ChildID uint64
 }
 
 type steam struct {
@@ -162,6 +171,18 @@ func (s *steam) createItem(appID uint32) (createItemResult, error) {
 		err = fmt.Errorf("CreateItem EResult %d", res.Result)
 	}
 	return res, err
+}
+
+func (s *steam) addDependency(parent, child uint64) error {
+	var res addUGCDependencyResult
+	call := uint64(s.call("SteamAPI_ISteamUGC_AddDependency", s.ugc, uintptr(parent), uintptr(child)))
+	if err := s.waitCall(call, unsafe.Pointer(&res), unsafe.Sizeof(res), kAddUGCDependencyResult, nil); err != nil {
+		return err
+	}
+	if res.Result != kEResultOK {
+		return fmt.Errorf("EResult %d", res.Result)
+	}
+	return nil
 }
 
 // itemUpdate wraps one StartItemUpdate..SubmitItemUpdate cycle.
