@@ -356,12 +356,18 @@ public sealed class BeltWorld
     /// Rendering only (floats never feed the sim): ship-cell point of an item. Lane L is left of travel; curves follow a
     /// quarter arc around the inner corner (§4: inner lane stays inner).
     /// </summary>
+    /// <summary>Belt surface width in tiles: mod/assets/belt.png plate spans pixels 14..49 of 64, centered.</summary>
+    public const float SurfaceWidth = 36f / 64f;
+
+    /// <summary>Lane center distance from the belt centerline: middle of each surface half.</summary>
+    public const float LaneOffset = SurfaceWidth / 4;
+
     public static (float X, float Y) ItemPoint(Node n, int half, int lane, int pos)
     {
         float cx = n.X + half * n.Sx + 0.5f, cy = n.Y + half * n.Sy + 0.5f;
         float dx = n.Dx, dy = n.Dy, lx = n.Dy, ly = -n.Dx; // left of travel, screen y down
         float u = pos / (float)LaneSim.TileLength;
-        const float laneOffset = 0.22f;
+        const float laneOffset = LaneOffset;
         if (n.Shape == Shape.Straight)
         {
             float o = lane == 0 ? laneOffset : -laneOffset;

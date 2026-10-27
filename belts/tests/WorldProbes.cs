@@ -154,6 +154,7 @@ static class WorldProbes
     public static void Run(Action<bool, string> check)
     {
         AutoCurve(check);
+        ItemRender(check);
         Sideload(check);
         SplitterSplitMerge(check);
         Connectors(check);
@@ -214,6 +215,74 @@ static class WorldProbes
             Step(w, t, b.Tile0, got);
         }
         check(got[0] == 0 && got[1] > 200 && got[1] <= fed, $"curve keeps lanes: fed R={fed} out L={got[0]} R={got[1]}");
+    }
+
+    /// <summary>
+    /// Render math: every item point of each lane, for all 4 rotations x {straight, curve L, curve R}, stays inside its
+    /// tile and inside the belt plate; straight lanes sit at +-LaneOffset (lane 0 left of travel), curve lanes on arcs
+    /// of radius 0.5 -+ LaneOffset around the inner corner.
+    /// </summary>
+    static void ItemRender(Action<bool, string> check)
+    {
+        const float eps = 1e-4f, itemHalf = 0.11f; // ~0.22 tile nugget (BeltManager.ItemShrink)
+        float o = BeltWorld.LaneOffset;
+        check(o + itemHalf <= BeltWorld.SurfaceWidth / 2 + eps && o - itemHalf >= -eps,
+            $"item render: lane offset {o} +- item {itemHalf} inside belt plate half {BeltWorld.SurfaceWidth / 2}");
+        int bad = 0, total = 0;
+        string first = "";
+        for (int dir = 0; dir < 4; dir++)
+        {
+            var (dx, dy) = Dir[dir];
+            int lx = dy, ly = -dx;
+            for (int shape = 0; shape < 3; shape++)
+            {
+                var g = new Grid();
+                Node b = g.Belt(5, 5, dir);
+                int side = shape == 1 ? 1 : -1; // feeder sits on +left (CurveLeft) or -left (CurveRight)
+                if (shape > 0)
+                {
+                    g.Belt(5 + lx * side, 5 + ly * side, side > 0 ? (dir + 1) % 4 : (dir + 3) % 4);
+                }
+                g.Build();
+                Shape want = shape == 0 ? Shape.Straight : shape == 1 ? Shape.CurveLeft : Shape.CurveRight;
+                if (b.Shape != want)
+                {
+                    bad++;
+                    first = first.Length > 0 ? first : $"dir {dir} shape {b.Shape} != {want}";
+                    continue;
+                }
+                for (int lane = 0; lane < 2; lane++)
+                {
+                    for (int pos = 0; pos <= LaneSim.TileLength; pos++)
+                    {
+                        total++;
+                        var (x, y) = BeltWorld.ItemPoint(b, 0, lane, pos);
+                        float rx = x - 5.5f, ry = y - 5.5f;
+                        bool ok = Math.Abs(rx) <= 0.5f + eps && Math.Abs(ry) <= 0.5f + eps;
+                        if (shape == 0)
+                        {
+                            float lateral = rx * lx + ry * ly;
+                            ok &= Math.Abs(lateral - (lane == 0 ? o : -o)) < eps;
+                        }
+                        else
+                        {
+                            float px = 0.5f * (lx * side + dx), py = 0.5f * (ly * side + dy);
+                            bool inner = (lane == 0) == (shape == 1);
+                            float r = MathF.Sqrt((rx - px) * (rx - px) + (ry - py) * (ry - py));
+                            ok &= Math.Abs(r - (inner ? 0.5f - o : 0.5f + o)) < eps;
+                            // Arc points stay on the plate: lateral distance from the bend's centerline arc (radius 0.5) <= plate half.
+                            ok &= Math.Abs(r - 0.5f) + itemHalf <= BeltWorld.SurfaceWidth / 2 + eps;
+                        }
+                        if (!ok)
+                        {
+                            bad++;
+                            first = first.Length > 0 ? first : $"dir {dir} {want} lane {lane} pos {pos} -> ({rx:F3},{ry:F3})";
+                        }
+                    }
+                }
+            }
+        }
+        check(bad == 0, $"item render: {total} lane points (4 rotations x straight/curveL/curveR) inside tile and lane, bad={bad} {first}");
     }
 
     static void Sideload(Action<bool, string> check)

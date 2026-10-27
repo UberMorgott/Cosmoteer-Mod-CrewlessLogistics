@@ -35,5 +35,39 @@ Part : <./Data/ships/terran/conveyor/conveyor.rules>/Part
             }
             Roof = &<./Data/ships/terran/corridor/corridor.rules>/Part/Components/Graphics/Roof
         }
+        // Never instantiated (both Include* false); only puts the vanilla single-nugget textures into the doodads_low
+        // atlas so the C# sim can draw belt items. Order = BeltTypes.Ids (belts/src/NodeState.cs).
+        BeltItemSprites
+        {
+            Type = Sprite
+            IncludeWhenUnderConstruction = false
+            IncludeWhenNotUnderConstruction = false
+            Layer = "doodads_low"
+            Location = [.5, .5]
+            RandomAtlasSprite
+            [
+                { File = "./Data/resources/sulfur/sulfur.png"; Size = [1, 1] }
+                { File = "./Data/resources/iron/iron.png"; Size = [1, 1] }
+                { File = "./Data/resources/copper/copper.png"; Size = [1, 1] }
+                { File = "./Data/resources/carbon/carbon.png"; Size = [1, 1] }
+                { File = "./Data/resources/gold/gold.png"; Size = [1, 1] }
+                { File = "./Data/resources/uranium/uranium.png"; Size = [1, 1] }
+                { File = "./Data/resources/diamond/diamond.png"; Size = [1, 1] }
+                { File = "./Data/resources/hyperium/hyperium1-1.png"; Size = [1, 1] }
+                { File = "./Data/resources/steel/steel1.png"; Size = [1, 1] }
+                { File = "./Data/resources/coil/coil1.png"; Size = [1, 1] }
+                { File = "./Data/resources/coil2/coil2_1.png"; Size = [1, 1] }
+                { File = "./Data/resources/tristeel/tristeel1.png"; Size = [1, 1] }
+                { File = "./Data/resources/tritanium/tritanium.png"; Size = [1, 1] }
+                { File = "./Data/resources/processor/processor.png"; Size = [1, 1] }
+                { File = "./Data/resources/enriched_uranium/enriched_uranium.png"; Size = [1, 1] }
+                { File = "./Data/resources/bullet/bullet1.png"; Size = [1, 1] }
+                { File = "./Data/resources/missile_part_he/missile_part_he1.png"; Size = [1, 1] }
+                { File = "./Data/resources/missile_part_emp/missile_part_emp1.png"; Size = [1, 1] }
+                { File = "./Data/resources/missile_part_nuke/missile_part_nuke.png"; Size = [1, 1] }
+                { File = "./Data/resources/missile_part_thermal/missile_part_thermal1.png"; Size = [1, 1] }
+                { File = "./Data/resources/mine_part/mine_part1.png"; Size = [1, 1] }
+            ]
+        }
     }
 }

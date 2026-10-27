@@ -8,6 +8,7 @@ using Cosmoteer.Modes;
 using Cosmoteer.Resources;
 using Cosmoteer.Ships;
 using Cosmoteer.Ships.Parts;
+using Cosmoteer.Ships.Parts.Graphics;
 using Cosmoteer.Ships.Parts.UI;
 using Cosmoteer.Ships.Rendering;
 using Cosmoteer.Simulation;
@@ -25,10 +26,11 @@ namespace CrewlessLogistics.Belts;
 internal sealed class BeltManager : ShipComponent
 {
     public const int Bucket = FixedUpdateBuckets.Commands;
-    /// <summary>Same layer as cargo contents (storage_2x2 FlexResourceGrid), so every StackSprite is in its atlas (§11).</summary>
+    /// <summary>Layer of the BeltItemSprites atlas entries (mod/belt.rules), under crew like cargo contents (§11).</summary>
     private const string ItemLayer = "doodads_low";
-    /// <summary>StackSprites are one tile; shrink to 0.4 tile per item.</summary>
+    /// <summary>Single-nugget sprites are one tile with the nugget ~0.55 tile wide; 0.4 tile quad -> ~0.22 tile item, fits a lane.</summary>
     private const float ItemShrink = -0.3f;
+    private const string ItemSpritesComponent = "BeltItemSprites";
 
     private readonly List<Node> _nodes = new();
     private readonly List<Part> _nodeParts = new();
@@ -217,6 +219,12 @@ internal sealed class BeltManager : ShipComponent
         {
             return;
         }
+        if (!ship.Rules.PartsByID.TryGetValue(new ID<PartRules>(BeltState.BeltId), out PartRules? belt)
+            || !belt.ComponentsByID.TryGetValue(new ID<PartComponentRules>(ItemSpritesComponent), out PartComponentRules? c)
+            || c is not PartSpriteRules { RandomDamageLevelSprites: { } sprites } || sprites.Length < BeltTypes.Ids.Length)
+        {
+            return;
+        }
         var layer = new ID<ShipRenderLayerRules>(ItemLayer);
         int used = 0;
         foreach (Node n in _nodes)
@@ -229,21 +237,17 @@ internal sealed class BeltManager : ShipComponent
                     for (int i = 0; i < t.Count[lane]; i++)
                     {
                         int type = t.Type[lane * LaneSim.K + i];
-                        AtlasSprite[]? sprites = PartRoom.Ids[type].GetResourceRules()?.StackSprites;
-                        if (sprites == null || sprites.Length == 0)
-                        {
-                            continue;
-                        }
+                        AtlasSprite? sprite = sprites[type][0];
                         var (x, y) = BeltWorld.ItemPoint(n, half, lane, t.Pos[lane * LaneSim.K + i]);
                         var loc = new Vector2(x, y);
                         if (used == _quads.Count)
                         {
-                            _quads.Add(new ManagedShipQuad(renderer.GetLayerQuads(layer), sprites[0], 0, flipU: false, loc, Vector2.Zero, Direction.Zero,
+                            _quads.Add(new ManagedShipQuad(renderer.GetLayerQuads(layer), sprite, 0, flipU: false, loc, Vector2.Zero, Direction.Zero,
                                 ship.WorldUniformScale, Color.White, ship.Rules.RenderLayers[layer].Inflate + ItemShrink, 1f, sim.Clock));
                         }
                         else
                         {
-                            _quads[used].SetSprite(sprites[0], sim.Clock);
+                            _quads[used].SetSprite(sprite, sim.Clock);
                             _quads[used].Location = loc;
                         }
                         used++;
