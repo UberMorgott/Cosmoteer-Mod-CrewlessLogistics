@@ -22,6 +22,7 @@ catch (Exception ex)
     Check(false, "P1 threw: " + ex);
 }
 P3();
+WorldProbes.Run(Check);
 Console.WriteLine(failures == 0 ? "ALL PASS" : $"{failures} FAILED");
 return failures == 0 ? 0 : 1;
 
