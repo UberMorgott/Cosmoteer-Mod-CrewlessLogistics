@@ -38,6 +38,9 @@ public sealed class Node
     internal readonly Entry[] OutEntry = new Entry[2];
     internal int BackTile = -1, FrontTile = -1, FarLane = -1;
     internal IRoom? BackRoom, FrontRoom;
+    /// <summary>Splitter: connector directly in front of half i (fed by Route). Connector: fed by a splitter.</summary>
+    internal readonly Node?[] OutConn = new Node?[2];
+    internal bool SplitterFed;
 
     public Node(NodeState state, int x, int y, int dx, int dy, int sx = 0, int sy = 0)
     {
@@ -53,7 +56,7 @@ public sealed class Node
     public NodeKind Kind => State.Kind;
 
     public string Mode => Kind != NodeKind.Connector ? "-"
-        : (BackTile >= 0 ? "belt" : BackRoom != null ? "room" : "none") + ">" + (FrontTile >= 0 ? "belt" : FrontRoom != null ? "room" : "none");
+        : (BackTile >= 0 ? "belt" : SplitterFed ? "splitter" : BackRoom != null ? "room" : "none") + ">" + (FrontTile >= 0 ? "belt" : FrontRoom != null ? "room" : "none");
 }
 
 /// <summary>
@@ -80,6 +83,8 @@ public sealed class BeltWorld
             n.Tile0 = n.State.Tiles.Length > 0 ? tiles.Count : -1;
             n.OutTile[0] = n.OutTile[1] = n.BackTile = n.FrontTile = n.FarLane = -1;
             n.BackRoom = n.FrontRoom = null;
+            n.OutConn[0] = n.OutConn[1] = null;
+            n.SplitterFed = false;
             n.Shape = Shape.Straight;
             foreach (LaneTile t in n.State.Tiles)
             {
@@ -115,11 +120,18 @@ public sealed class BeltWorld
             {
                 SetOut(t, m.Tile0 + HalfAt(m, cx + n.Dx, cy + n.Dy), Entry.Rear);
             }
-            else if (m.Kind == NodeKind.Connector && n.Kind == NodeKind.Belt && m.Dx == n.Dx && m.Dy == n.Dy)
+            else if (m.Kind == NodeKind.Connector && m.Dx == n.Dx && m.Dy == n.Dy)
             {
-                // Belt end pointing into the connector's back. shortcut: splitter output straight into a connector is
-                // idle (splitter owns its drains); put a belt tile between them.
-                m.BackTile = t;
+                if (n.Kind == NodeKind.Belt)
+                {
+                    m.BackTile = t; // belt end pointing into the connector's back
+                }
+                else
+                {
+                    // Splitter half straight into a connector: the splitter owns its drains, Route delivers through it.
+                    n.OutConn[t - n.Tile0] = m;
+                    m.SplitterFed = true;
+                }
             }
         }
         for (int j = 0; j < nodes.Count; j++)
@@ -228,6 +240,10 @@ public sealed class BeltWorld
                 _sim.OpenDrain(n.BackTile, 0, n.Filter);
                 _sim.OpenDrain(n.BackTile, 1, n.Filter);
             }
+            else if (n.SplitterFed && n.State.Cooldown > 0)
+            {
+                n.State.Cooldown--; // before Route, so the rate does not depend on node order
+            }
         }
         _sim.Tick(tick);
         foreach (Node n in _nodes)
@@ -256,7 +272,7 @@ public sealed class BeltWorld
                     continue;
                 }
                 int o = n.State.RoundRobin[lane];
-                int used = Put(n.OutTile[o], n.OutEntry[o], lane, type) ? o : Put(n.OutTile[o ^ 1], n.OutEntry[o ^ 1], lane, type) ? o ^ 1 : -1;
+                int used = Out(n, o, lane, type) ? o : Out(n, o ^ 1, lane, type) ? o ^ 1 : -1;
                 if (used >= 0)
                 {
                     _sim.TryTakeDrained(n.Tile0 + h, lane, out _);
@@ -264,6 +280,24 @@ public sealed class BeltWorld
                 }
             }
         }
+    }
+
+    private bool Out(Node n, int o, int lane, int type) =>
+        n.OutConn[o] is { } c ? Deliver(c, lane, type) : Put(n.OutTile[o], n.OutEntry[o], lane, type);
+
+    /// <summary>Splitter-fed connector: filter, rate (Cooldown counts down in Tick before Route), then the front put.</summary>
+    private bool Deliver(Node c, int lane, int type)
+    {
+        if (c.Filter == BeltTypes.FilterNone || (c.Filter >= 0 && c.Filter != type) || c.State.Cooldown > 0)
+        {
+            return false;
+        }
+        bool ok = c.FrontTile >= 0 ? FrontSlot(c, lane, out int fl, out int fp) && _sim.TryInsert(c.FrontTile, fl, fp, type) : c.FrontRoom?.Put(type) == true;
+        if (ok)
+        {
+            c.State.Cooldown = ConnectorPeriod;
+        }
+        return ok;
     }
 
     private bool Put(int tile, Entry e, int lane, int type) =>
@@ -287,7 +321,7 @@ public sealed class BeltWorld
 
     private void Transfer(Node c)
     {
-        if (c.Filter == BeltTypes.FilterNone)
+        if (c.Filter == BeltTypes.FilterNone || c.SplitterFed)
         {
             return;
         }

@@ -358,7 +358,8 @@ Spot-checked: `Part.cs:827,1371`, `SimRoot.cs:605-618`, `FixedUpdateBuckets.cs` 
   `NodeState` (payload v2). Changes vs §3/§10: speed remainder is derived from `Sim.Tick`
   (`floor((t+1)*512/30) - floor(t*512/30)`), so no accumulator is saved; drains open for one tick only (held items
   are saved); carriable types = 21 vanilla stackable resources (`BeltTypes.Ids`, append-only); connector rate
-  1 item / 2 ticks (Q3); splitter output straight into a connector is idle (use a belt tile between).
+  1 item / 2 ticks (Q3); a connector straight in front of a splitter half is fed by the splitter's
+  routing (its filter acts as that output's gate; a mismatch yields to the other output).
 - Glue: `BeltManager` rebuilds from `ship.Parts` order and `ship.Parts[cell]`; `PartRoom` = live
   `ResourceManager._sources/_sinks` of the part with the P2 gate; items drawn as `ManagedShipQuad` on `doodads_low`
   with each resource's `StackSprites[0]` (updated per tick, no frame interpolation); destroyed belts drop nuggets.

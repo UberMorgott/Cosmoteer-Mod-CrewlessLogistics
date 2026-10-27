@@ -455,6 +455,53 @@ static class WorldProbes
             }
             check(got[1] == 20 && got[0] == 0 && cargo.Total(Iron) == 0, $"side connector -> far lane: L={got[0]} R={got[1]} (expect 0/20)");
         }
+        // Owner layout (live bug): cargo -> connector(sulfur) -> splitter -> connectors(sulfur) -> 2x factory_ammo, no belt
+        // tiles between. Factory input = vanilla SulfurStorage TypedResourceGrid 1x1 x sulfur MaxStackSize 5.
+        foreach (bool ironOnB in new[] { false, true })
+        {
+            var g = new Grid();
+            Cargo cargo = g.Room(0, 3, new Cargo(8).With(Sulfur, 20).With(Iron, 10));
+            Node cin = g.Connector(0, 2, Up, Sulfur);
+            g.Add(NodeKind.Splitter, 0, 1, Up, 1, 0);
+            Node ca = g.Connector(0, 0, Up, Sulfur);
+            Node cb = g.Connector(1, 0, Up, ironOnB ? Iron : Sulfur);
+            var fa = g.Room(0, -1, new Typed());
+            var fb = g.Room(1, -1, new Typed());
+            fa.InCap[Sulfur] = fb.InCap[Sulfur] = 5;
+            BeltWorld w = g.Build();
+            int maxPerWindow = 0;
+            for (int t = 0; t < 600; t++)
+            {
+                int before = fa.In[Sulfur];
+                w.Tick(t);
+                maxPerWindow = Math.Max(maxPerWindow, fa.In[Sulfur] - before);
+            }
+            bool modes = cin.Mode == "room>splitter" || cin.Mode == "room>belt";
+            check(modes && ca.Mode == "splitter>room" && cb.Mode == "splitter>room"
+                && fa.In[Sulfur] == 5 && fb.In[Sulfur] == (ironOnB ? 0 : 5) && cargo.Total(Iron) == 10 && maxPerWindow <= 1,
+                $"cargo -(sulfur)-> splitter -> connectors -> factories ({(ironOnB ? "B filter iron" : "both sulfur")}): A={fa.In[Sulfur]}/5 B={fb.In[Sulfur]}/{(ironOnB ? 0 : 5)}, iron kept {cargo.Total(Iron)}, modes {cin.Mode},{ca.Mode},{cb.Mode}");
+        }
+        // Splitter-fed connector rate: 1 item / ConnectorPeriod ticks.
+        {
+            var g = new Grid();
+            Node input = g.Belt(0, 2, Up);
+            g.Add(NodeKind.Splitter, 0, 1, Up, 1, 0);
+            g.Connector(0, 0, Up, BeltTypes.FilterAny);
+            g.Connector(1, 0, Up, BeltTypes.FilterAny);
+            var fa = g.Room(0, -1, new Typed());
+            var fb = g.Room(1, -1, new Typed());
+            fa.InCap[Iron] = fb.InCap[Iron] = 1000;
+            BeltWorld w = g.Build();
+            for (int t = 0; t < 2000; t++)
+            {
+                w.Sim.TryPutBack(input.Tile0, 0, Iron);
+                w.Sim.TryPutBack(input.Tile0, 1, Iron);
+                w.Tick(t);
+            }
+            int a = fa.In[Iron], b = fb.In[Iron];
+            check(a > 300 && b > 300 && a <= 2000 / BeltWorld.ConnectorPeriod + 1 && b <= 2000 / BeltWorld.ConnectorPeriod + 1,
+                $"splitter-fed connectors: A={a} B={b} in 2000 ticks (each <= {2000 / BeltWorld.ConnectorPeriod + 1})");
+        }
         // Filter none = idle, in every mode.
         {
             var g = new Grid();
