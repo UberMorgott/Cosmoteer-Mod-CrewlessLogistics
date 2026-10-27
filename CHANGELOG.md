@@ -14,6 +14,7 @@ Published as a separate, unlisted Steam Workshop beta item (id in `docs/workshop
 - Requires [Yet Another Mod Loader](https://steamcommunity.com/sharedfiles/filedetails/?id=3577650065) (Workshop 3577650065): the belt simulation ships as `CrewlessLogistics.Belts.dll`. Install: subscribe to the loader, run `Installer.bat` from its Workshop folder (`steamapps\workshop\content\799600\3577650065`), restart the game, enable Crewless Logistics in the Mods list and trust its library. Trust it again after every mod update.
 - Blueprint (ghost) sprites of the splitter, connector and belt crossings match their art.
 - Workshop publisher: `-visibility unlisted` (alias of `hidden`), `-dependency <id>` (AddDependency).
+
 ## 0.3.5
 
 - Fix: switching a hyperdrive onto the electrical network no longer drains the network into its battery. Like crew delivery in the base game, the network now charges a hyperdrive only while it spools for a jump (FtlDrive), also via engine rooms.

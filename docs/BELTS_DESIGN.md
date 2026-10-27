@@ -15,6 +15,7 @@ Status: v1 implemented on branch `feat/ammo-belts`, in-game verification pending
 ## 1. Architecture: (A) C# belt sim vs (B) rules lanes + C# extensions
 
 Rules-only facts that bound (B):
+
 - A `ResourceStorage` holds one `ResourceType` (`ResourceStorage.cs:69`, single type field via BaseResourceStorage);
   a lane slot per type is one storage + converter + gates. Current prototype = ~8 components per type per tile
   (`mod/ammo_belt_common.rules:319-338`). 26 resource dirs in vanilla `Data/resources`; ~20 carriable.
@@ -28,6 +29,7 @@ Rules-only facts that bound (B):
 - No FIFO across types, no sub-tile position, no smooth motion.
 
 (A) feasibility, grounded:
+
 - Vanilla already runs per-ship deterministic logic as a C# `ShipComponent` with `FixedUpdate`: the
   `ResourceConverterManager` (`ResourceConverter.cs:26-97`), created lazily per ship and added via
   `Sim.EnqueueDeterministic` (`ResourceConverter.cs:477-490`). A mod `BeltManager : ShipComponent` copies the attach
@@ -57,7 +59,7 @@ rules naming it fail to parse without the DLL. Without the DLL the rules load, b
 ## 2. Parts list
 
 | ID (new, belts never shipped in a release) | Size | Role |
-|---|---|---|
+| --- | --- | --- |
 | `morgott.crewless_logistics.belt` | 1x1 | belt, auto straight/curve, 2 lanes |
 | `morgott.crewless_logistics.belt_splitter` | 1x2 | 2 in / 2 out, split + merge, lane-preserving |
 | `morgott.crewless_logistics.belt_connector` | 1x1 | directional room<->belt/room transfer, resource filter |
@@ -101,6 +103,7 @@ is handled by rotation, no flip state needed). Splitter `IsFlippable = false` (s
 
 Belt output = its front cell, always. Input classification from neighbours that point **into** this belt
 (neighbour is a belt/splitter-output whose front cell is this belt's cell):
+
 - `rear` = feeder at back, `left` / `right` = feeders at sides.
 - Curve iff exactly one side feeder and no rear feeder (Factorio rule). Curve lanes: L->L, R->R (inner stays inner).
 - Otherwise straight; side feeders become sideloads (section 5).
@@ -132,7 +135,7 @@ Directional 1x1, arrow back -> front. Behaviour from what occupies the back cell
 `ProxyHandler.cs:157-158`):
 
 | back | front | behaviour |
-|---|---|---|
+| --- | --- | --- |
 | part (room) | belt | extractor: pull filtered type from part sources, put on belt |
 | belt | part (room) | loader: take filtered items from belt end, insert into part sinks |
 | part | part | direct room-to-room transfer |
@@ -205,7 +208,7 @@ Directional 1x1, arrow back -> front. Behaviour from what occupies the back cell
 ## 8. Endpoints (examples, all via sources/sinks — no whitelist)
 
 | part | component (vanilla) | as source | as sink |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | storage_2x2..4x4 (cargo) | `Storage` FlexResourceGrid (`D:\storage_2x2\storage_2x2.rules:37-39`) | yes | yes |
 | factory_ammo | `AmmoStorage` TypedResourceGrid bullet (`factory_ammo.rules:~117-119`) | bullets | sulfur input |
 | factory_he/emp/nuke/thermal | `MissileStorage` TypedResourceGrid (`factory_he.rules:152`, `factory_emp.rules:163`, `factory_nuke.rules:159`, `factory_thermal.rules:149`) | missile parts | inputs |
@@ -263,6 +266,7 @@ Example chains: cargo -> connector(sulfur) -> belt -> connector -> factory_ammo;
   is ours (ship culling is coarse). `ResourceSprites` rejected: it picks art by quantity, not position.
 
 Sprites needed (Codex image gen later; 64 px/tile like vanilla conveyor):
+
 - belt straight, 8 animation frames, direction arrows, darker than corridor floor (vanilla conveyor anim is 8 frames,
   `mod/ammo_belt_common.rules:281-297`).
 - belt curve left, 8 frames (curve right = UV mirror at draw time).
@@ -298,12 +302,13 @@ after belts ship.
 
 ### 14.1 Probe results (2026-10-27, code in `belts/`)
 
-Headless: `belts\tests\Run-BeltProbes.ps1` (game's own .NET 10.0.12 runtime + real 0.30.5 `Cosmoteer.dll` + loader
-`0Harmony.dll`). Live: test-only mod `belts\probe-mod` installed by `Install-BeltProbe.ps1` as
+Headless: `dotnet test` (xUnit project `belts\tests\CrewlessLogistics.Belts.Tests.csproj`, in `CrewlessLogistics.sln`;
+shared .NET 10 runtime + real 0.30.5 `Cosmoteer.dll` from the game folder + loader `0Harmony.dll`; game-backed tests skip
+without the game). The mod DLL targets net10.0 like the game; P1 also passed on the game's own 10.0.12 runtime. Live: test-only mod `belts\probe-mod` installed by `Install-BeltProbe.ps1` as
 `Mods\CrewlessLogisticsBeltProbe` (separate ID `morgott.crewless_logistics.belt_probe`; energy package untouched).
 
 | Probe | Result | Evidence |
-|---|---|---|
+| --- | --- | --- |
 | P1 patch targets | headless PASS; in-game run pending | loader Harmony MVID dc2e7251 loads; 4 postfixes install + verify + roll back; 0 R2R inliners of the targets; `BeltManager` type loads, bucket -11. Loader already loads DLLs from Workshop folders (modloader log 2026-10-27 14:33: 3765559239, 3299057292, 3823252178) |
 | P2 endpoints | static done (§7 finding); in-game dump pending | log lines `P2 part=... src[...] sink[...]` per distinct part signature |
 | P3 cost | headless PASS; in-game tick rate pending | loop 500 tiles/2000 items 3.9-7.5 us/tick; comb 400+100 sideload feeders/4000 items ~6 us/tick; 0 B alloc; packed line 800/800 per 100 s per lane (8/s) |
@@ -315,6 +320,7 @@ ctor (`Ship.cs:1130`) that every ship ctor chains into (new, loaded, split) adds
 an instance event (`Ship.cs:1103`), so no static hook exists. Patch set = this + the three §10 targets, all-or-nothing.
 
 Owner steps (single player first):
+
 1. `& E:\DEV\cosmoteer\Energy\belts\probe-mod\Install-BeltProbe.ps1` (already done once). In game: Mods list -> enable
    "Crewless Logistics belt probe" -> trust its library -> restart.
 2. P1/P3: load a creative game. `<profile>\Logs\CrewlessLogistics.Belts.log` must show
@@ -352,7 +358,7 @@ Owner steps (single player first):
 ## 17. Decisions with Codex (2 rounds, `codex exec -s read-only`, static engine reading)
 
 | # | Claude view | Codex view | Agreed + why |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | D1 architecture | (A) full C# sim, vanilla-only rules components | agree; 320-comp figure is an estimate | (A): (B) can't reach cargo (`FlexResourceGrid.cs:32`) nor do mixed FIFO |
 | D2 MP sync | per-ship ShipComponent like ResourceConverterManager | agree, but -24 is parallel; use -11 `Commands` (sequential) | bucket -11, integer/Tick state, lockstep inputs already the transport, hash all state + protocol version |
 | D3 persistence | Harmony on Part.ReadFrom/WriteTo | `ReadFrom` doesn't exist: patch load ctor `Part.cs:827` + explicit WriteTo `Part.cs:1371`; custom component also viable via runtime injection | per-part versioned payload v1; runtime-injected `HasSaveState` component later option |
@@ -402,7 +408,7 @@ Spot-checked: `Part.cs:827,1371`, `SimRoot.cs:605-618`, `FixedUpdateBuckets.cs` 
 Decisions (Claude / Codex `codex exec -s read-only`, engine-verified / agreed):
 
 | # | Claude | Codex | Agreed + why |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | D1 same-cell overlap (belt placed over an existing pipe) | infeasible | AGREE | one part per cell: `CommonBasePartsManager.cs:56` `Dictionary<IntVector2,TPart> _partsByCell`, `:1955` `_partsByCell.Add` throws on duplicates; blueprints also reject occupied cells (`BlueprintPartsManager.cs:154`); `PhysicalRect`/`CellOccupancyFactor`/`IsExternal` do not bypass it. => two 1x1 crossing parts |
 | D2 body, crew | inherit vanilla `heat_pipe_crossing`: stats, Left/Right doors, crew .8; belt on the part Left/Right axis so crew walk along the belt | AGREE (keep thermal nodes `NetworkAverageThermalDissipationLoadValue`/`BlueprintNetworkNode`; cable variant needs both `CrewlessLogistics*Node`) | crew-walkable at .8 like vanilla crossing and `cable_crossing` (plain belt is 1.0) |
 | D3 sim | `NodeKind.Belt` + `Node.NoCurve`: rear + side-load like a straight belt, never auto-curves; front = part cell (1, 0); same payload | AGREE; noted a crossing feeding the side of a plain belt still curves that belt (receiver decides) | kept: a crossing is a belt as a source; only the crossing itself never curves |
@@ -426,7 +432,7 @@ Decisions (Claude / Codex `codex exec -s read-only`, engine-verified / agreed):
 Decisions (Claude / Codex `codex exec -s read-only`, engine-verified / agreed):
 
 | # | Claude | Codex | Agreed + why |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | D1 classification | per component the engine's crew-supply contract: inputs = `CanBeResourceSupplierTargetForTypes` (`ResourceConsumerRules.cs:81`), outputs = `CanBeResourceSupplierForTypes` (`BaseResourceStorageRules.cs:168`, only `SuppliesResources`), `ResourceRules.Stackable` (`FlexResourceGridRules.cs:86,97`) = generic = all 21 types; `ToggledComponents` expanded only when `IsBlueprintToggleOn` (its own CanBe* unions all modes, `PartToggledComponentsRules.cs:58-63,142`); modes: live `PartUIToggle.Mode`, build mode metadata (`BaseBuildState.cs:889`) | AGREE; also apply `OnlyWithRotation`/`OnlyWithFlip`/`IncludeWhenNotUnderConstruction` like `Part.cs:778-805`, `PartToggledComponents.cs:118` | `PartFlow.Classify` over `PhysicalComponents` with those filters; unsupported toggle chain -> counted (conservative). Construction/repair/status sinks are not rules flows -> excluded (§7 P2). Generic only within `CanBe*` + 21 `BeltTypes` |
 | D2 allowed set | `Out(back part) & In(front part)`; belt/empty/construction side or a part with no belt-type flow (reactor, armor) does not narrow | DISAGREE as a general rule: side belt inputs into a connector with a room behind it would be blocked by `Out(back)`; define `Allowed == 0` | `Out(back)` narrows only when no belt/splitter/connector output feeds a connector side; two buildings without a common type -> only `none` (`any` also normalises to none). Chains: each connector narrows by its own neighbours only |
 | D3 normalise | sim (bucket -11, before `Filter`/`Tick`) writes `PartUIToggle.Mode`: single type -> it; choice not offered -> none; on rebuild + neighbour `ModeChanged` (launcher type) | AGREE; bump `ProtocolVersion` (sim behaviour changed); blueprint-only values are not normalised | `ProtocolVersion` 4. Unbuilt blueprint metadata is not mutated (no writes outside MP input from UI/render hooks); build UI shows the normalised value, the sim applies it once built. Old saves/blueprints with an impossible filter: reset on the first tick (owner edge case) |
@@ -445,6 +451,7 @@ Decisions (Claude / Codex `codex exec -s read-only`, engine-verified / agreed):
 - Not verified: in-game UI (popout hiding, build-mode display), side-feed detection on a live ship, MP with mixed
   selections/hotkeys.
 - Codex diff review: 1 bug accepted and fixed (a side belt still under construction counted as a side feeder and lifted `Out(back)`; `SideFeeds` now skips sites, like the topology). AGREE on display-only blueprint normalisation and on hotkey/revert correction by D3.
+
 ## 21. Visual overhaul: connection-aware animated belts, closed boxes, lamps (2026-10-27)
 
 Owner reports: a connector feeding a belt side stays straight and the L does not join (`images/10.webp` left), a torn
