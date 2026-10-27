@@ -13,7 +13,8 @@ sealed partial class NativeProbe
         try {
             Environment.CurrentDirectory = gameRoot;
             object Open(string path) => Activator.CreateInstance(Core("Halfling.ObjectText.OTFile"), new object[] { path })!;
-            bool Has(object source, string path) {
+            bool Has(object source, string path)
+            {
                 var method = serializer.GetType().GetMethods(All).Where(m => m.Name == "HasPath" && !m.IsGenericMethod).OrderBy(m => m.GetParameters().Length).First();
                 var parameters = method.GetParameters(); var args = new object?[parameters.Length]; args[0] = source; args[1] = path;
                 for (int i = 2; i < args.Length; i++) args[i] = parameters[i].HasDefaultValue ? parameters[i].DefaultValue : null;
@@ -21,7 +22,8 @@ sealed partial class NativeProbe
             }
             T? Optional<T>(object source, string path, T? fallback = default) => Has(source, path) ? (T)ReadRuleObject(source, path, typeof(T)) : fallback;
             object[] Nodes(object source, string path) => ((IEnumerable)ReadRuleObject(source, path, Core("Halfling.ObjectText.OTNode").MakeArrayType())).Cast<object>().ToArray();
-            string[] Names(object source, string path) {
+            string[] Names(object source, string path)
+            {
                 if (!Has(source, path)) return Array.Empty<string>();
                 var type = typeof(Dictionary<,>).MakeGenericType(typeof(string), Core("Halfling.ObjectText.OTNode"));
                 return ((IDictionary)ReadRuleObject(source, path, type)).Keys.Cast<string>().ToArray();
@@ -39,18 +41,16 @@ sealed partial class NativeProbe
                 if (IsSelfModId(id)) continue; // includes the pre-0.3.3 ID of an old installed package
                 var actionType = typeof(List<>).MakeGenericType(Game("Cosmoteer.Mods.ModAction"));
                 IList actions;
-                try { actions = Has(manifest, "Actions") ? (IList)ReadRuleObject(manifest, "Actions", actionType) : new ArrayList(); }
-                catch (Exception error) { throw new InvalidOperationException($"Cannot parse enabled mod native actions: {id} ({manifests[0]}). {Inner(error).Message}", error); }
+                try { actions = Has(manifest, "Actions") ? (IList)ReadRuleObject(manifest, "Actions", actionType) : new ArrayList(); } catch (Exception error) { throw new InvalidOperationException($"Cannot parse enabled mod native actions: {id} ({manifests[0]}). {Inner(error).Message}", error); }
                 mods.Add(new CatalogMod(id, directory, manifests[0], Optional<string>(manifest, "Version"), actions, Directory.GetFiles(directory, "*.dll", SearchOption.AllDirectories).Select(Path.GetFileName).Cast<string>().Order(StringComparer.Ordinal).ToArray()));
             }
             mods.Sort((a, b) => StringComparer.Ordinal.Compare(a.Id, b.Id));
             var root = Open(Path.Combine(gameRoot, "Data", "cosmoteer.rules"));
             var actionReport = new List<object>();
             foreach (var mod in mods) foreach (object action in mod.Actions) {
-                try { Call(action, "ApplyAction", root); }
-                catch (Exception error) { throw new InvalidOperationException($"Cannot apply enabled mod native action: {mod.Id}, {action.GetType().Name}. {Inner(error).Message}", error); }
-                actionReport.Add(new { modId = mod.Id, actionType = action.GetType().Name });
-            }
+                    try { Call(action, "ApplyAction", root); } catch (Exception error) { throw new InvalidOperationException($"Cannot apply enabled mod native action: {mod.Id}, {action.GetType().Name}. {Inner(error).Message}", error); }
+                    actionReport.Add(new { modId = mod.Id, actionType = action.GetType().Name });
+                }
             const string registry = "<ships/terran/terran.rules>/Terran/Parts";
             var partNodes = Nodes(root, registry); var reports = new List<object>();
             for (int i = 0; i < partNodes.Length; i++) {
@@ -60,7 +60,8 @@ sealed partial class NativeProbe
                 var owner = mods.Where(m => sourcePath != null && Path.GetFullPath(sourcePath).StartsWith(m.Directory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)).OrderByDescending(m => m.Directory.Length).FirstOrDefault();
                 string id = (string)ReadRuleObject(root, prefix + "/ID", typeof(string));
                 var components = new Dictionary<string, CatalogComponent>(StringComparer.Ordinal);
-                void Scan(string group, string? enclosingToggle = null) {
+                void Scan(string group, string? enclosingToggle = null)
+                {
                     foreach (string name in Names(root, group)) {
                         string path = group + "/" + name;
                         string? type = Optional<string>(root, path + "/Type");
@@ -81,14 +82,12 @@ sealed partial class NativeProbe
                         }
                         if (Has(root, path + "/PartLocation")) entry.References["PartLocation"] = ReadRuleObject(root, path + "/PartLocation", typeof(int[]));
                         foreach (string field in new[] { "QuantityScale", "FromQuantity", "ToQuantity", "MinResourcesPickUp", "MaxResourcesPickUp" }) if (Has(root, path + "/" + field)) {
-                            try { entry.Values[field] = ReadRuleObject(root, path + "/" + field, typeof(float)); }
-                            catch { entry.MetadataWarnings.Add(field + " is a native modifiable value, not a plain scalar."); }
-                        }
+                                try { entry.Values[field] = ReadRuleObject(root, path + "/" + field, typeof(float)); } catch { entry.MetadataWarnings.Add(field + " is a native modifiable value, not a plain scalar."); }
+                            }
                         // false = crew deliver only while OperationalToggle is on (hyperdrives: FtlDrive spool-up).
                         if (Has(root, path + "/AllowNonOperationalMinPriorityDelivery")) entry.Values["AllowNonOperationalMinPriorityDelivery"] = ReadRuleObject(root, path + "/AllowNonOperationalMinPriorityDelivery", typeof(bool));
                         if (Has(root, path + "/MaxResources")) {
-                            try { entry.Values["MaxResources"] = ReadRuleObject(root, path + "/MaxResources", typeof(int)); }
-                            catch (Exception error) { entry.MetadataWarnings.Add("MaxResources is not a plain native integer: " + Inner(error).Message.Split('\n')[0]); }
+                            try { entry.Values["MaxResources"] = ReadRuleObject(root, path + "/MaxResources", typeof(int)); } catch (Exception error) { entry.MetadataWarnings.Add("MaxResources is not a plain native integer: " + Inner(error).Message.Split('\n')[0]); }
                         }
                         components.Add(name, entry);
                         if (type == "ToggledComponents") Scan(path + "/Components", Optional<string>(root, path + "/Toggle"));
@@ -107,9 +106,7 @@ sealed partial class NativeProbe
                 var category = Optional<string[]>(root, prefix + "/TypeCategories", Array.Empty<string>())!;
                 string classification = "non-electrical"; string? unsupported = metadataError; string? receiving = null; string? backing = null;
                 if (receivers.Length > 0) receiving = receivers[0].References["Storage"].ToString();
-                if (category.Contains("reactor")) { classification = "reactor"; backing = components.Values.Where(c => c.Type == "ResourceConverter" && c.References.ContainsKey("ToStorage")).Select(c => c.References["ToStorage"].ToString()).FirstOrDefault(s => s != null && components.TryGetValue(s, out var v) && v.ResourceType == "battery"); }
-                else if (category.Contains("provides_power") && receiving != null) { classification = "capacitor"; backing = receiving; }
-                else if (receiving != null) { classification = "consumer"; backing = receiving; }
+                if (category.Contains("reactor")) { classification = "reactor"; backing = components.Values.Where(c => c.Type == "ResourceConverter" && c.References.ContainsKey("ToStorage")).Select(c => c.References["ToStorage"].ToString()).FirstOrDefault(s => s != null && components.TryGetValue(s, out var v) && v.ResourceType == "battery"); } else if (category.Contains("provides_power") && receiving != null) { classification = "capacitor"; backing = receiving; } else if (receiving != null) { classification = "consumer"; backing = receiving; }
                 var knownExceptions = new Dictionary<string, string> { ["cosmoteer.engine_room"] = "BatteryStorage", ["cosmoteer.thruster_rocket_nozzle"] = "LocalBatteryStorage", ["cosmoteer.thruster_rocket_extender"] = "LocalBatteryStorage", ["cosmoteer.thruster_rocket_battery"] = "LocalBatteryStorage" };
                 if (knownExceptions.TryGetValue(id, out string? physical)) { backing = physical; receiving = physical; }
                 // Rocket-style extendable stores alias several neighboring parts.
@@ -121,7 +118,8 @@ sealed partial class NativeProbe
                     if (directPhysical.Length == 1 && otherMembers.Length > 0 && otherMembers.All(c => c?.Type == "ResourceStorageProxy" && c.References.ContainsKey("PartLocation"))) { backing = directPhysical[0]; receiving = backing; }
                 }
                 var physicalIds = new HashSet<string>(StringComparer.Ordinal); var seen = new HashSet<string>(StringComparer.Ordinal);
-                string? Resolve(string? name) {
+                string? Resolve(string? name)
+                {
                     if (name == null || !components.TryGetValue(name, out var component)) return "Referenced battery storage is absent: " + name;
                     if (!seen.Add(name)) return "Cyclic or overlapping storage alias: " + name;
                     if (component.ResourceType != "battery") return "Storage is not standard battery resource: " + name;
@@ -210,9 +208,8 @@ sealed partial class NativeProbe
             mods.Sort((a, b) => StringComparer.Ordinal.Compare(a.Id, b.Id));
             var root = Open(Path.Combine(gameRoot, "Data", "cosmoteer.rules"));
             foreach (var mod in mods) foreach (object action in mod.Actions) {
-                try { Call(action, "ApplyAction", root); }
-                catch (Exception error) { throw new InvalidOperationException("Enabled-mod validation failed: " + mod.Id + "/" + action.GetType().Name, error); }
-            }
+                    try { Call(action, "ApplyAction", root); } catch (Exception error) { throw new InvalidOperationException("Enabled-mod validation failed: " + mod.Id + "/" + action.GetType().Name, error); }
+                }
             return root;
         } finally { Environment.CurrentDirectory = originalDirectory; }
     }
@@ -222,7 +219,8 @@ sealed partial class NativeProbe
         try {
             Environment.CurrentDirectory = gameRoot;
             var baseline = BuildEnabledRulesRoot(false); var candidate = BuildEnabledRulesRoot(true);
-            string[] Ids(object source) {
+            string[] Ids(object source)
+            {
                 var nodes = (IEnumerable)ReadRuleObject(source, "<ships/terran/terran.rules>/Terran/Parts", Core("Halfling.ObjectText.OTNode").MakeArrayType());
                 return nodes.Cast<object>().Select((_, i) => (string)ReadRuleObject(source, "<ships/terran/terran.rules>/Terran/Parts/" + i + "/ID", typeof(string))).ToArray();
             }

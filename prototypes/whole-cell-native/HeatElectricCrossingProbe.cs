@@ -87,12 +87,14 @@ sealed partial class NativeProbe
     object HeatElectricCrossingCase(object source, int transform)
     {
         var manager = NewTopologyManager();
-        (int X, int Y) World(int x, int y) {
+        (int X, int Y) World(int x, int y)
+        {
             if ((transform & 4) != 0) x = -x;
             return (transform & 3) switch { 0 => (x, y), 1 => (-y, x), 2 => (-x, -y), _ => (y, -x) };
         }
         void Place(int x, int y) { var p = World(x, y); NewTopologyPart(p.X, p.Y, transform); }
-        object FixturePort(string name, string direction, string? endpoint = null) {
+        object FixturePort(string name, string direction, string? endpoint = null)
+        {
             var rules = Rules(name, "Cosmoteer.Ships.Networks.PartNetworkPortRules");
             var facing = Field(rules.GetType(), "Direction"); facing.SetValue(rules, Enum.Parse(facing.FieldType, direction));
             if (endpoint != null) { var field = rules.GetType().GetProperty("RouteEndpoint", All)!; field.SetValue(rules, Id(Nullable.GetUnderlyingType(field.PropertyType)!, endpoint)); }

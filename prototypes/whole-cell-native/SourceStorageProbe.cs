@@ -11,7 +11,8 @@ sealed partial class NativeProbe
         const string consumer = "<ships/terran/laser_blaster_small/laser_blaster_small.rules>/Part/Components/";
         bool legacyCapacitorTerminals = false;
         object? legacyRouterFile = null;
-        object Read(string prefix, string name) {
+        object Read(string prefix, string name)
+        {
             if (legacyCapacitorTerminals && prefix == capacitor && name == "CrewlessLogisticsSourceRouter") return Rules("LegacyRouter", "Cosmoteer.Ships.Parts.PartComponentRules", legacyRouterFile!);
             var rules = Rules(prefix + name, "Cosmoteer.Ships.Parts.PartComponentRules", root);
             if (legacyCapacitorTerminals && prefix == capacitor && name.StartsWith("CrewlessLogisticsPort")) {
@@ -51,7 +52,8 @@ sealed partial class NativeProbe
 
         var manager = NewTopologyManager();
         var storageFixture = Activator.CreateInstance(Core("Halfling.ObjectText.OTFile"), new object[] { Path.Combine(projectRoot, "prototypes", "whole-cell-native", "source-storage.rules") })!;
-        object Make(string prefix, string name, bool nativeLifecycle = true) {
+        object Make(string prefix, string name, bool nativeLifecycle = true)
+        {
             var component = Component(Read(prefix, name));
             if (Game("Cosmoteer.Ships.Parts.Resources.BaseResourceStorage").IsInstanceOfType(component)) {
                 InitializeLinks(component);
@@ -62,20 +64,23 @@ sealed partial class NativeProbe
             else InitializeLinks(component);
             return component;
         }
-        object Switch(string prefix) {
+        object Switch(string prefix)
+        {
             var rules = Read(prefix, "CrewlessLogisticsToggle");
             Require((int)Field(rules.GetType(), "Default").GetValue(rules)! == 0, "Storage/source network switch must default off");
             SetField(rules, "RememberValue", false);
             var toggle = Component(rules); Call(toggle, "OnAddedToPart", part);
             return toggle;
         }
-        object ExternalToggle(string id) {
+        object ExternalToggle(string id)
+        {
             var rules = Rules("PortProbeOverclock", "Cosmoteer.Ships.Parts.Logic.PartDebugToggleRules");
             var idField = Field(rules.GetType(), "ID"); idField.SetValue(rules, Id(idField.FieldType, id));
             var toggle = Component(rules); SetToggle(toggle, true); return toggle;
         }
         object PumpFromPackage(string prefix, string name) => Make(prefix, name, false);
-        void Cable(int x, int y) {
+        void Cable(int x, int y)
+        {
             NewTopologyPart(x, y, 0); GraphNode(manager, "PortProbeElectricNode");
             foreach (string side in new[] { "Up", "Right", "Down", "Left" }) {
                 var rules = Rules("PortProbeCableElectricLeft", "Cosmoteer.Ships.Networks.PartNetworkPortRules");
@@ -95,7 +100,8 @@ sealed partial class NativeProbe
         var reactorPump = PumpFromPackage(reactor, "CrewlessLogisticsTransfer"); Make(reactor, TopRight);
         Cable(2, 0); Cable(2, -1); Cable(2, 1);
 
-        (object Battery, object Extra, object Overclock, object Bias, object Switch, object Supply, object Charge, object ChargeGate, object Heat, object Source, object SupplyGate) Capacitor(int x, int y, string socket) {
+        (object Battery, object Extra, object Overclock, object Bias, object Switch, object Supply, object Charge, object ChargeGate, object Heat, object Source, object SupplyGate) Capacitor(int x, int y, string socket)
+        {
             NewTopologyPart(x, y, 0); SetField(Property(part, "Rules"), "Size", Vector(2, 2));
             ExternalToggle("ConsumptionToggle"); var toggle = Switch(capacitor); Make(capacitor, "CrewlessLogisticsCanTransfer");
             var battery = Storage("ReceiverStorage", 2000, 0);
@@ -143,7 +149,8 @@ sealed partial class NativeProbe
         var biases = new List<object> { targetBias, capA.Bias, capB.Bias };
         // Supply pumps run only while their native operational gate is on.
         var gates = new Dictionary<object, object>(ReferenceEqualityComparer.Instance) { [reactorPump] = reactorGate, [capA.Supply] = capA.SupplyGate, [capB.Supply] = capB.SupplyGate };
-        void Checked(object pump) {
+        void Checked(object pump)
+        {
             var before = stocks.Select(s => Count(s, "Resources")).ToArray(); if (!gates.TryGetValue(pump, out var gate) || Flag(gate, "IsToggleOn")) Pulse(pump);
             Require(stocks.Sum(s => Count(s, "Resources")) == before.Sum(), "Source/capacitor network created or lost energy");
             for (int i = 0; i < stocks.Count; i++) Require((Count(stocks[i], "Resources") - before[i]) % 1000 == 0, "Source/capacitor network split a cell");
@@ -236,13 +243,15 @@ sealed partial class NativeProbe
             Make(consumer, reverse ? Socket("Right", 0, 2) : Socket("Left", 0, 2));
             var realStores = new[] { generation, sink }.Concat(inlineCaps.SelectMany(c => new[] { c.Battery, c.Extra })).ToArray();
             var roundingStores = new[] { sinkBias }.Concat(inlineCaps.Select(c => c.Bias)).ToArray();
-            void NativePulse(object pump) {
+            void NativePulse(object pump)
+            {
                 var before = realStores.Select(s => Count(s, "Resources")).ToArray(); Pulse(pump);
                 Require(realStores.Sum(s => Count(s, "Resources")) == before.Sum(), "Inline capacitor chain created or lost energy");
                 for (int j = 0; j < realStores.Length; j++) Require((Count(realStores[j], "Resources") - before[j]) % 1000 == 0, "Inline capacitor chain transferred a partial cell");
                 Require(roundingStores.All(s => Count(s, "Resources") == 999), "Inline capacitor chain consumed rounding bias");
             }
-            void Tick() {
+            void Tick()
+            {
                 foreach (var cap in inlineCaps) if (Flag(cap.SupplyGate, "IsToggleOn")) NativePulse(cap.Supply);
                 if (Flag(supplyGate, "IsToggleOn")) NativePulse(generatorPump);
                 foreach (var cap in inlineCaps) if (Flag(cap.ChargeGate, "IsToggleOn")) NativePulse(cap.Charge);

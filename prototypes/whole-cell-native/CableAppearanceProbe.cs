@@ -16,13 +16,15 @@ sealed partial class NativeProbe
         string FileName(object sprite) => ((Array)Property(sprite, "Files")).GetValue(0)!.ToString()!;
         // Baked art (tools/Bake-CableSprites.ps1) keeps the native sprite name stem:
         // floor_<shape><damage>.png -> cable_<kind>_<shape><damage>.png, doodads<damage>.png -> cable_crossing_<kind><damage>.png.
-        string Baked(string native, string kind) {
+        string Baked(string native, string kind)
+        {
             string leaf = Path.GetFileName(native);
             string name = leaf.StartsWith("floor_") ? "cable_" + kind + "_" + leaf[6..] : leaf.StartsWith("doodads") ? "cable_crossing_" + kind + leaf[7..] : throw new InvalidOperationException("Unexpected native cable art " + native);
             return Path.GetFullPath(Path.Combine(projectRoot, "mod", "assets", name));
         }
         // kind: null = unchanged native art, "body" = baked body, "lamp" = baked lights_add lamp (VertexColor x4 HDR).
-        void SameSprite(object actual, object expected, string context, bool seamOverlap = false, string? kind = null) {
+        void SameSprite(object actual, object expected, string context, bool seamOverlap = false, string? kind = null)
+        {
             foreach (string property in new[] { "Offset", "UVRotation", "MirrorU", "MirrorV" }) Require(Equals(Property(actual, property), Property(expected, property)), "Native sprite geometry differs: " + context + "/" + property);
             if (kind == "lamp") Require(Channels(Property(actual, "VertexColor")).SequenceEqual(new[] { 4f, 4f, 4f, 1f }), "Baked lamp must restore its quarter-scale HDR emission: " + context);
             else Require(Equals(Property(actual, "VertexColor"), Property(expected, "VertexColor")), "Native sprite color differs: " + context);
@@ -37,7 +39,8 @@ sealed partial class NativeProbe
             var source = Open(Path.Combine(projectRoot, "mod", style == "armored" ? "cable.rules" : "cable_crossing.rules"));
             object Read(string name) => Rules("Part/Components/" + name, "Cosmoteer.Ships.Parts.PartComponentRules", source);
             var primitives = new List<CableAppearancePrimitive>();
-            void AddSprite(string name, string slot, string layer, string? gate, float[] location, object sprite, int damage, float[]? componentOffset = null) {
+            void AddSprite(string name, string slot, string layer, string? gate, float[] location, object sprite, int damage, float[]? componentOffset = null)
+            {
                 componentOffset ??= new[] { 0f, 0f };
                 var offset = Pair(Property(sprite, "Offset"));
                 var fileName = FileName(sprite);

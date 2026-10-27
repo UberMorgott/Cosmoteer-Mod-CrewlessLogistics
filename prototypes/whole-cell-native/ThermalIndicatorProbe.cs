@@ -23,11 +23,13 @@ sealed partial class NativeProbe
         var names = ((IDictionary)ReadRuleObject(source, "Part/Components", namesType)).Keys.Cast<string>().ToArray();
         object Read(string name) => Rules("Part/Components/" + name, componentType.FullName!, source);
         string RuleId(object rules) => Field(rules.GetType(), "ID").GetValue(rules)!.ToString()!;
-        void Route(object rules, string property, string id) {
+        void Route(object rules, string property, string id)
+        {
             var p = rules.GetType().GetProperty(property, All)!;
             p.SetValue(rules, Id(Nullable.GetUnderlyingType(p.PropertyType)!, id));
         }
-        object[] NodeAndPortRules(bool candidate) {
+        object[] NodeAndPortRules(bool candidate)
+        {
             var result = new List<object>();
             foreach (string name in names) {
                 string type = (string)ReadRuleObject(source, "Part/Components/" + name + "/Type", typeof(string));
@@ -55,7 +57,8 @@ sealed partial class NativeProbe
             }
             return result.ToArray();
         }
-        object Decompose(object[] rules, bool bothChannels, int transform) {
+        object Decompose(object[] rules, bool bothChannels, int transform)
+        {
             var bp = RuntimeHelpers.GetUninitializedObject(bpType);
             foreach (string field in new[] { "_components", "_componentsByID" }) SetField(bp, field, Activator.CreateInstance(Field(bpType, field).FieldType)!);
             // Actual native components initialize their own route references via
@@ -83,12 +86,13 @@ sealed partial class NativeProbe
             Call(renderer, "GetStrongComponents", bp, strong);
             string thermalId = Property(rules.Single(r => RuleId(r) == "Port_Up"), "BlueprintRouteSource").ToString()!;
             string electricId = Property(rules.Single(r => RuleId(r) == "Port_Electric_Left"), "BlueprintRouteSource").ToString()!;
-            int Find(string id) {
+            int Find(string id)
+            {
                 for (int i = 0; i < strong.Count; i++) foreach (var n in (IEnumerable)Field(strongType, "Nodes").GetValue(strong[i])!) {
-                    if (n.GetType().Name != "NetworkNodeWrapper") continue;
-                    var underlying = Property(n, "UnderlyingNode");
-                    if (Property(underlying, "ID").ToString() == id) return i;
-                }
+                        if (n.GetType().Name != "NetworkNodeWrapper") continue;
+                        var underlying = Property(n, "UnderlyingNode");
+                        if (Property(underlying, "ID").ToString() == id) return i;
+                    }
                 throw new InvalidOperationException("Native renderer omitted blueprint node " + id);
             }
             int thermalIndex = Find(thermalId), electricIndex = Find(electricId);
@@ -101,7 +105,8 @@ sealed partial class NativeProbe
             var partRules = RuntimeHelpers.GetUninitializedObject(Game("Cosmoteer.Ships.Parts.PartRules"));
             SetField(partRules, "Size", Vector(1, 1));
             var info = Activator.CreateInstance(Game("Cosmoteer.Ships.Parts.PartInfo"), new object[] { partRules, Vector(7, -3), transform & 3, (transform & 4) != 0 })!;
-            float[] Midpoint(string name) {
+            float[] Midpoint(string name)
+            {
                 var rule = rules.Single(r => RuleId(r) == name);
                 var pair = ((IEnumerable)Call(rule, "GetPartCells")!).Cast<object>().Single();
                 var draw = getPortDrawData.Invoke(null, new[] { info, Field(pair.GetType(), "Item1").GetValue(pair), Field(pair.GetType(), "Item2").GetValue(pair), icon, null, false, true })!;
@@ -116,10 +121,10 @@ sealed partial class NativeProbe
         var candidateRules = NodeAndPortRules(true);
         var candidateCases = new List<object>();
         foreach (int transform in Enumerable.Range(0, 8)) foreach (bool both in new[] { false, true }) {
-            var result = Decompose(candidateRules, both, transform);
-            Require((int)Property(result, "components") == 3 && (int)Property(result, "thermalIndex") == 1 && (float)Property(result, "x") == 0f && (float)Property(result, "y") == 0f, "Native three-node spacing does not center the thermal channel");
-            candidateCases.Add(result);
-        }
+                var result = Decompose(candidateRules, both, transform);
+                Require((int)Property(result, "components") == 3 && (int)Property(result, "thermalIndex") == 1 && (float)Property(result, "x") == 0f && (float)Property(result, "y") == 0f, "Native three-node spacing does not center the thermal channel");
+                candidateCases.Add(result);
+            }
         var legacyRules = NodeAndPortRules(true).Where(r => RuleId(r) != "OverlaySpacingNode").ToArray();
         foreach (var rule in legacyRules.Where(r => RuleId(r).StartsWith("Port_"))) {
             bool thermal = RuleId(rule) is "Port_Up" or "Port_Down";
