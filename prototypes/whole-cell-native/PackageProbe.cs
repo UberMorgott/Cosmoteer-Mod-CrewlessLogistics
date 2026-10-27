@@ -119,7 +119,7 @@ sealed partial class NativeProbe
             OverlayPlacementProbe(root);
             scenarioResults.Add(new { name = "installable rules-only package", nativeActions = actions.Count, parsedComponents = added.Count });
             var report = Path.Combine(projectRoot, "artifacts", "whole-cell-native", "package-validation.json");
-            File.WriteAllText(report, JsonSerializer.Serialize(new { verifiedAtUtc = DateTimeOffset.UtcNow, nativeActions = actions.Count, parsedComponents = added, physicalCableInitializationCases = 2, limits = "Native mod actions, selected rules and inactive non-rendering cable initialization; no game UI, rendering, full part constructor or live scheduling test." }, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(report, JsonSerializer.Serialize(new { verifiedAtUtc = DateTimeOffset.UtcNow, nativeActions = actions.Count, parsedComponents = added, physicalCableInitializationCases = 2, limits = "Native mod actions, selected rules and inactive non-rendering cable initialization; no game UI, rendering, full part constructor or live scheduling test." }, IndentedJson));
             Console.WriteLine($"PASS: installable mod; {actions.Count} native actions, {added.Count} component rules, shared positions, independent network switches; evidence={report}");
         } finally {
             Environment.CurrentDirectory = originalDirectory;

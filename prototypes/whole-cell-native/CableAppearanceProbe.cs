@@ -126,7 +126,7 @@ sealed partial class NativeProbe
             styles.Add(style, primitives);
         }
         var target = Path.Combine(projectRoot, "artifacts", "cable-appearance-native.json");
-        File.WriteAllText(target, JsonSerializer.Serialize(new { generatedAtUtc = DateTimeOffset.UtcNow, description = "Native floor/wall geometry with baked cable body/lamp sprites per native shape and damage frame, all 16 adaptive connection states; lamps on vanilla lights_add gated by CrewlessLogisticsAvailable.", styles }, new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText(target, JsonSerializer.Serialize(new { generatedAtUtc = DateTimeOffset.UtcNow, description = "Native floor/wall geometry with baked cable body/lamp sprites per native shape and damage frame, all 16 adaptive connection states; lamps on vanilla lights_add gated by CrewlessLogisticsAvailable.", styles }, IndentedJson));
         scenarioResults.Add(new { name = "native exact pipe art and masked groove glow", adaptiveStates = 16, nativeVariants = 6, damageLevels = 3, exactCrossingFloorWalls = true, rectangleTraces = false, exteriorCableArt = false, gpuDraw = false, artifact = target });
         Console.WriteLine("PASS: all16 native body/glow states and three damage levels; exact native crossing floor/walls/cylinder; availability shutdown clears native quad; plain roofs.");
     }

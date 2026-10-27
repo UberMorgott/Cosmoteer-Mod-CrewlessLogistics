@@ -23,11 +23,6 @@ sealed partial class NativeProbe
         var names = ((IDictionary)ReadRuleObject(source, "Part/Components", namesType)).Keys.Cast<string>().ToArray();
         object Read(string name) => Rules("Part/Components/" + name, componentType.FullName!, source);
         string RuleId(object rules) => Field(rules.GetType(), "ID").GetValue(rules)!.ToString()!;
-        void Route(object rules, string property, string id)
-        {
-            var p = rules.GetType().GetProperty(property, All)!;
-            p.SetValue(rules, Id(Nullable.GetUnderlyingType(p.PropertyType)!, id));
-        }
         object[] NodeAndPortRules(bool candidate)
         {
             var result = new List<object>();
@@ -141,7 +136,7 @@ sealed partial class NativeProbe
             Require(!(bool)shouldDraw.Invoke(null, new[] { bpPort, (object)false })! && (bool)shouldDraw.Invoke(null, new[] { bpPort, (object)true })!, "Thermal route must be native Connected, not always visible or hidden");
         }
         string report = Path.Combine(projectRoot, "artifacts", "whole-cell-native", "thermal-indicator-validation.json");
-        File.WriteAllText(report, JsonSerializer.Serialize(new { verifiedAtUtc = DateTimeOffset.UtcNow, candidateCases, currentCases, negativeControl = legacy, graphEngine = "Actual vanilla GetStrongComponents, _GetOffset and GetPortDrawData", limits = "Native renderer CPU graph and rotated port helpers with synthetic blueprint ownership and direct node registration; no GPU or live world." }, new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText(report, JsonSerializer.Serialize(new { verifiedAtUtc = DateTimeOffset.UtcNow, candidateCases, currentCases, negativeControl = legacy, graphEngine = "Actual vanilla GetStrongComponents, _GetOffset and GetPortDrawData", limits = "Native renderer CPU graph and rotated port helpers with synthetic blueprint ownership and direct node registration; no GPU or live world." }, IndentedJson));
         if (requireCurrentRules) {
             foreach (var actual in currentCases) Require((int)Property(actual, "components") == 3 && (int)Property(actual, "thermalIndex") == 1 && (float)Property(actual, "x") == 0f && (float)Property(actual, "y") == 0f, "Current mixed crossing still shifts the orange thermal indicator; use electric BlueprintNetworkNode, thermal CrewlessLogisticsBlueprintNode, then isolated OverlaySpacingNode");
             foreach (var rule in actualRules.Where(r => RuleId(r) is "Port_Up" or "Port_Down")) {

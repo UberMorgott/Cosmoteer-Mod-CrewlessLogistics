@@ -16,10 +16,8 @@ sealed partial class NativeProbe
             if (legacyCapacitorTerminals && prefix == capacitor && name == "CrewlessLogisticsSourceRouter") return Rules("LegacyRouter", "Cosmoteer.Ships.Parts.PartComponentRules", legacyRouterFile!);
             var rules = Rules(prefix + name, "Cosmoteer.Ships.Parts.PartComponentRules", root);
             if (legacyCapacitorTerminals && prefix == capacitor && name.StartsWith("CrewlessLogisticsPort")) {
-                var source = rules.GetType().GetProperty("RouteSource", All)!;
-                var endpoint = rules.GetType().GetProperty("RouteEndpoint", All)!;
-                source.SetValue(rules, Id(Nullable.GetUnderlyingType(source.PropertyType)!, "CrewlessLogisticsInput"));
-                endpoint.SetValue(rules, Id(Nullable.GetUnderlyingType(endpoint.PropertyType)!, "CrewlessLogisticsSource"));
+                Route(rules, "RouteSource", "CrewlessLogisticsInput");
+                Route(rules, "RouteEndpoint", "CrewlessLogisticsSource");
             }
             return rules;
         }
@@ -142,7 +140,7 @@ sealed partial class NativeProbe
         var targetPortRules = Rules("PortProbeTargetElectric", "Cosmoteer.Ships.Networks.PartNetworkPortRules");
         SetField(targetPortRules, "Direction", Enum.Parse(Field(targetPortRules.GetType(), "Direction").FieldType, "Up"));
         SetField(targetPortRules, "OperationalToggle", Field(Read(consumer, "CrewlessLogisticsReceiver").GetType(), "OperationalToggle").GetValue(Read(consumer, "CrewlessLogisticsReceiver")));
-        var endpoint = targetPortRules.GetType().GetProperty("RouteEndpoint", All)!; endpoint.SetValue(targetPortRules, Id(Nullable.GetUnderlyingType(endpoint.PropertyType)!, "CrewlessLogisticsReceiver"));
+        Route(targetPortRules, "RouteEndpoint", "CrewlessLogisticsReceiver");
         var targetPort = Component(targetPortRules); Call(targetPort, "OnAddedToPart", part);
 
         var stocks = new List<object> { source, target, capA.Battery, capB.Battery, capA.Extra, capB.Extra };
