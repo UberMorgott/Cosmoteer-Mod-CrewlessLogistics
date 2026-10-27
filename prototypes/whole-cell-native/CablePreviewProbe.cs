@@ -17,7 +17,8 @@ sealed partial class NativeProbe
         var partRules = RuntimeHelpers.GetUninitializedObject(Game("Cosmoteer.Ships.Parts.PartRules"));
         SetField(partRules, "Size", Vector(1, 1));
         SetField(partRules, "ShipRules", shipRules);
-        object Data(int rotation, bool flip) {
+        object Data(int rotation, bool flip)
+        {
             var info = Activator.CreateInstance(Game("Cosmoteer.Ships.Parts.PartInfo"), new[] { partRules, Vector(3, 4), (object)rotation, flip })!;
             return Activator.CreateInstance(Game("Cosmoteer.Ships.Blueprints.Graphics.PartOverlayRenderData"), new object?[] { info, null })!;
         }
@@ -25,12 +26,12 @@ sealed partial class NativeProbe
         var unsafePath = Path.Combine(projectRoot, "artifacts", "whole-cell-native", "preview-regression.rules");
         File.WriteAllText(unsafePath, "UnsafePreview { Type = BlueprintToggledBlendSprites; Location = [.5, .5]; SituationToggles = [Port_Up]; AmbiguousSprites [ { SituationCode = \"0\"; AllowRotation = false; DamageLevelSprites [] } { SituationCode = \"1\"; AllowRotation = false; DamageLevelSprites [ { File = \"./Data/roof_textures/_none_.png\"; Size = [.2, .4] } ] } ] }");
         bool reproduced = false;
-        try { Call(renderer, "CalculateBlendSpriteData", Data(0, false), Rules("UnsafePreview", "Cosmoteer.Ships.Parts.PartComponentRules", Open(unsafePath))); }
-        catch (TargetInvocationException error) when (error.InnerException is IndexOutOfRangeException) { reproduced = true; }
+        try { Call(renderer, "CalculateBlendSpriteData", Data(0, false), Rules("UnsafePreview", "Cosmoteer.Ships.Parts.PartComponentRules", Open(unsafePath))); } catch (TargetInvocationException error) when (error.InnerException is IndexOutOfRangeException) { reproduced = true; }
         Require(reproduced, "Negative control must reproduce the original empty-array blueprint crash");
         var rules = Rules("Part/Components/CableBlueprints", "Cosmoteer.Ships.Parts.PartComponentRules", current);
         var native = Rules("BlueprintBlendSprites", "Cosmoteer.Ships.Parts.PartComponentRules", vanilla);
-        void Visible(object sprite) {
+        void Visible(object sprite)
+        {
             var size = Property(sprite, "Size");
             Require(Convert.ToSingle(Property(size, "X")) > 0f && Convert.ToSingle(Property(size, "Y")) > 0f, "Placement preview sprite has zero area");
             var color = Property(sprite, "VertexColor");
@@ -53,12 +54,12 @@ sealed partial class NativeProbe
         Require(shapes.Count == 6, "Adaptive preview lost a native connection shape");
         int cases = 0;
         for (int rotation = 0; rotation < 4; rotation++) foreach (bool flip in new[] { false, true }) {
-            var list = (IList)Field(rendererType, "_data").GetValue(renderer)!; list.Clear();
-            // Part=null is the actual held-part path: it selects state zero.
-            Call(renderer, "CalculateBlendSpriteData", Data(rotation, flip), rules);
-            Require(list.Count == 1, "Held adaptive cable preview produced no native quad");
-            Visible(Property(list[0]!, "Sprite")); cases++;
-        }
+                var list = (IList)Field(rendererType, "_data").GetValue(renderer)!; list.Clear();
+                // Part=null is the actual held-part path: it selects state zero.
+                Call(renderer, "CalculateBlendSpriteData", Data(rotation, flip), rules);
+                Require(list.Count == 1, "Held adaptive cable preview produced no native quad");
+                Visible(Property(list[0]!, "Sprite")); cases++;
+            }
         var fixedParts = new List<object>();
         foreach (string name in new[] { "cable_crossing", "cable_heat_crossing" }) {
             var source = Open(Path.Combine(projectRoot, "mod", name + ".rules"));

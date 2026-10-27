@@ -8,7 +8,8 @@ sealed partial class NativeProbe
         NewTopologyPart(0, 0, 0);
         SetField(Property(part, "Rules"), "Size", Vector(2, 2));
         object Read(string prefix, string name) => Rules(prefix + name, "Cosmoteer.Ships.Parts.PartComponentRules", root);
-        object NativeComponent(string prefix, string name, bool initialize = true) {
+        object NativeComponent(string prefix, string name, bool initialize = true)
+        {
             var component = Component(Read(prefix, name));
             if (initialize) {
                 // Resource type catalog/crew registration requires full game startup.
@@ -16,13 +17,13 @@ sealed partial class NativeProbe
                 if (Game("Cosmoteer.Ships.Parts.Resources.BaseResourceStorage").IsInstanceOfType(component)) {
                     InitializeLinks(component);
                     if (Game("Cosmoteer.Ships.Networks.BasePartNetworkResourceStorage").IsInstanceOfType(component)) RegisterNode(manager, component);
-                }
-                else if (Game("Cosmoteer.Ships.Networks.PartNetworkBasicNode").IsInstanceOfType(component)) RegisterNode(manager, component);
+                } else if (Game("Cosmoteer.Ships.Networks.PartNetworkBasicNode").IsInstanceOfType(component)) RegisterNode(manager, component);
                 else Call(component, "OnAddedToPart", part);
             }
             return component;
         }
-        object NativeSwitch(string prefix) {
+        object NativeSwitch(string prefix)
+        {
             var rules = Read(prefix, "CrewlessLogisticsToggle");
             Require((int)Field(rules.GetType(), "Default").GetValue(rules)! == 0, "Network switch must default off");
             Require((bool)Field(rules.GetType(), "RememberValue").GetValue(rules)!, "Network switch must use native remembered state");

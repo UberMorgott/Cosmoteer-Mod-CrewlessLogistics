@@ -16,10 +16,10 @@ sealed partial class NativeProbe
         NewTopologyPart(0, 0, 0);
         SetField(Property(part, "Rules"), "Size", Vector(2, 2));
         object ReadSource(string name) => Rules(reactorPrefix + name, "Cosmoteer.Ships.Parts.PartComponentRules", root);
-        object AddSource(string name, bool resourceIo = false) {
+        object AddSource(string name, bool resourceIo = false)
+        {
             var result = Component(ReadSource(name));
-            if (resourceIo) { InitializeLinks(result); RegisterNode(manager, result); }
-            else Call(result, "OnAddedToPart", part);
+            if (resourceIo) { InitializeLinks(result); RegisterNode(manager, result); } else Call(result, "OnAddedToPart", part);
             return result;
         }
         var sourceToggleRules = ReadSource("CrewlessLogisticsToggle");
@@ -68,7 +68,8 @@ sealed partial class NativeProbe
             observations.Add(signal);
             cablePorts.Add((left, right));
         }
-        void RequireVoltage(bool on, int cellsAvailable, string context) {
+        void RequireVoltage(bool on, int cellsAvailable, string context)
+        {
             foreach (var signal in observations) {
                 Require(Flag(signal, "IsToggleOn") == on, "Cable voltage toggle mismatch: " + context);
                 Require(Count(signal, "Resources") == cellsAvailable, "Cable source availability mismatch: " + context);

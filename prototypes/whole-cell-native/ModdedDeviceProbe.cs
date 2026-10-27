@@ -9,7 +9,8 @@ sealed partial class NativeProbe
     {
         string prefix = entry.GetProperty("path").GetString()! + "/";
         var geometry = entry.GetProperty("geometry");
-        bool Has(string path) {
+        bool Has(string path)
+        {
             var method = serializer.GetType().GetMethods(All).Where(m => m.Name == "HasPath" && !m.IsGenericMethod).OrderBy(m => m.GetParameters().Length).First();
             var parameters = method.GetParameters(); var arguments = new object?[parameters.Length]; arguments[0] = baseline; arguments[1] = path;
             for (int i = 2; i < arguments.Length; i++) arguments[i] = parameters[i].HasDefaultValue ? parameters[i].DefaultValue : null;
@@ -47,7 +48,8 @@ sealed partial class NativeProbe
         var rectangles = (IList)Activator.CreateInstance(rectanglesField.FieldType)!;
         var tupleType = rectanglesField.FieldType.GetGenericArguments()[0];
         var categoryType = tupleType.GetGenericArguments()[0];
-        void AddRect(string category, int[] rect) {
+        void AddRect(string category, int[] rect)
+        {
             var bounds = Activator.CreateInstance(Core("Halfling.Geometry.IntRect"), rect.Cast<object>().ToArray())!;
             rectangles.Add(Activator.CreateInstance(tupleType, new[] { Id(categoryType, category), bounds })!);
         }
@@ -64,7 +66,8 @@ sealed partial class NativeProbe
         string Key(int x, int y, string direction) => $"{x},{y}/{direction}";
         var expected = new HashSet<string>(StringComparer.Ordinal);
         int rejected = 0;
-        void Edge(int x, int y, string direction, int nx, int ny) {
+        void Edge(int x, int y, string direction, int nx, int ny)
+        {
             // Native normal-size occupancy reserves barrel/exhaust artwork cells
             // even when they lie outside PhysicalRect.
             if ((nx >= 0 && ny >= 0 && nx < size[0] && ny < size[1]) || IsForbidden(nx, ny)) { rejected++; return; }

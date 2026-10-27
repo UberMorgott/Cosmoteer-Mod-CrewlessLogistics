@@ -6,7 +6,8 @@ sealed partial class NativeProbe
         string Prefix(string name) => $"<ships/terran/{name}/{name}.rules>/Part/Components/";
         object Read(string prefix, string name) => Rules(prefix + name, "Cosmoteer.Ships.Parts.PartComponentRules", root);
         string[] SourcePorts(int size) => PerimeterSockets(size);
-        object Switch(string prefix) {
+        object Switch(string prefix)
+        {
             var rules = Read(prefix, "CrewlessLogisticsToggle"); SetField(rules, "RememberValue", false);
             Require((int)Field(rules.GetType(), "Default").GetValue(rules)! == 0, "Reactor bus switch must default off");
             var toggle = Component(rules); Call(toggle, "OnAddedToPart", part); return toggle;
@@ -14,7 +15,8 @@ sealed partial class NativeProbe
         void Case(string relayName, int size, bool reverse, bool legacyNegativeControl = false)
         {
             var manager = NewTopologyManager();
-            object Make(string prefix, string name, bool converter = false, object? overrideRules = null) {
+            object Make(string prefix, string name, bool converter = false, object? overrideRules = null)
+            {
                 var component = Component(overrideRules ?? Read(prefix, name));
                 if (Game("Cosmoteer.Ships.Parts.Resources.BaseResourceStorage").IsInstanceOfType(component)) {
                     InitializeLinks(component);
@@ -55,7 +57,8 @@ sealed partial class NativeProbe
                 }
                 return (battery, networkToggle, generationToggle, pump, supplyGate, router, provider);
             }
-            void Cable(int x) {
+            void Cable(int x)
+            {
                 NewTopologyPart(x, 0, 0); GraphNode(manager, "PortProbeElectricNode"); GraphPort("PortProbeCableElectricLeft"); GraphPort("PortProbeCableElectricRight");
             }
             var source = Reactor("reactor_small", 2, 0, 3500, true, false);
