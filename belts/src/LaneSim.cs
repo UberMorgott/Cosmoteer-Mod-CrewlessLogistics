@@ -171,15 +171,24 @@ public sealed class LaneSim
         {
             for (int lane = 0; lane < 2; lane++)
             {
-                int held = s.Drain[lane];
-                int c = s.Count[lane];
-                if (held >= 0 && c < K && (c == 0 || s.Pos[lane * K] <= EndPos - MinGap))
+                ReturnDrained(s, lane);
+                if (s.Drain[lane] < 0)
                 {
-                    InsertSorted(s, lane, EndPos, held);
-                    held = LaneTile.Closed;
+                    s.Drain[lane] = LaneTile.Closed;
                 }
-                s.Drain[lane] = held >= 0 ? held : LaneTile.Closed;
             }
+        }
+    }
+
+    /// <summary>Puts a held drained item back onto its lane head if it fits; else it stays held.</summary>
+    private static void ReturnDrained(LaneTile s, int lane)
+    {
+        int held = s.Drain[lane];
+        int c = s.Count[lane];
+        if (held >= 0 && c < K && (c == 0 || s.Pos[lane * K] <= EndPos - MinGap))
+        {
+            InsertSorted(s, lane, EndPos, held);
+            s.Drain[lane] = LaneTile.Closed;
         }
     }
 
@@ -270,15 +279,20 @@ public sealed class LaneSim
             MoveLane(t, first, adv);
             MoveLane(t, first ^ 1, adv);
         }
-        foreach (LaneTile s in _t)
+        for (int t = 0; t < _t.Length; t++)
         {
-            if (s.Drain[0] == LaneTile.Open)
+            LaneTile s = _t[t];
+            for (int lane = 0; lane < 2; lane++)
             {
-                s.Drain[0] = LaneTile.Closed;
-            }
-            if (s.Drain[1] == LaneTile.Open)
-            {
-                s.Drain[1] = LaneTile.Closed;
+                if (s.Drain[lane] == LaneTile.Open)
+                {
+                    s.Drain[lane] = LaneTile.Closed;
+                }
+                else if (t < _next.Length && _next[t] >= 0)
+                {
+                    // No taker on a mid-belt tile (end replaced by a belt): return the held item once the head moves on.
+                    ReturnDrained(s, lane);
+                }
             }
         }
     }

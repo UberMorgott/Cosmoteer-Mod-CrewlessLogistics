@@ -123,6 +123,32 @@ void P3()
         }
         Check(sim.Count(0, 0) == 4 && sim.Pos(0, 0, 0) == 255 && sim.Pos(0, 0, 3) == 63, $"P3 belt end stop: count={sim.Count(0, 0)} head={sim.Pos(0, 0, 0)} tail={sim.Pos(0, 0, 3)}");
     }
+    // Held drain on a packed end tile that becomes mid-belt (connector replaced by a belt) rejoins the lane, not stuck.
+    {
+        var sim = new LaneSim(2);
+        sim.Build(new[] { -1, -1 }, new Entry[2]);
+        int t = 0;
+        for (; t < 200; t++)
+        {
+            sim.TryInsert(0, 0, 0, 1);
+            sim.Tick(t);
+        }
+        sim.OpenDrain(0, 0);
+        sim.Tick(t++);
+        for (int i = 0; i < 200; i++, t++)
+        {
+            sim.TryInsert(0, 0, 0, 1);
+            sim.Tick(t);
+        }
+        bool heldPacked = sim.PeekDrained(0, 0) == 1 && sim.Count(0, 0) == 4;
+        sim.Build(new[] { 1, -1 }, new Entry[2]);
+        bool stillHeld = sim.PeekDrained(0, 0) == 1;
+        for (int i = 0; i < 200; i++, t++)
+        {
+            sim.Tick(t);
+        }
+        Check(heldPacked && stillHeld && sim.PeekDrained(0, 0) == -1 && Total(sim) == 5, $"P3 held drain returns after end -> mid rebuild: drain={sim.PeekDrained(0, 0)} onBelt={Total(sim)} (expect -1/5)");
+    }
     // Determinism: identical runs give identical digests.
     {
         int Run()
