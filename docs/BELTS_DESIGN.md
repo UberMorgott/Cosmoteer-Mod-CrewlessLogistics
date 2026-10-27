@@ -378,8 +378,8 @@ Spot-checked: `Part.cs:827,1371`, `SimRoot.cs:605-618`, `FixedUpdateBuckets.cs` 
   static belt floor art on `floors`), `belt_splitter.rules` (2x1), `belt_connector.rules` (+ UIToggle
   `BeltFilter`, Popout `belt_filter_toggle.rules`: none (default), any, 21 types). Build tabs: Storage and Power.
   Art: Codex image-gen masters in `tools/belt-sprites/art` (256 px/tile), baked to 64 px/tile + icons by
-  `tools/belt-sprites` (Go, trim/downscale only). `belt_curve.png` is baked but not wired: floor art is static per
-  part, so curves need a C# floor quad chosen from `Shape.CurveLeft/CurveRight` (CurveRight = mirrored).
+  `tools/belt-sprites` (Go, trim/downscale only). Curves: C# surface quad per `Shape` (§21; the old unwired static
+  `belt_curve.png` was removed in §22).
   Splitter and connector are closed machine housings (§21 supersedes: closed boxes + small chevron); direction reads from the machinery (back = bulky intake with
   hazard lip + feeder rollers, front = slim ejector shutter + green light), no painted arrows. Animation-ready layers
   (art only, not baked/wired): `belt_{splitter,connector}_base.png` (housing, moving parts removed) and
@@ -394,7 +394,7 @@ Spot-checked: `Part.cs:827,1371`, `SimRoot.cs:605-618`, `FixedUpdateBuckets.cs` 
 - Glue: `BeltManager` rebuilds from `ship.Parts` order and `ship.Parts[cell]`; `PartRoom` = live
   `ResourceManager._sources/_sinks` of the part with the P2 gate; items drawn as `ManagedShipQuad` on `doodads_low`
   with each resource's `StackSprites[0]` (updated per tick, no frame interpolation); destroyed belts drop nuggets.
-- Not in v1: curve/splitter surface art per state (rules art is a straight arrow), animated surface,
+- Not in v1 (curve art + animated surface: done in §21/§22):
   items on deconstructed belts are lost (destroyed belts drop them), frame interpolation of item positions.
 
 ## 19. Belt crossings over heat pipes / cables (2026-10-27, owner: belt ON TOP of the pipes)
@@ -475,17 +475,17 @@ housing is a `floors` sprite and items draw on `doodads_low`. Fix = Factorio sch
 | D1 layers | surface quad on `turrets`, sprites via a never-instantiated Sprite (BeltItemSprites trick); housings stay `floors`, splitter items not drawn | AGREE (`PartRules.cs:1848` registers atlas sprites of uninstantiated components); excluding splitter items is mandatory | as proposed; rules floor stays the fallback without the DLL |
 | D2 variants | straight, joins, curve(+flipU), crossings; no caps | AGREE; joins from every physical feeder incl. connectors; crossings keep `NoCurve` | as proposed |
 | D3 art | frames/curve/joins mechanical from the Codex straight master | DISAGREE "pixel-exact": shift moved rails too, bilinear polar remap differs at the edges (44/64 px) | only the surface band scrolls (rails static); curve edges copied from the straight frame after downscale (`curveEdges`) |
-| D4 animation | 16 frames, 1/32 s, global phase; optional stop when blocked | AGREE; skip the stop detector (state + false stops on full belts) | always animate (Factorio parity); owner nice-to-have "stop when blocked" not built |
+| D4 animation | 16 frames, 1/32 s, global phase; optional stop when blocked | AGREE; skip the stop detector (state + false stops on full belts) | always animate (Factorio parity); superseded by §22 (animate only while the lanes move) |
 | D5 connector curve | connector at a belt side counts as feeder; protocol 5 | AGREE; collect connector feeders (rear too) before the curve rule | `BeltWorld` computes connector fronts first; curved sink -> `Rear` (preferred lane instead of far lane) |
 | D6 lamps | `Node.Events` counters, render-only, `Color` toggled | AGREE; count only after a successful handoff; splitter counter = output index | `Commit()` (connector chain) and `Route()` (output used); lamp lit `tick - last < 3 && (tick & 2) == 0` |
 | D7 zero-alloc | quads only on rebuild | AGREE for surfaces/lamps (`flipU` fixed per quad -> recreate on rebuild); item pool still frees/creates on hide/show | surfaces+lamps rebuilt per topology epoch; `BeltRenderState.Update` 0 B (bench); item pool unchanged |
-| D8 intake all sides | rooms at back/left/right, round-robin cursor `RoundRobin[0]` 0..2, shared rate; filter union | AGREE; watch side rooms, keep the end-room self-loop check, cursor `(used+1)%3`, Decode by kind; note: a single-type union auto-sets a `none` connector (§20 D3) | built; auto-set accepted (same rule as §20). Multiple outputs: possible option, not built |
+| D8 intake all sides | rooms at back/left/right, round-robin cursor `RoundRobin[0]` 0..2, shared rate; filter union | AGREE; watch side rooms, keep the end-room self-loop check, cursor `(used+1)%3`, Decode by kind; note: a single-type union auto-sets a `none` connector (§20 D3) | built; auto-set accepted (same rule as §20, refined by §22 Auto/None). Multiple outputs: possible option, not built |
 | D9 markers | small chevron on splitter/connector lids | AGREE | Codex image_gen art |
 
 - Art (Codex image_gen via `cx -Img`, masters in `tools/belt-sprites/art`): `belt_connector` (closed container, 3 intakes,
   1 output, chevron, unlit lamp), `belt_splitter` (closed 2x1 box, closed-shutter outputs, chevron, 2 unlit lamps),
   `belt_lamp` (glow on black). Mechanical only (`tools/belt-sprites`): `bakeAnim` (band scroll, polar curve,
-  joins, crossings: `mod/assets/belt_anim/<variant>_<k>.png`, also `belt_curve.png`), `bakeLamps` (glow keyed to alpha,
+  joins, crossings: `mod/assets/belt_anim/<variant>_<k>.png`), `bakeLamps` (glow keyed to alpha,
   pasted at the measured lens centres), `-overhaul` preview PNG + GIF. Old `_base/_moving` layers and the misaligned
   `belt_curve` master removed.
 - Code: `BeltRenderState` (pure: `Select`, lamps), `BeltManager.BuildVisuals/Render`, `BeltWorld` (D5, D8, `SideIn`,
@@ -493,3 +493,35 @@ housing is a `floors` sprite and items draw on `doodads_low`. Fix = Factorio sch
 - Tests (`belts/tests`): side connector straight/far lane vs curve, `RenderSelect` (60 cases, 4 rotations), splitter
   halves render (4 rotations x flip), render client-only (digests equal, lamps, 0 B bench), multi-side intake.
 - Not verified: in-game look (atlas load of animated `turrets` sprites, quad rotation/flip, lamp glow strength), MP.
+
+## 22. Caveat closure: Auto/None filter, still belts, blueprints, bench noise (2026-10-27)
+
+Decisions (Claude / Codex `codex exec -s read-only`, engine-verified / agreed):
+
+| # | Claude | Codex | Agreed + why |
+| --- | --- | --- | --- |
+| D1 explicit None (owner bug: §20 D3 auto-fill overrode a chosen None) | mode 0 = Auto (Default, vanilla `toggle_fire_auto.png`), append mode 23 = None (explicit stop, `cancel.png`); indices 1..22 unchanged | AGREE; the engine saves the numeric `Mode` (`PartUIToggle.cs:45`) and drops the default from metadata (`:65`) | old saves/blueprints: mode 0 (old default none) -> Auto, already auto-written types stay explicit types; an old explicit none cannot be told from the default -> Auto (accepted limit) |
+| D2 Auto semantics | Mode never written for Auto; filter = the single allowed type, else nothing (old default); a ruled-out explicit choice -> Auto (was none); Auto/None always offered, never rewritten | AGREE; writing the type would lose Auto again (DISAGREE with that alternative) | `PartFlow.Normalize` (ruled-out -> 0), `PartFlow.Filter` (sim filter), `ChoiceAllowed`; `ProtocolVersion` 6; payload unchanged. Known change: an Auto connector stops when its allowed set widens from one type to several (old code kept the written type) |
+| D3 future types | comment only | DISAGREE: `mode - 2` would read 23 as a type | `BeltTypes.ModeAuto/ModeAny/ModeNone`; `FilterFromMode` skips 23, appended types take modes 24+ |
+| D4 still belts (owner: animation runs on blocked/empty belts) | client-only `BeltRenderState.Moving`: per belt node an FNV signature of lane counts + positions, `lastMove` on change, animate while `tick - lastMove < HoldTicks` (6 = 0.2 s) | AGREE as a cosmetic heuristic (moves can be 1-16 units at gaps/ends; a 32-bit collision only delays a stop by one tick); hold value to confirm in game | crossings use the same path; arrays sized on `Reset` only, 0 B per tick (render bench) |
+| D5 pause / resume | `ManagedShipQuad.UpdateAnimationSpeedFactor(0, clock)` freezes the current frame (`ManagedShipQuad.cs:234-261`); resume `(1, clock)` + `AnimationStartTime = sprite.GetAnimationStartTime(clock)` (global phase) | AGREE (frozen-phase resume would leave seams; the resume jump can be any of 16 frames); quads created at speed 0 store a frame index (`:219`) | surfaces are created still; `Render` compares `q.AnimationSpeedFactor != 0` with `Moving` every tick (covers rebuilds) |
+
+- Blueprints (mechanical, `tools/belt-sprites` `blueprintOf`): rank-match the part art luminance to the colour ramp
+  measured on the old Codex splitter blueprint (quantiles 0/.1/.25/.5/.75/1), alpha `(255 - R) * 0.8` as before. Now
+  `belt_{splitter,connector,heat_crossing,cable_crossing}_blueprint.png` follow the closed-box / crossing art (connector
+  used the vanilla conveyor blueprint, crossings their colour icon); the old splitter blueprint master was removed. Belt
+  keeps the vanilla conveyor blueprint (straight belt, direction chevrons). Icons were already baked from the new masters.
+- Flaky `P3 bench loop 500 tiles` 96 B (4/30 runs): reproduced; tick of the allocation varies (30004, 42038); 0/30 with
+  `DOTNET_TieredCompilation=0`, `DOTNET_TieredPGO=0` or `DOTNET_TC_OnStackReplacement=0` each -> the runtime's tiering
+  transition on the bench thread, not sim code (a code allocation would not depend on the JIT mode). The render bench
+  showed the same 96 B once. Fix (methodology): `Meter.Run` (belts/tests/Program.cs) measures 3 windows, alloc = min
+  over windows (a per-tick allocation shows in every window), all windows printed.
+- Removed: `belt_curve.png` (baked, never referenced since §21 surfaces).
+- Tests: F3/F3b/F4 (Auto/None normalise, effective filter, offered choices), mode map incl. 23/24, rules choice order
+  (auto, any, 21 types, none), `RenderMoving` (empty still, travelling items animate belt/crossing/end, exactly one
+  on/off per tile, still once blocked).
+- Codex diff review (`codex exec -s read-only` over the full diff): no bugs.
+- Open (not small/safe): deconstructed belts lose their items (`BeltManager.OnPartRemoved` shortcut: needs removal vs
+  split told apart on a live ship); item quads still free/create atlas quads on hide/show (§21 D7); no frame
+  interpolation of item positions; connector with several outputs not built. Not verified: in-game look of still/moving
+  surfaces and the hold value, Auto/None icons in the popout, MP.
