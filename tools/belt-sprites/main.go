@@ -5,6 +5,7 @@
 //	go run . -import <dir with raw Codex *_master.png>   // one-time: key out bands, shrink to 256 px/tile into art/
 //	go run .                                             // bake art/ -> ..\..\mod\assets
 //	go run . -preview out.png                            // also compose new sprites next to vanilla ones
+//	go run . -overhaul out.png                           // §21 cases in game layering + animated out.gif
 package main
 
 import (
@@ -12,7 +13,11 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/color/palette"
+	"image/draw"
+	"image/gif"
 	"image/png"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,8 +35,6 @@ type sprite struct {
 
 var sprites = []sprite{
 	{"belt", 1, 1, "belt.png", "belt_icon.png"},
-	// shortcut: curve sprite is baked but not wired (floor art is static per part); needs a C# shape-driven floor quad.
-	{"belt_curve", 1, 1, "belt_curve.png", ""},
 	{"belt_connector", 1, 1, "belt_connector.png", "belt_connector_icon.png"},
 	{"belt_splitter", 2, 1, "belt_splitter.png", "belt_splitter_icon.png"},
 	{"belt_splitter_blueprint", 2, 1, "belt_splitter_blueprint.png", ""},
@@ -41,11 +44,37 @@ var sprites = []sprite{
 	{"belt_cable_crossing", 1, 1, "belt_cable_crossing.png", "belt_cable_crossing_icon.png"},
 }
 
-// layers are animation-ready masters kept in art/ only (not baked yet): <part>_base = housing with moving parts removed,
-// <part>_moving = rollers/shuttle/shutters/lights alone on transparency. The game uses the composed <part> master.
-var layers = []sprite{
-	{master: "belt_connector_base", w: 1, h: 1}, {master: "belt_connector_moving", w: 1, h: 1},
-	{master: "belt_splitter_base", w: 2, h: 1}, {master: "belt_splitter_moving", w: 2, h: 1},
+// layers are masters baked by code below, not by the sprites loop: belt_lamp = Codex indicator glow on black.
+var layers = []sprite{{master: "belt_lamp", w: 1, h: 1}}
+
+// Lamp lens centres on the Codex housing masters (fraction of the part sprite, front = up), measured on the masters;
+// splitter lamp i sits above output i (part cell (i, 0)). Glow diameter in tiles.
+var lamps = []struct {
+	file   string
+	w, h   int
+	cx, cy float64
+}{
+	{"belt_connector_lamp.png", 1, 1, 0.5, 0.298},
+	{"belt_splitter_lamp_0.png", 2, 1, 0.270, 0.258},
+	{"belt_splitter_lamp_1.png", 2, 1, 0.729, 0.258},
+}
+
+const lampSize = 0.25
+
+// bakeLamps keys the black glow master to alpha (alpha = brightest channel, for the additive lights_add layer) and
+// pastes it, scaled, at each lamp centre of a transparent part-sized overlay.
+func bakeLamps(artDir, outDir string) {
+	g := load(filepath.Join(artDir, "belt_lamp.png"))
+	for i := 0; i < len(g.Pix); i += 4 {
+		g.Pix[i+3] = max(g.Pix[i], g.Pix[i+1], g.Pix[i+2])
+	}
+	d := int(lampSize * 64)
+	glow := resize(g, d, d)
+	for _, l := range lamps {
+		out := image.NewNRGBA(image.Rect(0, 0, l.w*64, l.h*64))
+		paste(out, glow, int(l.cx*float64(l.w*64))-d/2, int(l.cy*float64(l.h*64))-d/2)
+		save(out, filepath.Join(outDir, l.file))
+	}
 }
 
 func exists(path string) bool { _, err := os.Stat(path); return err == nil }
@@ -256,12 +285,280 @@ func crossings(game, assets, path string) {
 	save(out, path)
 }
 
+// Belt animation (docs/BELTS_DESIGN.md §21): every frame and variant is a mechanical remap of the Codex straight master
+// art/belt.png, so curve and join edges equal the straight edges pixel for pixel. Front = up, travel bottom -> top.
+const (
+	animFrames = 16
+	// Belt surface band x15..48 of 64 (BeltWorld.SurfaceWidth) at master scale.
+	surf0, surf1 = 15 * masterTile / 64, 49 * masterTile / 64
+)
+
+// shiftBand scrolls only the belt surface band up by d rows with wrap-around; rails and floor stay put. The texture
+// period is one tile, so frame k of every variant lines up with frame k of its neighbours.
+func shiftBand(img *image.NRGBA, d int) *image.NRGBA {
+	n := img.Rect.Dy()
+	out := image.NewNRGBA(image.Rect(0, 0, img.Rect.Dx(), n))
+	copy(out.Pix, img.Pix)
+	for y := 0; y < n; y++ {
+		copy(out.Pix[y*out.Stride+surf0*4:y*out.Stride+surf1*4], img.Pix[((y+d)%n)*img.Stride+surf0*4:((y+d)%n)*img.Stride+surf1*4])
+	}
+	return out
+}
+
+// curveEdges makes the 64 px curve edges equal the straight frame's edges exactly (the bilinear polar remap is only
+// approximate near the corner): front row = straight front row, left column = straight back row (radius = column).
+func curveEdges(c, s *image.NRGBA) {
+	n := c.Rect.Dx()
+	for i := 0; i < n; i++ {
+		c.SetNRGBA(i, 0, s.NRGBAAt(i, 0))
+		c.SetNRGBA(0, i, s.NRGBAAt(i, n-1))
+	}
+}
+
+// sample is a bilinear read with clamped coordinates (pixel centres at +0.5).
+func sample(img *image.NRGBA, fx, fy float64) color.NRGBA {
+	n := img.Rect.Dx()
+	fx, fy = min(max(fx-0.5, 0), float64(n-1)), min(max(fy-0.5, 0), float64(img.Rect.Dy()-1))
+	x0, y0 := int(fx), int(fy)
+	x1, y1 := min(x0+1, n-1), min(y0+1, img.Rect.Dy()-1)
+	tx, ty := fx-float64(x0), fy-float64(y0)
+	var c [4]float64
+	for _, p := range [4]struct {
+		x, y int
+		w    float64
+	}{{x0, y0, (1 - tx) * (1 - ty)}, {x1, y0, tx * (1 - ty)}, {x0, y1, (1 - tx) * ty}, {x1, y1, tx * ty}} {
+		q := img.NRGBAAt(p.x, p.y)
+		c[0] += float64(q.R) * p.w
+		c[1] += float64(q.G) * p.w
+		c[2] += float64(q.B) * p.w
+		c[3] += float64(q.A) * p.w
+	}
+	return color.NRGBA{uint8(c[0] + .5), uint8(c[1] + .5), uint8(c[2] + .5), uint8(c[3] + .5)}
+}
+
+// curveLeft polar-remaps a straight frame onto a quarter turn around the front-left corner (feeder enters at the left
+// edge, leaves at the front): radius = source column, angle = source row (left edge = bottom row, front edge = top row).
+// Radius beyond the tile clamps to the outer column (corridor floor), so the far corner stays plain floor.
+func curveLeft(img *image.NRGBA) *image.NRGBA {
+	n := img.Rect.Dx()
+	out := image.NewNRGBA(image.Rect(0, 0, n, n))
+	for y := 0; y < n; y++ {
+		for x := 0; x < n; x++ {
+			px, py := float64(x)+.5, float64(y)+.5
+			r := math.Hypot(px, py)
+			a := math.Atan2(py, px) / (math.Pi / 2)
+			out.SetNRGBA(x, y, sample(img, r, a*float64(n)))
+		}
+	}
+	return out
+}
+
+// join pastes the surface of a side feeder over the receiver's rail band at that side (rows of the surface band only),
+// taken from the rotated frame (texture period 1 tile, so the strip is the feeder surface continued past its front edge).
+func join(dst, frame *image.NRGBA, left bool) {
+	src, x0, x1 := rotateCW(frame), 0, surf0
+	if !left {
+		src, x0, x1 = rotateCW(rotateCW(rotateCW(frame))), surf1, masterTile
+	}
+	for y := surf0; y < surf1; y++ {
+		for x := x0; x < x1; x++ {
+			dst.SetNRGBA(x, y, src.NRGBAAt(x, y))
+		}
+	}
+}
+
+// pasteBand copies the belt surface band x surf0..surf1 of frame onto base (crossing masters drawn like belt.png).
+func pasteBand(base, frame *image.NRGBA) *image.NRGBA {
+	out := image.NewNRGBA(base.Rect)
+	copy(out.Pix, base.Pix)
+	for y := 0; y < masterTile; y++ {
+		for x := surf0; x < surf1; x++ {
+			out.SetNRGBA(x, y, frame.NRGBAAt(x, y))
+		}
+	}
+	return out
+}
+
+// animVariants: output prefix -> builder from straight frame k. Order and names are wired in mod/belt.rules
+// BeltSurfaceSprites and belts/src/BeltRender.cs (Variant).
+func animVariants(artDir string) []struct {
+	name  string
+	build func(*image.NRGBA) *image.NRGBA
+} {
+	heat, cable := load(filepath.Join(artDir, "belt_heat_crossing.png")), load(filepath.Join(artDir, "belt_cable_crossing.png"))
+	clone := func(f *image.NRGBA) *image.NRGBA { o := image.NewNRGBA(f.Rect); copy(o.Pix, f.Pix); return o }
+	return []struct {
+		name  string
+		build func(*image.NRGBA) *image.NRGBA
+	}{
+		{"straight", func(f *image.NRGBA) *image.NRGBA { return f }},
+		{"join_l", func(f *image.NRGBA) *image.NRGBA { o := clone(f); join(o, f, true); return o }},
+		{"join_r", func(f *image.NRGBA) *image.NRGBA { o := clone(f); join(o, f, false); return o }},
+		{"join_lr", func(f *image.NRGBA) *image.NRGBA { o := clone(f); join(o, f, true); join(o, f, false); return o }},
+		{"curve", curveLeft},
+		// Crossings: baked into the part frame like their static sprites (belt flows right).
+		{"heat_crossing", func(f *image.NRGBA) *image.NRGBA { return rotateCW(pasteBand(heat, f)) }},
+		{"cable_crossing", func(f *image.NRGBA) *image.NRGBA { return rotateCW(pasteBand(cable, f)) }},
+	}
+}
+
+// bakeAnim writes <out>/belt_anim/<variant>_<k>.png (64 px) for k < animFrames; frame 0 of curve also replaces belt_curve.png.
+func bakeAnim(artDir, outDir string) {
+	belt := load(filepath.Join(artDir, "belt.png"))
+	dir := filepath.Join(outDir, "belt_anim")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		fail(err)
+	}
+	for _, v := range animVariants(artDir) {
+		for k := 0; k < animFrames; k++ {
+			// Moving up the screen = texture rows scroll up: frame k shows the texture k/animFrames of a tile further on.
+			f := shiftBand(belt, k*masterTile/animFrames)
+			m := resize(v.build(f), 64, 64)
+			if v.name == "curve" {
+				curveEdges(m, resize(f, 64, 64))
+			}
+			save(m, filepath.Join(dir, fmt.Sprintf("%s_%02d.png", v.name, k)))
+			if v.name == "curve" && k == 0 {
+				save(m, filepath.Join(outDir, "belt_curve.png"))
+			}
+		}
+	}
+}
+
+// flipH mirrors an image left-right (curve right = mirrored curve left, as flipU at draw time).
+func flipH(img *image.NRGBA) *image.NRGBA {
+	w, h := img.Rect.Dx(), img.Rect.Dy()
+	out := image.NewNRGBA(image.Rect(0, 0, w, h))
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			out.SetNRGBA(x, y, img.NRGBAAt(img.Rect.Min.X+w-1-x, img.Rect.Min.Y+y))
+		}
+	}
+	return out
+}
+
+// addLight composites an additive lights_add overlay (rgb * alpha added).
+func addLight(dst, src *image.NRGBA, ox, oy int) {
+	for y := 0; y < src.Rect.Dy(); y++ {
+		for x := 0; x < src.Rect.Dx(); x++ {
+			s, d := src.NRGBAAt(x, y), dst.NRGBAAt(ox+x, oy+y)
+			a := float64(s.A) / 255
+			add := func(dc, sc uint8) uint8 { return uint8(min(255, float64(dc)+float64(sc)*a)) }
+			dst.SetNRGBA(ox+x, oy+y, color.NRGBA{add(d.R, s.R), add(d.G, s.G), add(d.B, s.B), d.A})
+		}
+	}
+}
+
+// overhaul composes the §21 cases in game layering (floor < animated surface < lamps) at 64 px/tile for animation
+// frame k: straight, curve L/R, sideload T-joint, connector room -> belt side (owner case), connector belt -> room,
+// splitter with one output unconnected, heat/cable crossings. Front = up unless rotated; rot = clockwise quarter turns.
+func overhaul(game, assets string, k int, lit bool) *image.NRGBA {
+	const W, H = 20, 6
+	out := image.NewNRGBA(image.Rect(0, 0, W*64, H*64))
+	floor := load(filepath.Join(game, "Data", "ships", "terran", "corridor", "floor.png"))
+	room := load(filepath.Join(game, "Data", "ships", "terran", "storage_2x2", "floor.png"))
+	room = resize(room.SubImage(image.Rect(0, 0, room.Rect.Dx()/2, room.Rect.Dy()/2)).(*image.NRGBA), 64, 64)
+	for ty := 0; ty < H; ty++ {
+		for tx := 0; tx < W; tx++ {
+			paste(out, resize(floor, 64, 64), tx*64, ty*64)
+		}
+	}
+	rot := func(im *image.NRGBA, r int) *image.NRGBA {
+		for ; r > 0; r-- {
+			im = rotateCW(im)
+		}
+		return im
+	}
+	a := func(v string) *image.NRGBA {
+		return load(filepath.Join(assets, "belt_anim", fmt.Sprintf("%s_%02d.png", v, k)))
+	}
+	put := func(im *image.NRGBA, tx, ty int) { paste(out, im, tx*64, ty*64) }
+	belt := func(tx, ty, r int) { put(rot(a("straight"), r), tx, ty) }
+	// Straight column; curve left (feeder from the left) and right (mirrored, feeder from the right).
+	for y := 1; y <= 4; y++ {
+		belt(0, y, 0)
+	}
+	belt(1, 4, 1)
+	put(a("curve"), 2, 4)
+	belt(2, 3, 0)
+	belt(2, 2, 0)
+	belt(4, 4, 3)
+	put(flipH(a("curve")), 3, 4)
+	belt(3, 3, 0)
+	belt(3, 2, 0)
+	// Sideload T-joint: main line up, feeder from the left joins at (6,2).
+	for y := 1; y <= 4; y++ {
+		belt(6, y, 0)
+	}
+	put(a("join_l"), 6, 2)
+	belt(5, 2, 1)
+	// Owner left-circle case: room -> connector (pointing left) -> side of a belt with no rear: the belt curves right.
+	put(room, 10, 4)
+	conn := load(filepath.Join(assets, "belt_connector.png"))
+	lamp := load(filepath.Join(assets, "belt_connector_lamp.png"))
+	put(rot(conn, 3), 9, 4)
+	put(flipH(a("curve")), 8, 4)
+	belt(8, 3, 0)
+	belt(8, 2, 0)
+	// Connector belt -> room.
+	belt(12, 4, 0)
+	belt(12, 3, 0)
+	put(conn, 12, 2)
+	put(room, 12, 1)
+	// Owner right-circle case: splitter, both inputs fed, only output 0 connected (output 1 port closed).
+	put(load(filepath.Join(assets, "belt_splitter.png")), 14, 3)
+	belt(14, 4, 0)
+	belt(15, 4, 0)
+	belt(14, 2, 0)
+	belt(14, 1, 0)
+	// Crossings in the part frame (belt flows right) between belts.
+	for i, c := range []string{"heat_crossing", "cable_crossing"} {
+		belt(17, 1+2*i, 1)
+		put(a(c), 18, 1+2*i)
+		belt(19, 1+2*i, 1)
+	}
+	if lit {
+		addLight(out, rot(lamp, 3), 9*64, 4*64)
+		addLight(out, lamp, 12*64, 2*64)
+		addLight(out, load(filepath.Join(assets, "belt_splitter_lamp_0.png")), 14*64, 3*64)
+	}
+	return out
+}
+
+// overhaulPreview writes frame 0 (lamps lit) at 2x as PNG and all animation frames as an animated GIF at 1x
+// (lamps blink on 2-tick phases like BeltRenderState at full connector rate: lit when (frame & 2) == 0).
+func overhaulPreview(game, assets, pngPath string) {
+	f0 := overhaul(game, assets, 0, true)
+	save(resize(f0, f0.Rect.Dx()*2, f0.Rect.Dy()*2), pngPath)
+	anim := &gif.GIF{}
+	for k := 0; k < animFrames; k++ {
+		f := overhaul(game, assets, k, k&2 == 0)
+		p := image.NewPaletted(f.Rect, palette.Plan9)
+		draw.FloydSteinberg.Draw(p, f.Rect, f, image.Point{})
+		anim.Image = append(anim.Image, p)
+		anim.Delay = append(anim.Delay, 3) // 1/32 s per frame is below GIF resolution; 30 ms
+	}
+	gifPath := strings.TrimSuffix(pngPath, filepath.Ext(pngPath)) + ".gif"
+	f, err := os.Create(gifPath)
+	if err != nil {
+		fail(err)
+	}
+	if err := gif.EncodeAll(f, anim); err != nil {
+		fail(err)
+	}
+	if err := f.Close(); err != nil {
+		fail(err)
+	}
+	fmt.Println("wrote", gifPath, animFrames, "frames")
+}
+
 func main() {
 	game := flag.String("game", `D:\Steam\steamapps\common\Cosmoteer`, "game root (preview only)")
 	artDir := flag.String("art", "art", "master directory")
 	outDir := flag.String("out", filepath.Join("..", "..", "mod", "assets"), "output directory")
 	importDir := flag.String("import", "", "raw Codex output directory to import into -art first")
 	previewPath := flag.String("preview", "", "optional preview PNG path")
+	overhaulPath := flag.String("overhaul", "", "optional §21 overhaul preview PNG path (+ animated .gif next to it)")
 	crossingsPath := flag.String("crossings", "", "optional crossings preview PNG path (belts left/right, pipe or cable above/below)")
 	flag.Parse()
 
@@ -272,19 +569,8 @@ func main() {
 			if !exists(path) {
 				continue
 			}
-			raw := load(path)
-			if base, ok := strings.CutSuffix(sp.master, "_moving"); ok {
-				// The overlay is mostly magenta, so crop it to the base layer's key bands and key magenta to alpha.
-				b := trimKeyRows(load(filepath.Join(*importDir, base+"_base_master.png"))).Rect
-				raw = raw.SubImage(image.Rect(0, b.Min.Y, raw.Rect.Dx(), b.Max.Y)).(*image.NRGBA)
-				for i := 0; i < len(raw.Pix); i += 4 {
-					if magenta(color.NRGBA{raw.Pix[i], raw.Pix[i+1], raw.Pix[i+2], 255}) {
-						raw.Pix[i+3] = 0
-					}
-				}
-			} else {
-				raw = trimKeyRows(raw)
-			}
+			raw := trimKeyRows(load(path))
+			fmt.Println("import", sp.master, "rows", raw.Rect.Min.Y, "..", raw.Rect.Max.Y)
 			save(resize(raw, sp.w*masterTile, sp.h*masterTile), filepath.Join(*artDir, sp.master+".png"))
 		}
 	}
@@ -304,8 +590,13 @@ func main() {
 			save(resize(m, sp.w*32, sp.h*32), filepath.Join(*outDir, sp.icon))
 		}
 	}
+	bakeAnim(*artDir, *outDir)
+	bakeLamps(*artDir, *outDir)
 	if *previewPath != "" {
 		preview(*game, *outDir, *previewPath)
+	}
+	if *overhaulPath != "" {
+		overhaulPreview(*game, *outDir, *overhaulPath)
 	}
 	if *crossingsPath != "" {
 		crossings(*game, *outDir, *crossingsPath)
