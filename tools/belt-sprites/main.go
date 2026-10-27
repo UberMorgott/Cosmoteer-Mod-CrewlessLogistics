@@ -35,6 +35,10 @@ var sprites = []sprite{
 	{"belt_connector", 1, 1, "belt_connector.png", "belt_connector_icon.png"},
 	{"belt_splitter", 2, 1, "belt_splitter.png", "belt_splitter_icon.png"},
 	{"belt_splitter_blueprint", 2, 1, "belt_splitter_blueprint.png", ""},
+	// Crossings: masters are drawn like belt.png (belt up, heat pipe / cable entering at the left and right edges under
+	// the belt); baked rotated 90 degrees clockwise into the part frame (belt flows right, network on Up/Down).
+	{"belt_heat_crossing", 1, 1, "belt_heat_crossing.png", "belt_heat_crossing_icon.png"},
+	{"belt_cable_crossing", 1, 1, "belt_cable_crossing.png", "belt_cable_crossing_icon.png"},
 }
 
 // layers are animation-ready masters kept in art/ only (not baked yet): <part>_base = housing with moving parts removed,
@@ -138,6 +142,18 @@ func resize(img *image.NRGBA, w, h int) *image.NRGBA {
 	return out
 }
 
+// rotateCW turns a square image 90 degrees clockwise (top row -> right column).
+func rotateCW(img *image.NRGBA) *image.NRGBA {
+	n := img.Rect.Dx()
+	out := image.NewNRGBA(image.Rect(0, 0, n, n))
+	for y := 0; y < n; y++ {
+		for x := 0; x < n; x++ {
+			out.SetNRGBA(x, y, img.NRGBAAt(img.Rect.Min.X+y, img.Rect.Min.Y+n-1-x))
+		}
+	}
+	return out
+}
+
 // paste copies src onto dst at (ox, oy) with alpha blending.
 func paste(dst, src *image.NRGBA, ox, oy int) {
 	for y := 0; y < src.Rect.Dy(); y++ {
@@ -211,12 +227,42 @@ func preview(game, assets, path string) {
 	save(out, path)
 }
 
+// crossings lays out, at 2x game scale, each crossing in the part frame (rotation 0: belt flows right) between two
+// horizontal belts, with the vanilla heat pipe / our electric cable straight sprite above and below it.
+func crossings(game, assets, path string) {
+	const s = 128
+	pipe := load(filepath.Join(game, "Data", "ships", "terran", "heat_pipe_adaptive", "floor_straight.png"))
+	cable := load(filepath.Join(assets, "cable_body_straight.png"))
+	belt := rotateCW(load(filepath.Join(assets, "belt.png")))
+	out := image.NewNRGBA(image.Rect(0, 0, 7*s+48, 3*s+32))
+	for i := range out.Pix {
+		out.Pix[i] = 40
+		if i%4 == 3 {
+			out.Pix[i] = 255
+		}
+	}
+	for k, c := range []struct {
+		cross string
+		net   *image.NRGBA
+	}{{"belt_heat_crossing.png", pipe}, {"belt_cable_crossing.png", cable}} {
+		ox := 16 + k*(3*s+16)
+		put := func(im *image.NRGBA, tx, ty int) { paste(out, resize(im, s, s), ox+tx*s, 16+ty*s) }
+		put(c.net, 1, 0)
+		put(c.net, 1, 2)
+		put(belt, 0, 1)
+		put(load(filepath.Join(assets, c.cross)), 1, 1)
+		put(belt, 2, 1)
+	}
+	save(out, path)
+}
+
 func main() {
 	game := flag.String("game", `D:\Steam\steamapps\common\Cosmoteer`, "game root (preview only)")
 	artDir := flag.String("art", "art", "master directory")
 	outDir := flag.String("out", filepath.Join("..", "..", "mod", "assets"), "output directory")
 	importDir := flag.String("import", "", "raw Codex output directory to import into -art first")
 	previewPath := flag.String("preview", "", "optional preview PNG path")
+	crossingsPath := flag.String("crossings", "", "optional crossings preview PNG path (belts left/right, pipe or cable above/below)")
 	flag.Parse()
 
 	if *importDir != "" {
@@ -244,6 +290,9 @@ func main() {
 	}
 	for _, sp := range sprites {
 		m := load(filepath.Join(*artDir, sp.master+".png"))
+		if strings.HasSuffix(sp.master, "_crossing") {
+			m = rotateCW(m)
+		}
 		if strings.HasSuffix(sp.master, "_blueprint") {
 			// Vanilla blueprints are translucent blue (pale ~A76, lane ~A165): key alpha from the red channel.
 			for i := 0; i < len(m.Pix); i += 4 {
@@ -257,5 +306,8 @@ func main() {
 	}
 	if *previewPath != "" {
 		preview(*game, *outDir, *previewPath)
+	}
+	if *crossingsPath != "" {
+		crossings(*game, *outDir, *crossingsPath)
 	}
 }

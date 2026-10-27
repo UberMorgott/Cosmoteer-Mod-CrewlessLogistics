@@ -20,9 +20,9 @@ static class WorldProbes
         readonly Dictionary<(int, int), int> _cells = new();
         readonly Dictionary<(int, int), IRoom> _rooms = new();
 
-        public Node Add(NodeKind kind, int x, int y, int dir, int sx = 0, int sy = 0, NodeState? state = null)
+        public Node Add(NodeKind kind, int x, int y, int dir, int sx = 0, int sy = 0, NodeState? state = null, bool noCurve = false)
         {
-            var n = new Node(state ?? new NodeState(kind), x, y, Dir[dir].X, Dir[dir].Y, sx, sy);
+            var n = new Node(state ?? new NodeState(kind), x, y, Dir[dir].X, Dir[dir].Y, sx, sy, noCurve);
             _cells[(x, y)] = Nodes.Count;
             if (kind == NodeKind.Splitter)
             {
@@ -33,6 +33,9 @@ static class WorldProbes
         }
 
         public Node Belt(int x, int y, int dir) => Add(NodeKind.Belt, x, y, dir);
+
+        /// <summary>Belt crossing (heat pipe / cable under it): a belt node that never curves.</summary>
+        public Node Cross(int x, int y, int dir) => Add(NodeKind.Belt, x, y, dir, noCurve: true);
 
         public Node Connector(int x, int y, int dir, int filter)
         {
@@ -156,6 +159,7 @@ static class WorldProbes
     public static void Run(Action<bool, string> check)
     {
         AutoCurve(check);
+        Crossings(check);
         ItemRender(check);
         Sideload(check);
         SplitterSplitMerge(check);
@@ -197,8 +201,8 @@ static class WorldProbes
     /// </summary>
     static void AdjacencyMatrix(Action<bool, string> check)
     {
-        string[] srcNames = { "belt", "curveL", "curveR", "conn*", "connIron", "connNone", "splitA", "splitB" };
-        string[] tgtNames = { "belt", "conn*", "connIron", "connNone", "splitA", "splitB" };
+        string[] srcNames = { "belt", "curveL", "curveR", "conn*", "connIron", "connNone", "splitA", "splitB", "cross" };
+        string[] tgtNames = { "belt", "conn*", "connIron", "connNone", "splitA", "splitB", "cross" };
         string[] entryNames = { "back", "left", "right", "front" };
         int cases = 0, valid = 0, noop = 0, impossible = 0, bad = 0;
         string first = "";
@@ -224,7 +228,11 @@ static class WorldProbes
             var (slx, sly) = LeftOf(sdir);
             int feedTile = -1;
             Node? src = null;
-            if (sk <= 2)
+            if (sk == 8)
+            {
+                src = g.Cross(sx, sy, sdir);
+            }
+            else if (sk <= 2)
             {
                 src = g.Belt(sx, sy, sdir);
                 if (sk > 0)
@@ -247,17 +255,17 @@ static class WorldProbes
                 feedTile = h;
             }
             int collisions = 0;
-            Node Place(NodeKind kind, int x, int y, int dir, int ox = 0, int oy = 0)
+            Node Place(NodeKind kind, int x, int y, int dir, int ox = 0, int oy = 0, bool noCurve = false)
             {
                 collisions += g.Free(x, y) && (kind != NodeKind.Splitter || g.Free(x + ox, y + oy)) ? 0 : 1;
-                return g.Add(kind, x, y, dir, ox, oy);
+                return g.Add(kind, x, y, dir, ox, oy, noCurve: noCurve);
             }
             Node tgt;
             var drains = new List<Node>();
             Typed? tgtRoom = null;
-            if (tk == 0)
+            if (tk == 0 || tk == 6)
             {
-                drains.Add(tgt = Place(NodeKind.Belt, 0, 0, r));
+                drains.Add(tgt = Place(NodeKind.Belt, 0, 0, r, noCurve: tk == 6));
             }
             else if (tk <= 3)
             {
@@ -314,7 +322,8 @@ static class WorldProbes
             int deliveredSulfur = sulfur + (tgtRoom?.In[Sulfur] ?? 0);
             bool flows = e != 3 && sk != 5 && tk != 3;
             bool ironOnly = sk == 4 || tk == 2;
-            bool curveOk = !(tk == 0 && (e == 1 || e == 2) && (sk <= 2 || sk >= 6)) || tgt.Shape != Shape.Straight;
+            // A crossing target never curves (side feeders side-load); a crossing source curves a plain belt like a belt.
+            bool curveOk = tk == 6 ? tgt.Shape == Shape.Straight : !(tk == 0&& (e == 1 || e == 2) && (sk <= 2 || sk >= 6)) || tgt.Shape != Shape.Straight;
             bool conserved = Held(w, rooms) + iron + sulfur == initial + fed;
             bool ok = collisions == 0 && conserved && (flows ? delivered > 0 : delivered == 0) && (!ironOnly || deliveredSulfur == 0) && curveOk;
             valid += flows ? 1 : 0;
@@ -490,6 +499,50 @@ static class WorldProbes
             Step(w, t, b.Tile0, got);
         }
         check(got[0] == 0 && got[1] > 200 && got[1] <= fed, $"curve keeps lanes: fed R={fed} out L={got[0]} R={got[1]}");
+    }
+
+    /// <summary>
+    /// Crossings (belt over heat pipe / cable): 4 rotations x {rear feeder, lone left feeder, lone right feeder}. The
+    /// crossing stays Straight, a lone side feeder side-loads onto the near lane only, rear feed keeps both lanes, and
+    /// every item is conserved (lanes + held + delivered == fed).
+    /// </summary>
+    static void Crossings(Action<bool, string> check)
+    {
+        int bad = 0, cases = 0;
+        string first = "";
+        for (int dir = 0; dir < 4; dir++)
+        {
+            var (dx, dy) = Dir[dir];
+            var (lx, ly) = LeftOf(dir);
+            for (int feed = 0; feed < 3; feed++)
+            {
+                cases++;
+                var g = new Grid();
+                Node x = g.Cross(0, 0, dir);
+                Node end = g.Belt(dx, dy, dir);
+                int side = feed == 1 ? 1 : -1;
+                Node f = feed == 0 ? g.Belt(-dx, -dy, dir) : g.Belt(lx * side, ly * side, DirOf(-lx * side, -ly * side));
+                BeltWorld w = g.Build();
+                int[] got = new int[2];
+                int fed = 0;
+                for (int t = 0; t < 900; t++)
+                {
+                    fed += w.Sim.TryPutBack(f.Tile0, 0, Iron) ? 1 : 0;
+                    fed += w.Sim.TryPutBack(f.Tile0, 1, Sulfur) ? 1 : 0;
+                    Step(w, t, end.Tile0, got);
+                }
+                int held = Held(w, Array.Empty<IRoom>());
+                int near = feed == 1 ? 0 : 1;
+                bool ok = x.Shape == Shape.Straight && held + got[0] + got[1] == fed
+                    && (feed == 0 ? got[0] > 200 && got[1] > 200 : got[near] > 200 && got[near ^ 1] == 0);
+                if (!ok)
+                {
+                    bad++;
+                    first = first.Length > 0 ? first : $" [dir {dir} feed {feed}: shape={x.Shape} L={got[0]} R={got[1]} fed={fed} held={held}]";
+                }
+            }
+        }
+        check(bad == 0, $"crossing: {cases} cases (4 rotations x rear/left/right feeder): straight only, lone side feeder side-loads near lane, rear keeps lanes, conserved, bad={bad}{first}");
     }
 
     /// <summary>
@@ -809,7 +862,7 @@ static class WorldProbes
         g.Add(NodeKind.Belt, 0, 4, Up, state: state(k++));
         g.Add(NodeKind.Belt, 0, 3, Up, state: state(k++));
         g.Add(NodeKind.Belt, -1, 3, Right, state: state(k++)); // side feeder; (0,3) also has a rear feeder -> sideload
-        g.Add(NodeKind.Belt, 0, 2, Up, state: state(k++));
+        g.Add(NodeKind.Belt, 0, 2, Up, state: state(k++), noCurve: true); // crossing: same payload as a belt
         g.Add(NodeKind.Splitter, 0, 1, Up, 1, 0, state(k++));
         g.Add(NodeKind.Belt, 0, 0, Up, state: state(k++));
         g.Add(NodeKind.Belt, 1, 0, Up, state: state(k++));

@@ -14,6 +14,10 @@ CrewlessLogistics
     SplitterDesc = "1x2. Dos entradas detrás y dos salidas delante. Los objetos se alternan entre las salidas carril por carril; si una salida está bloqueada o no existe, todo va a la otra, así que también une dos cintas. Conserva los carriles. Sin filtro. Cuesta 8 de acero + 4 bobinas."
     ConnectorName = "Crewless Logistics: conector de cinta"
     ConnectorDesc = "Mueve el recurso elegido de la casilla detrás de la flecha a la de delante: sala a cinta, cinta a sala, sala a sala o cinta a cinta. Funciona con bodegas, fábricas y armas, nunca con la red eléctrica. Elige el recurso con el botón de filtro; el valor inicial Ninguno no mueve nada. No necesita energía. Cuesta 4 de acero + 2 bobinas."
+    BeltHeatCrossingName = "Crewless Logistics Cruce de cinta y tubería térmica"
+    BeltHeatCrossingDesc = "Una cinta transportadora recta pasa sobre una tubería térmica: los objetos avanzan por un eje y el calor por el otro. Gira la pieza para fijar la dirección de la cinta. Nunca gira; una cinta que alimenta su lateral deja los objetos en el carril cercano. La tripulación puede caminar a lo largo de la cinta al 80 % de velocidad. Estadísticas del cruce de tubería térmica normal: 1000 PV, densidad 1. La cinta necesita la biblioteca Yet Another Mod Loader. Cuesta 4 de acero + 2 bobinas."
+    BeltCableCrossingName = "Crewless Logistics Cruce de cinta y cable"
+    BeltCableCrossingDesc = "Una cinta transportadora recta pasa sobre un cable eléctrico: los objetos avanzan por un eje y las baterías completas por el otro; no se conecta a tuberías térmicas. Gira la pieza para fijar la dirección de la cinta. Nunca gira; una cinta que alimenta su lateral deja los objetos en el carril cercano. La tripulación puede caminar a lo largo de la cinta al 80 % de velocidad. Estadísticas del cruce de tubería térmica normal: 1000 PV, densidad 1. La cinta necesita la biblioteca Yet Another Mod Loader. Cuesta 4 de acero + 2 bobinas."
     FilterNone = "Filtro de cinta: Ninguno. No pasa nada. Elige un recurso o Cualquiera."
     FilterAny = "Filtro de cinta: cualquier recurso."
 }

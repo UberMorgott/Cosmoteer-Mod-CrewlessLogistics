@@ -182,10 +182,11 @@ internal sealed class BeltManager : ShipComponent
             }
             PartRules r = part.Rules;
             IntVector2 c = r.GetShipRelativeCell(new IntVector2(0, 0), part.Location, part.Rotation, part.FlipX);
-            IntVector2 f = r.GetShipRelativeCell(new IntVector2(0, -1), part.Location, part.Rotation, part.FlipX);
+            bool crossing = BeltState.IsCrossing(part);
+            IntVector2 f = r.GetShipRelativeCell(crossing ? new IntVector2(1, 0) : new IntVector2(0, -1), part.Location, part.Rotation, part.FlipX);
             IntVector2 h = kind == NodeKind.Splitter ? r.GetShipRelativeCell(new IntVector2(1, 0), part.Location, part.Rotation, part.FlipX) : c;
             _index[part] = _nodes.Count;
-            _nodes.Add(new Node(BeltState.GetOrCreate(part, kind), c.X, c.Y, f.X - c.X, f.Y - c.Y, h.X - c.X, h.Y - c.Y));
+            _nodes.Add(new Node(BeltState.GetOrCreate(part, kind), c.X, c.Y, f.X - c.X, f.Y - c.Y, h.X - c.X, h.Y - c.Y, crossing));
             _nodeParts.Add(part);
         }
         _world = _nodes.Count == 0 ? null : new BeltWorld(_nodes, (x, y) => NodeAt(ship, x, y), (x, y) => RoomAt(ship, x, y));

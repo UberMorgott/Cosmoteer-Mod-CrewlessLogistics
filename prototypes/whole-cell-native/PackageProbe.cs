@@ -71,13 +71,13 @@ sealed partial class NativeProbe
             Require((string)ReadRuleObject(root, "<ships/terran/terran.rules>/Terran/Parts/98/ID", typeof(string)) == "morgott.crewless_logistics.cable_heat_crossing", "Independent heat/electric crossover was not appended to the registry");
             Require(((string[])ReadRuleObject(Open(Path.Combine(modDirectory, "cable_heat_crossing.rules")), "Part/OtherIDs", typeof(string[]))).SequenceEqual(new[] { "morgott.powergrid.cable_heat_crossing" }), "Heat crossover lost its pre-0.3.3 part ID alias");
             BeltPartsProbe(root);
-            foreach (string cable in new[] { "cable.rules", "cable_crossing.rules" }) {
+            foreach (string cable in new[] { "cable.rules", "cable_crossing.rules", "belt_cable_crossing.rules" }) {
                 var cableFile = Open(Path.Combine(modDirectory, cable));
-                bool crossing = cable == "cable_crossing.rules";
+                bool crossing = cable != "cable.rules";
                 var sides = crossing ? new[] { "Up", "Down" } : new[] { "Up", "Right", "Down", "Left" };
                 var id = (string)ReadRuleObject(cableFile, "Part/ID", typeof(string));
                 Require(id == "morgott.crewless_logistics." + Path.GetFileNameWithoutExtension(cable), "Wrong cable part ID");
-                Require(((string[])ReadRuleObject(cableFile, "Part/OtherIDs", typeof(string[]))).SequenceEqual(new[] { "morgott.powergrid." + Path.GetFileNameWithoutExtension(cable) }), "Cable lost its pre-0.3.3 part ID alias");
+                Require(((string[])ReadRuleObject(cableFile, "Part/OtherIDs", typeof(string[]))).SequenceEqual(cable.StartsWith("belt_") ? Array.Empty<string>() : new[] { "morgott.powergrid." + Path.GetFileNameWithoutExtension(cable) }), "Cable lost its pre-0.3.3 part ID alias");
                 foreach (var name in new[] { "CrewlessLogisticsNode", "CrewlessLogisticsBlueprintNode" }.Concat(sides.Select(side => "Port_" + side))) {
                     Rules("Part/Components/" + name, "Cosmoteer.Ships.Parts.PartComponentRules", cableFile);
                     added.Add(cable + ":" + name);

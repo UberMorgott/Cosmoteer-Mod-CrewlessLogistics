@@ -50,6 +50,8 @@ public sealed class Node
     /// <summary>Connector filter, refreshed from the UIToggle every tick (<see cref="BeltTypes.FilterFromMode"/>).</summary>
     public int Filter = BeltTypes.FilterNone;
     public Shape Shape;
+    /// <summary>Belt crossing (heat pipe / cable under it): straight only, a lone side feeder side-loads instead of curving.</summary>
+    public readonly bool NoCurve;
     internal int Tile0 = -1;
     /// <summary>Belt: non-tile output (connector) of its end. Splitter: output of half i. Connector: [0] = itself as a sink (chain start).</summary>
     internal readonly Sink?[] Out = new Sink?[2];
@@ -60,8 +62,9 @@ public sealed class Node
     /// <summary>Connector: may pass one item this tick (cooldown was 0 at tick start).</summary>
     internal bool Ready;
 
-    public Node(NodeState state, int x, int y, int dx, int dy, int sx = 0, int sy = 0)
+    public Node(NodeState state, int x, int y, int dx, int dy, int sx = 0, int sy = 0, bool noCurve = false)
     {
+        NoCurve = noCurve;
         State = state;
         X = x;
         Y = y;
@@ -176,7 +179,7 @@ public sealed class BeltWorld
                     sides++;
                 }
             }
-            bool curve = rear == 0 && sides == 1;
+            bool curve = !nodes[j].NoCurve && rear == 0 && sides == 1;
             nodes[j].Shape = curve ? (f[0].S.Entry == Entry.SideLeft ? Shape.CurveLeft : Shape.CurveRight) : Shape.Straight;
             foreach (var x in f)
             {

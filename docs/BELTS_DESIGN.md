@@ -61,6 +61,8 @@ rules naming it fail to parse without the DLL. Without the DLL the rules load, b
 | `morgott.crewless_logistics.belt` | 1x1 | belt, auto straight/curve, 2 lanes |
 | `morgott.crewless_logistics.belt_splitter` | 1x2 | 2 in / 2 out, split + merge, lane-preserving |
 | `morgott.crewless_logistics.belt_connector` | 1x1 | directional room<->belt/room transfer, resource filter |
+| `morgott.crewless_logistics.belt_heat_crossing` | 1x1 | straight belt over a vanilla heat pipe (§19) |
+| `morgott.crewless_logistics.belt_cable_crossing` | 1x1 | straight belt over our electric cable (§19) |
 
 Retired prototype IDs (`ammo_belt`, `ammo_belt_corner_left/right`, `ammo_belt_merger`, `ammo_belt_splitter`,
 `mod/ammo_belt_common.rules:10-17`) were never in a Workshop release (0.3.5 description says logistics "planned"), so
@@ -394,3 +396,27 @@ Spot-checked: `Part.cs:827,1371`, `SimRoot.cs:605-618`, `FixedUpdateBuckets.cs` 
   with each resource's `StackSprites[0]` (updated per tick, no frame interpolation); destroyed belts drop nuggets.
 - Not in v1: curve/splitter surface art per state (rules art is a straight arrow), animated surface,
   items on deconstructed belts are lost (destroyed belts drop them), frame interpolation of item positions.
+
+## 19. Belt crossings over heat pipes / cables (2026-10-27, owner: belt ON TOP of the pipes)
+
+Decisions (Claude / Codex `codex exec -s read-only`, engine-verified / agreed):
+
+| # | Claude | Codex | Agreed + why |
+|---|---|---|---|
+| D1 same-cell overlap (belt placed over an existing pipe) | infeasible | AGREE | one part per cell: `CommonBasePartsManager.cs:56` `Dictionary<IntVector2,TPart> _partsByCell`, `:1955` `_partsByCell.Add` throws on duplicates; blueprints also reject occupied cells (`BlueprintPartsManager.cs:154`); `PhysicalRect`/`CellOccupancyFactor`/`IsExternal` do not bypass it. => two 1x1 crossing parts |
+| D2 body, crew | inherit vanilla `heat_pipe_crossing`: stats, Left/Right doors, crew .8; belt on the part Left/Right axis so crew walk along the belt | AGREE (keep thermal nodes `NetworkAverageThermalDissipationLoadValue`/`BlueprintNetworkNode`; cable variant needs both `CrewlessLogistics*Node`) | crew-walkable at .8 like vanilla crossing and `cable_crossing` (plain belt is 1.0) |
+| D3 sim | `NodeKind.Belt` + `Node.NoCurve`: rear + side-load like a straight belt, never auto-curves; front = part cell (1, 0); same payload | AGREE; noted a crossing feeding the side of a plain belt still curves that belt (receiver decides) | kept: a crossing is a belt as a source; only the crossing itself never curves |
+| D4 art | belt floor on top, network visible only at the Up/Down edges entering tunnels; drop vanilla cylinder and heat glow | AGREE + also drop `Darkness_Graphics` (`doodads_high`) | nothing draws above items; thermal glow on that tile is cosmetic loss |
+| D5 connections | vanilla pipe / our cable connect via `Port_Up/Down` | AGREE; `Dont_Draw_Pipe_Connector_Into_This_Part` suppresses the neighbour's connector, the crossing's own edge art must meet it | art stubs sized to the vanilla pipe (x 17..46 of 64) / cable (19..44) |
+
+- `belt_heat_crossing.rules`: vanilla crossing Part + Components; replaces only `Graphics` (belt floor, vanilla
+  crossing walls, corridor roof), empties `Darkness_Graphics`/`HeatGlow_Graphics`, own blueprint/icon.
+- `belt_cable_crossing.rules`: `cable_crossing.rules` pattern (`CableElectricPort` Up/Down, both nodes,
+  availability) with the belt floor instead of the cable cylinder.
+- C#: `BeltState.HeatCrossingId/CableCrossingId` -> `NodeKind.Belt`, `IsCrossing` -> front (1, 0) and
+  `Node.NoCurve`; `ProtocolVersion` 3. Items render as on a straight belt.
+- Art: Codex image_gen masters `tools/belt-sprites/art/belt_{heat,cable}_crossing.png` drawn like `belt.png`
+  (belt up), baked rotated 90 degrees clockwise into the part frame (`-crossings` preview).
+- Tests: `belts/tests` matrix source/target `cross`, `Crossings` (4 rotations x rear/left/right feeder), crossing in
+  the save round-trip; native `BeltPartsProbe` (registry, tabs, doors/.8, vanilla crossing stats, Up/Down port types,
+  nothing above items) and the cable loop in `PackageProbe` (electric port runtime links) cover both parts.

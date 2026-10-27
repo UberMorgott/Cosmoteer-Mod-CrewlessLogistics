@@ -5,7 +5,9 @@ sealed partial class NativeProbe
     void BeltPartsProbe(object root)
     {
         const string parts = "<ships/terran/terran.rules>/Terran/Parts/";
-        string[] ids = { "morgott.crewless_logistics.belt", "morgott.crewless_logistics.belt_splitter", "morgott.crewless_logistics.belt_connector" };
+        string[] ids = { "morgott.crewless_logistics.belt", "morgott.crewless_logistics.belt_splitter", "morgott.crewless_logistics.belt_connector",
+            "morgott.crewless_logistics.belt_heat_crossing", "morgott.crewless_logistics.belt_cable_crossing" };
+        const string vanillaCrossing = "<ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/";
         bool Has(string path)
         {
             try {
@@ -20,7 +22,25 @@ sealed partial class NativeProbe
             Require((string)ReadRuleObject(root, p + "ID", typeof(string)) == ids[i], "Belt part was not appended to the vanilla registry: " + ids[i]);
             Require(((string[])ReadRuleObject(root, p + "EditorGroups", typeof(string[]))).SequenceEqual(new[] { "Storage", "Power" }), "Belt part must be in the Storage and Power build tabs: " + ids[i]);
             Require((bool)ReadRuleObject(root, p + "IsRotateable", typeof(bool)) && !(bool)ReadRuleObject(root, p + "IsFlippable", typeof(bool)), "Belt part must rotate and not flip: " + ids[i]);
-            Require((float)ReadRuleObject(root, p + "CrewSpeedFactor/Up", typeof(float)) == 1 && (float)ReadRuleObject(root, p + "CrewSpeedFactor/Down", typeof(float)) == 1, "Belt part must be crew-walkable at corridor speed: " + ids[i]);
+            if (i < 3) {
+                Require((float)ReadRuleObject(root, p + "CrewSpeedFactor/Up", typeof(float)) == 1 && (float)ReadRuleObject(root, p + "CrewSpeedFactor/Down", typeof(float)) == 1, "Belt part must be crew-walkable at corridor speed: " + ids[i]);
+            } else {
+                // Crossings keep the vanilla heat pipe crossing body: crew walk along the belt (Left/Right doors) at .8,
+                // and its health, density and penetration (owner: pipe stats parity, no armor exploit).
+                var doors = (int[][])ReadRuleObject(root, p + "AllowedDoorLocations", typeof(int[][]));
+                Require(doors.Length == 2 && doors[0].SequenceEqual(new[] { -1, 0 }) && doors[1].SequenceEqual(new[] { 1, 0 })
+                    && Math.Abs((float)ReadRuleObject(root, p + "CrewSpeedFactor", typeof(float)) - 0.8f) < 0.0001f, "Belt crossing must keep vanilla crossing doors along the belt and crew speed .8: " + ids[i]);
+                foreach (var stat in new[] { "MaxHealth", "Density", "InitialPenetrationResistance", "ContinuingPenetrationResistance" })
+                    Require((float)ReadRuleObject(root, p + stat, typeof(float)) == (float)ReadRuleObject(root, vanillaCrossing + stat, typeof(float)), ids[i] + " " + stat + " differs from the vanilla heat pipe crossing");
+                // Nothing may draw above the belt items: no pipe cylinder, darkness overlay or heat glow.
+                foreach (var g in new[] { "Darkness_Graphics/NonOperationalDoodad/Layer", "HeatGlow_Graphics/OperationalDoodad/Layer", "HeatGlow_Graphics/OperationalRoofDoodad/Layer" })
+                    Require(!Has(p + "Components/" + g), "Belt crossing still draws " + g + ": " + ids[i]);
+                // Network axis = part Up/Down (belt front is part cell (1, 0) in BeltManager): heat or electric only.
+                bool heat = i == 3;
+                foreach (var side in new[] { "Up", "Down" })
+                    Require(((string[])ReadRuleObject(root, p + "Components/Port_" + side + "/Types", typeof(string[]))).SequenceEqual(new[] { heat ? "thermal" : "morgott.crewless_logistics.electric" }), "Belt crossing network port has the wrong type: " + ids[i] + " Port_" + side);
+                Require(!Has(p + "Components/Port_Left/Type") && !Has(p + "Components/Port_Right/Type"), "Belt crossing must not have network ports on the belt axis: " + ids[i]);
+            }
             Require(!Has(p + "Components/Graphics/OperationalDoodad/Layer"), "Belt part still draws the vanilla crew-conveyor animation: " + ids[i]);
             Require((string)ReadRuleObject(root, p + "Components/Graphics/Floor/Layer", typeof(string)) == "floors", "Belt surface must stay under the item layer: " + ids[i]);
             Require(Has(p + "Components/BeltFilter/Type") == (i == 2), "Only the connector has the belt filter: " + ids[i]);
@@ -29,6 +49,6 @@ sealed partial class NativeProbe
         Require((string)ReadRuleObject(root, filter + "ToggleID", typeof(string)) == "morgott.crewless_logistics.belt_filter"
             && (int)ReadRuleObject(root, filter + "Default", typeof(int)) == 0 && (bool)ReadRuleObject(root, filter + "RememberValue", typeof(bool)), "Connector filter must default to None and be remembered (blueprints)");
         Require(((int[])ReadRuleObject(root, parts + "100/Size", typeof(int[]))).SequenceEqual(new[] { 2, 1 }), "Splitter must be 1x2");
-        Console.WriteLine("PASS: belt, splitter and connector registered after the cables; Storage+Power tabs, rotatable, crew-walkable, connector filter default None");
+        Console.WriteLine("PASS: belt, splitter, connector, belt/heat and belt/cable crossings registered after the cables; Storage+Power tabs, rotatable, crew-walkable, connector filter default None; crossings keep vanilla crossing stats/doors/.8 crew speed, Up/Down thermal resp. electric ports only, nothing drawn above items");
     }
 }

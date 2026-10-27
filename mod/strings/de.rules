@@ -14,6 +14,10 @@ CrewlessLogistics
     SplitterDesc = "1x2. Zwei Eingänge hinten, zwei Ausgänge vorne. Gegenstände wechseln spurweise zwischen den Ausgängen; ist ein Ausgang blockiert oder fehlt er, geht alles zum anderen, so führt er auch zwei Bänder zusammen. Spuren bleiben erhalten. Kein Filter. Kostet 8 Stahl + 4 Spulen."
     ConnectorName = "Crewless Logistics Bandverbinder"
     ConnectorDesc = "Bewegt die gewählte Ressource vom Feld hinter dem Pfeil zum Feld davor: Raum zu Band, Band zu Raum, Raum zu Raum oder Band zu Band. Funktioniert mit Frachträumen, Fabriken und Waffen, nie mit dem Stromnetz. Die Ressource wird mit der Filtertaste gewählt; die Vorgabe Keine bewegt nichts. Braucht keine Energie. Kostet 4 Stahl + 2 Spulen."
+    BeltHeatCrossingName = "Crewless Logistics Band-/Wärmerohrkreuzung"
+    BeltHeatCrossingDesc = "Ein gerades Förderband läuft über ein Wärmerohr: Gegenstände bewegen sich entlang einer Achse, Wärme entlang der anderen. Drehen legt die Bandrichtung fest. Biegt nie ab; ein seitlich zuführendes Band legt seine Gegenstände auf die nahe Spur. Die Crew kann mit 80 % Geschwindigkeit entlang des Bandes laufen. Werte der normalen Wärmerohrkreuzung: 1000 HP, Dichte 1. Das Band benötigt die Bibliothek Yet Another Mod Loader. Kostet 4 Stahl + 2 Spulen."
+    BeltCableCrossingName = "Crewless Logistics Band-/Kabelkreuzung"
+    BeltCableCrossingDesc = "Ein gerades Förderband läuft über ein Stromkabel: Gegenstände bewegen sich entlang einer Achse, ganze Batterien entlang der anderen; keine Verbindung zu Wärmerohren. Drehen legt die Bandrichtung fest. Biegt nie ab; ein seitlich zuführendes Band legt seine Gegenstände auf die nahe Spur. Die Crew kann mit 80 % Geschwindigkeit entlang des Bandes laufen. Werte der normalen Wärmerohrkreuzung: 1000 HP, Dichte 1. Das Band benötigt die Bibliothek Yet Another Mod Loader. Kostet 4 Stahl + 2 Spulen."
     FilterNone = "Bandfilter: Keine. Nichts geht durch. Wähle eine Ressource oder Beliebig."
     FilterAny = "Bandfilter: Beliebige Ressource."
 }

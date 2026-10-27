@@ -10,7 +10,7 @@ sealed partial class NativeProbe
         var references = Directory.GetFiles(modDirectory, "*.rules", SearchOption.AllDirectories)
             .SelectMany(path => referencePattern.Matches(File.ReadAllText(path)).Select(match => match.Groups[1].Value))
             .ToHashSet(StringComparer.Ordinal);
-        Require(references.Count == 16, "Unexpected set of user-visible Crewless Logistics strings; update language coverage");
+        Require(references.Count == 20, "Unexpected set of user-visible Crewless Logistics strings; update language coverage");
         var values = new Dictionary<string, Dictionary<string, string>>();
         // Every game language (Data/strings/<lang>.rules) has its own table.
         string[] languages = { "en", "ru", "de", "es", "fr", "ja", "pt-br", "zh-cn" };
