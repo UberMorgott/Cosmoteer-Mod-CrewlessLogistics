@@ -48,7 +48,7 @@ func run() error {
 	content := flag.String("content", "", "installed mod folder (uploaded as item content; holds .workshop)")
 	preview := flag.String("preview", "", "preview image (jpg/png/gif)")
 	textsDir := flag.String("texts", "", "dir with <steamlang>.txt: first line title, rest description; english.txt required")
-	visFlag := flag.String("visibility", "", "public|friends|private|hidden (empty = leave unchanged on update, public on create)")
+	visFlag := flag.String("visibility", "", "public|friends|private|hidden (omitted = private on create, left unchanged on update)")
 	changeNote := flag.String("changenote", "", "change note for the content update")
 	minVer := flag.String("min-version", "", "required min game branch version, e.g. 0.30.0 (SetRequiredGameVersions; set only if min or max given)")
 	maxVer := flag.String("max-version", "", "required max game branch version")
@@ -79,19 +79,15 @@ func run() error {
 			fmt.Printf("warning: preview is %d bytes; Steam recommends < 1 MB\n", st.Size())
 		}
 	}
-	vis := -1
-	if *visFlag != "" {
-		v, ok := visibilities[*visFlag]
-		if !ok {
-			return fmt.Errorf("bad -visibility %q", *visFlag)
-		}
-		vis = v
-	}
 	texts, err := loadTexts(*textsDir)
 	if err != nil {
 		return err
 	}
 	fileID, err := readWorkshopID(absContent)
+	if err != nil {
+		return err
+	}
+	vis, err := visibilityFor(*visFlag, fileID == 0)
 	if err != nil {
 		return err
 	}
@@ -110,7 +106,7 @@ func run() error {
 	}
 	defer s.shutdown()
 	fmt.Printf("steam: appid=%d loggedOn=%v steamID=%d persona=%q\n", appID, s.loggedOn(), s.steamID(), s.persona())
-	fmt.Printf("content: %s\npreview: %s\n", absContent, orNone(absPreview))
+	fmt.Printf("content: %s\npreview: %s\nvisibility: %d (-1 = unchanged)\n", absContent, orNone(absPreview), vis)
 	for _, t := range texts {
 		fmt.Printf("text %-10s title=%q (%d B) desc=%d B\n", t.lang, t.title, len(t.title), len(t.desc))
 	}
@@ -140,9 +136,6 @@ func run() error {
 
 	needsAgreement := false
 	if fileID == 0 {
-		if vis < 0 {
-			vis = 0
-		}
 		res, err := s.createItem(appID)
 		if err != nil {
 			return fmt.Errorf("CreateItem: %w", err)
@@ -218,6 +211,22 @@ func run() error {
 	return nil
 }
 
+// visibilityFor returns the visibility to set, or -1 to leave it unchanged: an explicit
+// -visibility always applies; omitted, a new item is private and an existing one keeps its visibility.
+func visibilityFor(flagVal string, create bool) (int, error) {
+	if flagVal == "" {
+		if create {
+			return visibilities["private"], nil
+		}
+		return -1, nil
+	}
+	v, ok := visibilities[flagVal]
+	if !ok {
+		return 0, fmt.Errorf("bad -visibility %q", flagVal)
+	}
+	return v, nil
+}
+
 func orNone(s string) string {
 	if s == "" {
 		return "(unchanged)"
@@ -271,8 +280,9 @@ func loadTexts(dir string) ([]text, error) {
 
 // runtimeJunk: base-name patterns (case-insensitive) that mods write at runtime into
 // their installed folder and must never ship. Autofleet's names come from MiningDrone Store.cs.
+// .workshop is uploader-only (WorkshopUploaderDialog); subscribers' mods get their id from Steam (ModInfo GetItemInstallInfo).
 var runtimeJunk = []string{
-	"*.log", "*.tmp", "*.bak",
+	workshopFile, "*.log", "*.tmp", "*.bak",
 	"*.prefs.json", "*.state.json", "*.profiles.json", "*.settings.json", "*.saves",
 }
 
