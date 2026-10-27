@@ -11,6 +11,9 @@ if (-not $ModsDirectory) {
     if ($profiles.Count -ne 1) { throw "Cannot select one Cosmoteer profile ($($profiles.Count) candidates); pass -ModsDirectory." }
     $ModsDirectory = Join-Path $profiles[0].FullName 'Mods'
 }
+# The real package ships the same belt DLL; two copies would double-patch the game.
+$realMod = Get-ChildItem -LiteralPath $ModsDirectory -Filter 'mod.rules' -Depth 1 -File -ErrorAction SilentlyContinue | Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match '(?m)^ID\s*=\s*morgott\.crewless_logistics\s*$' }
+if ($realMod) { throw "Refusing: Crewless Logistics is installed ($($realMod[0].DirectoryName)); it already carries the belt DLL. Remove it before installing the probe." }
 $project = Join-Path $PSScriptRoot '..\CrewlessLogistics.Belts.csproj'
 dotnet build $project --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Build failed: $LASTEXITCODE" }

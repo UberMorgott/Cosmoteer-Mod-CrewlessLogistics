@@ -4,7 +4,7 @@ using System.IO;
 
 namespace CrewlessLogistics.Belts;
 
-/// <summary>Append-only file log next to the mod DLL (pattern from SharedShip). Errors rate-limited per key.</summary>
+/// <summary>Append-only file log in the game's Logs folder (pattern from SharedShip). Errors rate-limited per key.</summary>
 internal static class Log
 {
     private static readonly object Gate = new();
@@ -16,9 +16,11 @@ internal static class Log
 
     public static void Init(string fileName = "CrewlessLogistics.Belts.log")
     {
-        _path = Path.Combine(ModFolder, fileName);
+        // Game Logs folder, not the mod folder: the mod folder is the Workshop upload content.
+        _path = Path.Combine(Cosmoteer.Paths.LogsFolder, fileName);
         try
         {
+            Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             File.WriteAllText(_path, $"[{DateTime.Now:HH:mm:ss}] log start{Environment.NewLine}");
         }
         catch

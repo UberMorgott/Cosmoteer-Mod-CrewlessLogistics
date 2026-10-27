@@ -291,7 +291,7 @@ an instance event (`Ship.cs:1103`), so no static hook exists. Patch set = this +
 Owner steps (single player first):
 1. `& E:\DEV\cosmoteer\Energy\belts\probe-mod\Install-BeltProbe.ps1` (already done once). In game: Mods list -> enable
    "Crewless Logistics belt probe" -> trust its library -> restart.
-2. P1/P3: load a creative game. `Mods\CrewlessLogisticsBeltProbe\CrewlessLogistics.Belts.log` must show
+2. P1/P3: load a creative game. `<profile>\Logs\CrewlessLogistics.Belts.log` must show
    `P1 patched 4 targets`, then every ~10 s `P1 tick=... calls/tick=N simShips=N duplicates=0 ... P3 rate=30.0 ticks/s`.
    FAIL: `ERR patch`, `DISABLED`, `duplicates>0`, calls/tick != simShips (culled/stasis ships may lower calls).
 3. P2: build one ship with storage_2x2, factory_ammo, factory_he/emp/nuke/thermal, factory_mine, cannon_med,
