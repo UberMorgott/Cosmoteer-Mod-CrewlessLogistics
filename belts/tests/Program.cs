@@ -23,6 +23,7 @@ catch (Exception ex)
 }
 P3();
 WorldProbes.Run(Check);
+RulesProbes.Run(Check, args[0], args[1]);
 Console.WriteLine(failures == 0 ? "ALL PASS" : $"{failures} FAILED");
 return failures == 0 ? 0 : 1;
 

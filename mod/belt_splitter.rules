@@ -16,7 +16,8 @@ Part : <belt.rules>/Part
         {
             Components
             {
-                DarknessBlend : <./Data/ships/terran/corridor/corridor.rules>/Part/Components/Darkness_Components/Components/DarknessBlend { Location = [1.5, .5] }
+                // ToggledComponents children join the part's flat component list: the base already has DarknessBlend.
+                DarknessBlend2 : <./Data/ships/terran/corridor/corridor.rules>/Part/Components/Darkness_Components/Components/DarknessBlend { Location = [1.5, .5] }
             }
         }
         WallsBlend2 : <./Data/ships/terran/conveyor/conveyor.rules>/Part/Components/WallsBlend { Location = [1.5, .5] }

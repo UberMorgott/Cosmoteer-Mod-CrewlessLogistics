@@ -26,5 +26,5 @@ Copy-Item -LiteralPath (Join-Path $ModLoaderDir '0Harmony.dll') -Destination $ru
 Copy-Item -LiteralPath (Join-Path $gameBin 'Cosmoteer.runtimeconfig.json') -Destination (Join-Path $runtimeRoot 'CrewlessLogistics.BeltProbes.runtimeconfig.json')
 # Self-contained game runtime: the host needs a deps.json to locate coreclr; mod DLL and Harmony load via LoadFrom.
 Copy-Item -LiteralPath (Join-Path $gameBin 'Cosmoteer.deps.json') -Destination (Join-Path $runtimeRoot 'CrewlessLogistics.BeltProbes.deps.json')
-& (Join-Path $runtimeRoot 'CrewlessLogistics.BeltProbes.exe')
+& (Join-Path $runtimeRoot 'CrewlessLogistics.BeltProbes.exe') $GameRoot $projectRoot
 if ($LASTEXITCODE -ne 0) { throw "Belt probes failed: $LASTEXITCODE" }
