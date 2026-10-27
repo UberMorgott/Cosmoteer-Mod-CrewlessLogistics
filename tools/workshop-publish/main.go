@@ -119,6 +119,17 @@ func run() error {
 	} else {
 		fmt.Println("item: none yet -> CreateItem + write", filepath.Join(absContent, workshopFile))
 	}
+	// Upload a filtered copy: mods write logs/state into their installed folder.
+	stage, err := os.MkdirTemp("", "workshop-publish-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(stage)
+	n, skipped, err := stageContent(absContent, stage)
+	if err != nil {
+		return fmt.Errorf("staging content: %w", err)
+	}
+	fmt.Printf("staged %d files (%s), skipped %v\n", n, stage, skipped)
 	if *dryRun {
 		fmt.Println("dry-run: inputs valid; nothing created or submitted")
 		return nil
@@ -154,7 +165,7 @@ func run() error {
 		func() error { return u.title(en.title) },
 		func() error { return u.desc(en.desc) },
 		func() error { return u.tags([]string{"Mods"}) },
-		func() error { return u.content(absContent) },
+		func() error { return u.content(stage) },
 	}
 	if vis >= 0 {
 		steps = append(steps, func() error { return u.visibility(vis) })
@@ -256,6 +267,54 @@ func loadTexts(dir string) ([]text, error) {
 		return nil, fmt.Errorf("%s: english.txt required (default language)", dir)
 	}
 	return out, nil
+}
+
+// runtimeJunk: base-name patterns (case-insensitive) that mods write at runtime into
+// their installed folder and must never ship. Autofleet's names come from MiningDrone Store.cs.
+var runtimeJunk = []string{
+	"*.log", "*.tmp", "*.bak",
+	"*.prefs.json", "*.state.json", "*.profiles.json", "*.settings.json", "*.saves",
+}
+
+func isRuntimeJunk(name string) bool {
+	name = strings.ToLower(name)
+	for _, p := range runtimeJunk {
+		if ok, _ := filepath.Match(p, name); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// stageContent copies src into dst, skipping runtimeJunk files and directories.
+func stageContent(src, dst string) (n int, skipped []string, err error) {
+	err = filepath.WalkDir(src, func(p string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, p)
+		if err != nil || rel == "." {
+			return err
+		}
+		if isRuntimeJunk(d.Name()) {
+			skipped = append(skipped, rel)
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		out := filepath.Join(dst, rel)
+		if d.IsDir() {
+			return os.MkdirAll(out, 0o755)
+		}
+		raw, err := os.ReadFile(p)
+		if err != nil {
+			return err
+		}
+		n++
+		return os.WriteFile(out, raw, 0o644)
+	})
+	return n, skipped, err
 }
 
 // readWorkshopID mirrors ulong.Parse(File.ReadAllText(folder/.workshop)).
