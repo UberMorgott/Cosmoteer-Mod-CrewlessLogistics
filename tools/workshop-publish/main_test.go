@@ -11,7 +11,7 @@ import (
 func TestStageContentSkipsRuntimeJunk(t *testing.T) {
 	src, dst := t.TempDir(), t.TempDir()
 	keep := []string{".workshop", "Mod.dll", "mod.rules", "assets/a.png", "README.md"}
-	junk := []string{"Mod.log", "SharedShip.LOG", "Autofleet.state.json", "Autofleet.saves/x.json"}
+	junk := []string{"Mod.log", "SharedShip.LOG", "Autofleet.state.json", "Autofleet.saves/x.json", "Autofleet.profiles.json.bad", "MiningDrone.settings.json"}
 	for _, f := range append(keep, junk...) {
 		p := filepath.Join(src, f)
 		os.MkdirAll(filepath.Dir(p), 0o755)

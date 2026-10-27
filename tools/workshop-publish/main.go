@@ -48,7 +48,7 @@ func run() error {
 	content := flag.String("content", "", "installed mod folder (uploaded as item content; holds .workshop)")
 	preview := flag.String("preview", "", "preview image (jpg/png/gif)")
 	textsDir := flag.String("texts", "", "dir with <steamlang>.txt: first line title, rest description; english.txt required")
-	visFlag := flag.String("visibility", "", "public|friends|private|unlisted (alias hidden) (empty = leave unchanged on update, public on create)")
+	visFlag := flag.String("visibility", "private", "public|friends|private|unlisted (alias hidden); applied on every create and update")
 	changeNote := flag.String("changenote", "", "change note for the content update")
 	minVer := flag.String("min-version", "", "required min game branch version, e.g. 0.30.0 (SetRequiredGameVersions; set only if min or max given)")
 	maxVer := flag.String("max-version", "", "required max game branch version")
@@ -80,13 +80,9 @@ func run() error {
 			fmt.Printf("warning: preview is %d bytes; Steam recommends < 1 MB\n", st.Size())
 		}
 	}
-	vis := -1
-	if *visFlag != "" {
-		v, ok := visibilities[*visFlag]
-		if !ok {
-			return fmt.Errorf("bad -visibility %q", *visFlag)
-		}
-		vis = v
+	vis, ok := visibilities[*visFlag]
+	if !ok {
+		return fmt.Errorf("bad -visibility %q", *visFlag)
 	}
 	texts, err := loadTexts(*textsDir)
 	if err != nil {
@@ -111,7 +107,7 @@ func run() error {
 	}
 	defer s.shutdown()
 	fmt.Printf("steam: appid=%d loggedOn=%v steamID=%d persona=%q\n", appID, s.loggedOn(), s.steamID(), s.persona())
-	fmt.Printf("content: %s\npreview: %s\n", absContent, orNone(absPreview))
+	fmt.Printf("content: %s\npreview: %s\nvisibility: %s (%d)\n", absContent, orNone(absPreview), *visFlag, vis)
 	for _, t := range texts {
 		fmt.Printf("text %-10s title=%q (%d B) desc=%d B\n", t.lang, t.title, len(t.title), len(t.desc))
 	}
@@ -141,9 +137,6 @@ func run() error {
 
 	needsAgreement := false
 	if fileID == 0 {
-		if vis < 0 {
-			vis = 0
-		}
 		res, err := s.createItem(appID)
 		if err != nil {
 			return fmt.Errorf("CreateItem: %w", err)
@@ -167,9 +160,7 @@ func run() error {
 		func() error { return u.desc(en.desc) },
 		func() error { return u.tags([]string{"Mods"}) },
 		func() error { return u.content(stage) },
-	}
-	if vis >= 0 {
-		steps = append(steps, func() error { return u.visibility(vis) })
+		func() error { return u.visibility(vis) },
 	}
 	if absPreview != "" {
 		steps = append(steps, func() error { return u.preview(absPreview) })
@@ -279,7 +270,7 @@ func loadTexts(dir string) ([]text, error) {
 // runtimeJunk: base-name patterns (case-insensitive) that mods write at runtime into
 // their installed folder and must never ship. Autofleet's names come from MiningDrone Store.cs.
 var runtimeJunk = []string{
-	"*.log", "*.tmp", "*.bak",
+	"*.log", "*.tmp", "*.bak", "*.bad",
 	"*.prefs.json", "*.state.json", "*.profiles.json", "*.settings.json", "*.saves",
 }
 
