@@ -20,28 +20,65 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
 // masterTile is the stored master resolution per tile; the game uses 64 px per tile.
 const masterTile = 256
 
-// sprite: master name, size in tiles (w, h), output names for the 64 px/tile sprite and its editor icon (32 px/tile).
+// sprite: master name, size in tiles (w, h), output names for the 64 px/tile sprite, its editor icon (32 px/tile) and
+// its blueprint (64 px/tile, derived from the same master by blueprintOf; "" = vanilla blueprint inherited).
 type sprite struct {
-	master     string
-	w, h       int
-	file, icon string
+	master                string
+	w, h                  int
+	file, icon, blueprint string
 }
 
 var sprites = []sprite{
-	{"belt", 1, 1, "belt.png", "belt_icon.png"},
-	{"belt_connector", 1, 1, "belt_connector.png", "belt_connector_icon.png"},
-	{"belt_splitter", 2, 1, "belt_splitter.png", "belt_splitter_icon.png"},
-	{"belt_splitter_blueprint", 2, 1, "belt_splitter_blueprint.png", ""},
+	{"belt", 1, 1, "belt.png", "belt_icon.png", ""},
+	{"belt_connector", 1, 1, "belt_connector.png", "belt_connector_icon.png", "belt_connector_blueprint.png"},
+	{"belt_splitter", 2, 1, "belt_splitter.png", "belt_splitter_icon.png", "belt_splitter_blueprint.png"},
 	// Crossings: masters are drawn like belt.png (belt up, heat pipe / cable entering at the left and right edges under
 	// the belt); baked rotated 90 degrees clockwise into the part frame (belt flows right, network on Up/Down).
-	{"belt_heat_crossing", 1, 1, "belt_heat_crossing.png", "belt_heat_crossing_icon.png"},
-	{"belt_cable_crossing", 1, 1, "belt_cable_crossing.png", "belt_cable_crossing_icon.png"},
+	{"belt_heat_crossing", 1, 1, "belt_heat_crossing.png", "belt_heat_crossing_icon.png", "belt_heat_crossing_blueprint.png"},
+	{"belt_cable_crossing", 1, 1, "belt_cable_crossing.png", "belt_cable_crossing_icon.png", "belt_cable_crossing_blueprint.png"},
+}
+
+// blueprintRamp: colour by luminance rank (0 = darkest), measured on the former Codex splitter blueprint master
+// (quantiles 0/.1/.25/.5/.75/1), so derived blueprints keep the vanilla-like translucent blue look.
+var blueprintRamp = []struct {
+	t       float64
+	r, g, b float64
+}{{0, 0, 107, 237}, {.1, 16, 140, 247}, {.25, 49, 177, 253}, {.5, 104, 202, 252}, {.75, 160, 222, 252}, {1, 166, 225, 252}}
+
+// blueprintOf maps the part art to the blueprint ramp by luminance rank (histogram match, no pixel drawn) and keys alpha
+// from the red channel like vanilla blueprints (pale ~A76, lines ~A165+).
+func blueprintOf(m *image.NRGBA) *image.NRGBA {
+	out := image.NewNRGBA(m.Rect)
+	n := len(m.Pix) / 4
+	lum := make([]float64, n)
+	idx := make([]int, n)
+	for i := range n {
+		p := m.Pix[4*i:]
+		lum[i] = 0.299*float64(p[0]) + 0.587*float64(p[1]) + 0.114*float64(p[2])
+		idx[i] = i
+	}
+	sort.Slice(idx, func(a, b int) bool { return lum[idx[a]] < lum[idx[b]] })
+	for rank, i := range idx {
+		t := float64(rank) / float64(max(n-1, 1))
+		k := 1
+		for k < len(blueprintRamp)-1 && blueprintRamp[k].t < t {
+			k++
+		}
+		lo, hi := blueprintRamp[k-1], blueprintRamp[k]
+		f := (t - lo.t) / (hi.t - lo.t)
+		r := lo.r + f*(hi.r-lo.r)
+		o := out.Pix[4*i:]
+		o[0], o[1], o[2] = uint8(r), uint8(lo.g+f*(hi.g-lo.g)), uint8(lo.b+f*(hi.b-lo.b))
+		o[3] = uint8((255 - r) * 0.8)
+	}
+	return out
 }
 
 // layers are masters baked by code below, not by the sprites loop: belt_lamp = Codex indicator glow on black.
@@ -579,13 +616,10 @@ func main() {
 		if strings.HasSuffix(sp.master, "_crossing") {
 			m = rotateCW(m)
 		}
-		if strings.HasSuffix(sp.master, "_blueprint") {
-			// Vanilla blueprints are translucent blue (pale ~A76, lane ~A165): key alpha from the red channel.
-			for i := 0; i < len(m.Pix); i += 4 {
-				m.Pix[i+3] = uint8(float64(255-m.Pix[i]) * 0.8)
-			}
-		}
 		save(resize(m, sp.w*64, sp.h*64), filepath.Join(*outDir, sp.file))
+		if sp.blueprint != "" {
+			save(blueprintOf(resize(m, sp.w*64, sp.h*64)), filepath.Join(*outDir, sp.blueprint))
+		}
 		if sp.icon != "" {
 			save(resize(m, sp.w*32, sp.h*32), filepath.Join(*outDir, sp.icon))
 		}

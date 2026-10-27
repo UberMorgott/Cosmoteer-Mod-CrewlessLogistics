@@ -36,7 +36,7 @@ Part : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part
         }
         Blueprints : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Blueprints
         {
-            File = "assets/belt_cable_crossing_icon.png"
+            File = "assets/belt_cable_crossing_blueprint.png"
         }
     }
 }

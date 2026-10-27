@@ -22,6 +22,7 @@ Part : <belt.rules>/Part
                 ]
             }
         }
+        Blueprints : <./Data/ships/terran/conveyor/conveyor.rules>/Part/Components/Blueprints { File = "assets/belt_connector_blueprint.png" }
         BeltFilter
         {
             Type = UIToggle
