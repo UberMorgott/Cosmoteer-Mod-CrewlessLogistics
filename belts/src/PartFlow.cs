@@ -148,30 +148,23 @@ internal static class PartFlow
     /// </summary>
     public static uint Allowed(uint backOut, uint frontIn) => (backOut == 0 ? All : backOut) & (frontIn == 0 ? All : frontIn);
 
-    /// <summary>Filter choices offered (§20 D5): all -> every choice; one type -> only it; 0 -> none; else none, any, the set.</summary>
+    /// <summary>Filter choices offered (§20 D5, §22): Auto and None always; all -> every choice; one type -> it; else any + the set.</summary>
     public static bool ChoiceAllowed(uint allowed, int mode)
     {
-        if (allowed == All)
+        if (allowed == All || mode == BeltTypes.ModeAuto || mode == BeltTypes.ModeNone)
         {
             return true;
         }
         int f = BeltTypes.FilterFromMode(mode);
-        return f >= 0 ? (allowed >> f & 1) != 0 : !IsSingle(allowed) && (mode == 0 || (mode == 1 && allowed != 0));
+        return f >= 0 ? (allowed >> f & 1) != 0 : mode == BeltTypes.ModeAny && allowed != 0 && !IsSingle(allowed);
     }
 
-    /// <summary>Normalised toggle mode (§20 D3): single type -> that type; a choice not offered -> none; else unchanged.</summary>
-    public static int Normalize(uint allowed, int mode)
-    {
-        if (allowed == All)
-        {
-            return mode;
-        }
-        if (IsSingle(allowed))
-        {
-            return 2 + System.Numerics.BitOperations.TrailingZeroCount(allowed);
-        }
-        return ChoiceAllowed(allowed, mode) ? mode : 0;
-    }
+    /// <summary>Normalised toggle mode (§22): a choice the neighbours rule out -> Auto; else unchanged (Auto and None are never rewritten).</summary>
+    public static int Normalize(uint allowed, int mode) => ChoiceAllowed(allowed, mode) ? mode : BeltTypes.ModeAuto;
+
+    /// <summary>Sim filter of a normalised mode (§22): Auto passes the single allowed type, else nothing; other modes as chosen.</summary>
+    public static int Filter(uint allowed, int mode) => mode != BeltTypes.ModeAuto ? BeltTypes.FilterFromMode(mode)
+        : IsSingle(allowed) ? System.Numerics.BitOperations.TrailingZeroCount(allowed) : BeltTypes.FilterNone;
 
     private static bool IsSingle(uint m) => m != 0 && (m & (m - 1)) == 0;
 }

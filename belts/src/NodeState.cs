@@ -12,7 +12,7 @@ public enum NodeKind : byte
 
 /// <summary>
 /// Carriable resource types (§7): the vanilla stackable resources, i.e. the ones with StackSprites (drawable on the
-/// belt) that cargo holds store. Index = sim/payload type id and connector filter choice (choice = 2 + index).
+/// belt) that cargo holds store. Index = sim/payload type id and connector filter choice (<see cref="FilterFromMode"/>).
 /// Append-only: reordering changes saved payloads and the filter toggle (rules choice order is checked by the probes).
 /// </summary>
 public static class BeltTypes
@@ -30,8 +30,17 @@ public static class BeltTypes
     public const int FilterNone = -2;
     public const int FilterAny = -1;
 
-    /// <summary>UIToggle Mode -> filter: 0 none (default, owner Q5), 1 any, 2+i type i.</summary>
-    public static int FilterFromMode(int mode) => mode <= 0 || mode - 2 >= Ids.Length ? FilterNone : mode == 1 ? FilterAny : mode - 2;
+    /// <summary>UIToggle modes (§22): 0 Auto (default; resolved by PartFlow.Filter), 1 any, 2+i type i (i &lt; 21), 23 explicit None.</summary>
+    public const int ModeAuto = 0;
+    public const int ModeAny = 1;
+    public const int ModeNone = 23;
+
+    /// <summary>UIToggle Mode -> filter without neighbour context: Auto, None and out of range pass nothing. Types
+    /// appended after index 20 take modes 24+ (23 is None).</summary>
+    public static int FilterFromMode(int mode) => mode == ModeAny ? FilterAny
+        : mode >= 2 && mode < ModeNone ? mode - 2
+        : mode > ModeNone && mode - 3 < Ids.Length ? mode - 3
+        : FilterNone;
 }
 
 /// <summary>

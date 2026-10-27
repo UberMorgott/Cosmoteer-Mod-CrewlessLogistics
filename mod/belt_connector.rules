@@ -1,5 +1,5 @@
 // Belt connector (docs/BELTS_DESIGN.md §7): moves the filtered resource from the back cell to the front cell
-// (room -> belt, belt -> room, room -> room, belt -> belt). No power (Q3). Filter default = none (Q5); the filter is
+// (room -> belt, belt -> room, room -> room, belt -> belt). No power (Q3). Filter default = auto (§22); the filter is
 // a vanilla UIToggle with RememberValue, so it is saved and copied with ship designs/blueprints.
 Part : <belt.rules>/Part
 {

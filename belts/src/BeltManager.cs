@@ -176,14 +176,16 @@ internal sealed class BeltManager : ShipComponent
                 {
                     if (_nodes[i].Kind == NodeKind.Connector)
                     {
-                        // §20 D3: auto-set a single type / reset a choice the neighbours rule out. Sim state on every peer.
+                        // §22: reset a choice the neighbours rule out to Auto (Auto/None never rewritten); Auto resolves to
+                        // the single allowed type. Sim state on every peer.
                         PartUIToggle? toggle = PartUIToggle.GetOnPart(_nodeParts[i], _filterToggle);
-                        int mode = toggle?.Mode ?? 0, normal = PartFlow.Normalize(_nodes[i].State.Allowed, mode);
+                        uint allowed = _nodes[i].State.Allowed;
+                        int mode = toggle?.Mode ?? BeltTypes.ModeAuto, normal = PartFlow.Normalize(allowed, mode);
                         if (toggle != null && normal != mode)
                         {
                             toggle.Mode = normal;
                         }
-                        _nodes[i].Filter = BeltTypes.FilterFromMode(normal);
+                        _nodes[i].Filter = PartFlow.Filter(allowed, normal);
                     }
                 }
                 _world.Tick(tick);

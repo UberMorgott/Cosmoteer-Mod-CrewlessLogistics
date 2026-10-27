@@ -72,17 +72,24 @@ internal static class PartFlowProbe
             && PartFlow.Allowed(PartFlow.All, coilCopper) == coilCopper && PartFlow.Allowed(M("missile_part_he"), bullet) == 0
             && PartFlow.Allowed(0, 0) == PartFlow.All && PartFlow.Allowed(M("steel"), 0) == M("steel"),
             "F2 allowed = Out(back) & In(front); no-flow side does not narrow; disjoint buildings -> empty"));
-        // Single -> auto; invalid -> none; generic untouched (D3).
-        r.Add((PartFlow.Normalize(bullet, 0) == 2 + 15 && PartFlow.Normalize(bullet, 1) == 17 && PartFlow.Normalize(bullet, 2 + 5) == 17
-            && PartFlow.Normalize(coilCopper, 2 + 5) == 0 && PartFlow.Normalize(coilCopper, 2 + 9) == 11 && PartFlow.Normalize(coilCopper, 1) == 1
-            && PartFlow.Normalize(coilCopper, 0) == 0 && PartFlow.Normalize(PartFlow.All, 7) == 7 && PartFlow.Normalize(0, 2) == 0 && PartFlow.Normalize(0, 1) == 0
-            && PartFlow.Normalize(coilCopper, 99) == 0,
-            "F3 normalize: single -> that type (gun bullet = mode 17); type outside set -> none; any/none/inside kept; ALL unchanged"));
-        // UI choices (D5): modes offered per set.
-        int[] Offered(uint a) => Enumerable.Range(0, 2 + BeltTypes.Ids.Length).Where(m => PartFlow.ChoiceAllowed(a, m)).ToArray();
-        r.Add((Offered(bullet).SequenceEqual(new[] { 17 }) && Offered(coilCopper).SequenceEqual(new[] { 0, 1, 4, 11 })
-            && Offered(PartFlow.All).Length == 23 && Offered(0).SequenceEqual(new[] { 0 }) && Offered(sulfur).SequenceEqual(new[] { 2 }),
-            "F4 UI choices: gun {bullet}; factory_coil2 input {none, any, copper, coil}; generic all 23; disjoint {none}"));
+        // §22: a ruled-out choice -> Auto; Auto and explicit None (23) never rewritten; generic untouched.
+        const int auto = BeltTypes.ModeAuto, none = BeltTypes.ModeNone;
+        r.Add((PartFlow.Normalize(bullet, auto) == auto && PartFlow.Normalize(bullet, none) == none && PartFlow.Normalize(bullet, 1) == auto
+            && PartFlow.Normalize(bullet, 2 + 5) == auto && PartFlow.Normalize(bullet, 17) == 17
+            && PartFlow.Normalize(coilCopper, 2 + 5) == auto && PartFlow.Normalize(coilCopper, 2 + 9) == 11 && PartFlow.Normalize(coilCopper, 1) == 1
+            && PartFlow.Normalize(coilCopper, none) == none && PartFlow.Normalize(PartFlow.All, 7) == 7 && PartFlow.Normalize(0, 2) == auto
+            && PartFlow.Normalize(0, 1) == auto && PartFlow.Normalize(0, none) == none && PartFlow.Normalize(coilCopper, 99) == auto,
+            "F3 normalize: ruled-out choice -> auto; auto, explicit none, any/types inside kept; ALL unchanged"));
+        // Effective filter: Auto = the single allowed type, else nothing; explicit None always nothing (owner: respect None).
+        r.Add((PartFlow.Filter(bullet, auto) == 15 && PartFlow.Filter(bullet, none) == BeltTypes.FilterNone && PartFlow.Filter(bullet, 17) == 15
+            && PartFlow.Filter(coilCopper, auto) == BeltTypes.FilterNone && PartFlow.Filter(PartFlow.All, auto) == BeltTypes.FilterNone
+            && PartFlow.Filter(0, auto) == BeltTypes.FilterNone && PartFlow.Filter(coilCopper, 1) == BeltTypes.FilterAny,
+            "F3b filter: auto + single (gun) -> bullet; explicit none with single -> nothing; auto with a set / ALL / disjoint -> nothing"));
+        // UI choices (D5): modes offered per set (0..23).
+        int[] Offered(uint a) => Enumerable.Range(0, none + 1).Where(m => PartFlow.ChoiceAllowed(a, m)).ToArray();
+        r.Add((Offered(bullet).SequenceEqual(new[] { auto, 17, none }) && Offered(coilCopper).SequenceEqual(new[] { auto, 1, 4, 11, none })
+            && Offered(PartFlow.All).Length == 24 && Offered(0).SequenceEqual(new[] { auto, none }) && Offered(sulfur).SequenceEqual(new[] { auto, 2, none }),
+            "F4 UI choices: gun {auto, bullet, none}; factory_coil2 input {auto, any, copper, coil, none}; generic all 24; disjoint {auto, none}"));
         return r;
     }
 

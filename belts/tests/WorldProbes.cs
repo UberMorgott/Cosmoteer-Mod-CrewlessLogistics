@@ -1135,8 +1135,9 @@ static class WorldProbes
                 w.Tick(t);
             }
             check(cargo.Total(Sulfur) == 10 && sink.In[Sulfur] == 0 && w.Sim.Count(b.Tile0, 0) == 1, $"filter none: idle (cargo {cargo.Total(Sulfur)}/10, sink {sink.In[Sulfur]}, belt item parked)");
-            check(BeltTypes.FilterFromMode(0) == BeltTypes.FilterNone && BeltTypes.FilterFromMode(1) == BeltTypes.FilterAny && BeltTypes.FilterFromMode(2) == 0
-                && BeltTypes.FilterFromMode(99) == BeltTypes.FilterNone, "filter toggle mode map: 0 none (default), 1 any, 2+i type i, out of range none");
+            check(BeltTypes.FilterFromMode(BeltTypes.ModeAuto) == BeltTypes.FilterNone && BeltTypes.FilterFromMode(1) == BeltTypes.FilterAny && BeltTypes.FilterFromMode(2) == 0
+                && BeltTypes.FilterFromMode(22) == 20 && BeltTypes.FilterFromMode(BeltTypes.ModeNone) == BeltTypes.FilterNone && BeltTypes.FilterFromMode(24) == BeltTypes.FilterNone
+                && BeltTypes.FilterFromMode(99) == BeltTypes.FilterNone, "filter toggle mode map: 0 auto (resolved by PartFlow.Filter), 1 any, 2+i type i, 23 none, out of range none");
         }
     }
 
@@ -1222,7 +1223,8 @@ static class WorldProbes
             return;
         }
         var ids = Regex.Matches(File.ReadAllText(path), "ChoiceID\\s*=\\s*\"morgott\\.crewless_logistics\\.belt_filter\\.([a-z0-9_]+)\"").Select(m => m.Groups[1].Value).ToArray();
-        bool ok = ids.Length == BeltTypes.Ids.Length + 2 && ids[0] == "none" && ids[1] == "any" && ids.Skip(2).SequenceEqual(BeltTypes.Ids);
-        check(ok, $"filter toggle rules: {ids.Length} choices none, any, then BeltTypes.Ids in order");
+        bool ok = ids.Length == BeltTypes.ModeNone + 1 && ids[BeltTypes.ModeAuto] == "auto" && ids[BeltTypes.ModeAny] == "any"
+            && ids.Skip(2).Take(BeltTypes.Ids.Length).SequenceEqual(BeltTypes.Ids) && ids[BeltTypes.ModeNone] == "none";
+        check(ok, $"filter toggle rules: {ids.Length} choices auto, any, BeltTypes.Ids in order, none (= mode {BeltTypes.ModeNone})");
     }
 }
