@@ -1,0 +1,34 @@
+// Belt connector (docs/BELTS_DESIGN.md §7): moves the filtered resource from the back cell to the front cell
+// (room -> belt, belt -> room, room -> room, belt -> belt). No power (Q3). Filter default = none (Q5); the filter is
+// a vanilla UIToggle with RememberValue, so it is saved and copied with ship designs/blueprints.
+Part : <belt.rules>/Part
+{
+    ID = morgott.crewless_logistics.belt_connector
+    NameKey = "CrewlessLogistics/ConnectorName"
+    IconNameKey = "CrewlessLogistics/ConnectorName"
+    DescriptionKey = "CrewlessLogistics/ConnectorDesc"
+    SelectionTypeID = morgott.crewless_logistics.belt_connector
+    EditorIcon { Texture { File = "assets/belt_connector_icon.png"; SampleMode = Linear }; Size = [32, 32] }
+    Components : <belt.rules>/Part/Components
+    {
+        Graphics : <belt.rules>/Part/Components/Graphics
+        {
+            Floor
+            {
+                Layer = "floors"
+                DamageLevels
+                [
+                    { File = "assets/belt_connector.png"; Size = [1, 1] }
+                ]
+            }
+        }
+        BeltFilter
+        {
+            Type = UIToggle
+            ToggleID = "morgott.crewless_logistics.belt_filter"
+            Default = 0
+            RequiresCommand = false
+            RememberValue = true
+        }
+    }
+}

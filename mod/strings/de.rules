@@ -8,4 +8,12 @@ CrewlessLogistics
     CableDesc = "Stromkabel mit dunklem Metallgehäuse und schlichtem Rumpfdach. Vier automatische Stromanschlüsse. Überträgt nur ganze Batterien. Das grüne Glas unter dem Gitter leuchtet, wenn eine verbundene Quelle mindestens eine ganze Batterie hat. Verbindet sich nicht mit Wärmerohren. Für die Crew nicht passierbar. Die Verkleidung ist rein optisch: Werte eines normalen Wärmerohrs, 1000 HP, Dichte 1, keine Panzerungskategorie, keine EMP-Absorption. Kosten: 4 Spulen + 2 Stahl."
     CrossingName = "Crewless Logistics Crew-Übergang"
     CrossingDesc = "Begehbare Kabelkreuzung mit zwei gegenüberliegenden Stromanschlüssen. Die Crew überquert das Kabel rechtwinklig mit 80 % ihrer normalen Geschwindigkeit. Durch Drehen die Richtung wählen. Überträgt nur ganze Batterien. Das grüne Glas unter dem Gitter leuchtet, wenn eine verbundene Quelle mindestens eine ganze Batterie hat. Verbindet sich nicht mit Wärmerohren. Werte eines normalen Wärmerohrs: 1000 HP, Dichte 1, keine Panzerungskategorie, keine EMP-Absorption. Kosten: 4 Spulen + 2 Stahl."
+    BeltName = "Crewless Logistics Förderband"
+    BeltDesc = "Befördert jede stapelbare Ressource auf zwei Spuren mit 2 Feldern/s, bis zu 4 Gegenstände pro Spur und Feld. Biegt automatisch ab, wenn es nur von einer Seite beschickt wird; ein Band, das seitlich auf ein gerades Stück trifft, legt seine Gegenstände auf die nahe Spur. Die Crew kann darauf laufen. Drehen legt die Richtung fest. Benötigt die Bibliothek Yet Another Mod Loader; ohne sie ist das Band nur Boden. Kostet 4 Stahl + 2 Spulen."
+    SplitterName = "Crewless Logistics Bandverteiler"
+    SplitterDesc = "1x2. Zwei Eingänge hinten, zwei Ausgänge vorne. Gegenstände wechseln spurweise zwischen den Ausgängen; ist ein Ausgang blockiert oder fehlt er, geht alles zum anderen, so führt er auch zwei Bänder zusammen. Spuren bleiben erhalten. Kein Filter. Kostet 8 Stahl + 4 Spulen."
+    ConnectorName = "Crewless Logistics Bandverbinder"
+    ConnectorDesc = "Bewegt die gewählte Ressource vom Feld hinter dem Pfeil zum Feld davor: Raum zu Band, Band zu Raum, Raum zu Raum oder Band zu Band. Funktioniert mit Frachträumen, Fabriken und Waffen, nie mit dem Stromnetz. Die Ressource wird mit der Filtertaste gewählt; die Vorgabe Keine bewegt nichts. Braucht keine Energie. Kostet 4 Stahl + 2 Spulen."
+    FilterNone = "Bandfilter: Keine. Nichts geht durch. Wähle eine Ressource oder Beliebig."
+    FilterAny = "Bandfilter: Beliebige Ressource."
 }

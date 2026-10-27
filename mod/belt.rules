@@ -1,0 +1,39 @@
+// Conveyor belt (docs/BELTS_DESIGN.md §2-§5). Rules declare only vanilla components; the C# belt sim
+// (CrewlessLogistics.Belts.dll, Yet Another Mod Loader) moves items. Without the DLL it is an inert walkable floor.
+// Rotatable vanilla conveyor body (corridor category, walls, darkness, roof); crew walk at corridor speed (Q6).
+Part : <./Data/ships/terran/conveyor/conveyor.rules>/Part
+{
+    ID = morgott.crewless_logistics.belt
+    OtherIDs = []
+    NameKey = "CrewlessLogistics/BeltName"
+    IconNameKey = "CrewlessLogistics/BeltName"
+    DescriptionKey = "CrewlessLogistics/BeltDesc"
+    EditorGroup = "Storage"
+    EditorGroups = ["Storage", "Power"]
+    DontStackInEditorGroups = ["Storage", "Power"]
+    EditorParentParts = []
+    Resources = [[steel, 4], [coil, 2]]
+    SelectionTypeID = morgott.crewless_logistics.belt
+    IsFlippable = false
+    CrewSpeedFactor { Up = 1; Left = 1; Right = 1; Down = 1 }
+    CrewCongestedSpeedFactor { Up = .5; Left = .5; Right = .5; Down = .5 }
+    EditorIcon { Texture { File = "assets/belt_icon.png"; SampleMode = Linear }; Size = [32, 32] }
+    Components : <./Data/ships/terran/conveyor/conveyor.rules>/Part/Components
+    {
+        // Static darker plates + direction arrow under the items layer (doodads_low); no crew-conveyor animation.
+        Graphics
+        {
+            Type = Graphics
+            Location = [.5, .5]
+            Floor
+            {
+                Layer = "floors"
+                DamageLevels
+                [
+                    { File = "assets/belt.png"; Size = [1, 1] }
+                ]
+            }
+            Roof = &<./Data/ships/terran/corridor/corridor.rules>/Part/Components/Graphics/Roof
+        }
+    }
+}

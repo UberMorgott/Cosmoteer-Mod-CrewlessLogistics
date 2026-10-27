@@ -8,4 +8,12 @@ CrewlessLogistics
     CableDesc = "Cuatro conexiones eléctricas automáticas; solo transfiere baterías enteras. No se conecta a tubos de calor. Bloquea el paso de la tripulación. La luz verde se enciende cuando una fuente conectada tiene una batería entera. Por fuera lo cubre un techo de casco liso. Las placas oscuras son solo decorativas. Tiene las características de un tubo de calor del juego base: 1000 puntos de vida, densidad 1, sin categoría de blindaje ni absorción de EMP. Coste: 4 bobinas y 2 unidades de acero."
     CrossingName = "Paso de tripulación de Crewless Logistics"
     CrossingDesc = "Dos conexiones eléctricas opuestas; permite el paso de la tripulación. La tripulación pasa en perpendicular al cable al 80 % de su velocidad. Gira la pieza para elegir la dirección. La luz verde indica que una fuente conectada tiene una batería entera. Solo transfiere baterías enteras; no se conecta a tubos de calor. Las placas oscuras son solo decorativas. Tiene las características de un tubo de calor del juego base: 1000 puntos de vida, densidad 1, sin categoría de blindaje ni absorción de EMP. Coste: 4 bobinas y 2 unidades de acero."
+    BeltName = "Crewless Logistics: cinta transportadora"
+    BeltDesc = "Transporta cualquier recurso apilable por dos carriles a 2 casillas/s, hasta 4 objetos por carril y casilla. Gira sola cuando solo recibe por un lado; una cinta que entra por el lado de un tramo recto deja sus objetos en el carril cercano. La tripulación puede caminar sobre ella. Gírala para fijar la dirección. Requiere la biblioteca Yet Another Mod Loader; sin ella la cinta es suelo normal. Cuesta 4 de acero + 2 bobinas."
+    SplitterName = "Crewless Logistics: divisor de cinta"
+    SplitterDesc = "1x2. Dos entradas detrás y dos salidas delante. Los objetos se alternan entre las salidas carril por carril; si una salida está bloqueada o no existe, todo va a la otra, así que también une dos cintas. Conserva los carriles. Sin filtro. Cuesta 8 de acero + 4 bobinas."
+    ConnectorName = "Crewless Logistics: conector de cinta"
+    ConnectorDesc = "Mueve el recurso elegido de la casilla detrás de la flecha a la de delante: sala a cinta, cinta a sala, sala a sala o cinta a cinta. Funciona con bodegas, fábricas y armas, nunca con la red eléctrica. Elige el recurso con el botón de filtro; el valor inicial Ninguno no mueve nada. No necesita energía. Cuesta 4 de acero + 2 bobinas."
+    FilterNone = "Filtro de cinta: Ninguno. No pasa nada. Elige un recurso o Cualquiera."
+    FilterAny = "Filtro de cinta: cualquier recurso."
 }

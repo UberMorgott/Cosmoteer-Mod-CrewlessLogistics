@@ -8,6 +8,12 @@ CrewlessLogistics
     CableDesc = "Four automatic electrical connections; transfers whole batteries only. Blocks crew passage and does not connect to Heat Pipes. Green glass beneath the grille lights up when a connected source has a whole battery. Plain hull roof. The dark plated casing is cosmetic: vanilla Heat Pipe stats, 1000 HP, density 1, no armor category or EMP absorption. Costs 4 coils + 2 steel."
     CrossingName = "Crewless Logistics Crew Crossing"
     CrossingDesc = "Two opposite electrical ports; crew can cross perpendicular to the cable at 80% speed. Rotate to choose the cable direction. Transfers whole batteries only; does not connect to Heat Pipes. Green glass beneath the grille lights up when a connected source has a whole battery. Vanilla Heat Pipe stats: 1000 HP, density 1, no armor category or EMP absorption. Costs 4 coils + 2 steel."
+    BeltName = "Crewless Logistics Conveyor Belt"
+    BeltDesc = "Carries any stackable resource on two lanes at 2 tiles/s, up to 4 items per lane per tile. Turns automatically when fed from one side only; a belt fed from the side of a straight run puts its items on the near lane. Crew can walk on it. Rotate to set the direction. Needs the Yet Another Mod Loader library; without it the belt is plain floor. Costs 4 steel + 2 coils."
+    SplitterName = "Crewless Logistics Belt Splitter"
+    SplitterDesc = "1x2. Two inputs at the back, two outputs at the front. Items alternate between the outputs lane by lane; when one output is blocked or missing everything goes to the other, so it also merges two belts. Lanes are kept. No filter. Costs 8 steel + 4 coils."
+    ConnectorName = "Crewless Logistics Belt Connector"
+    ConnectorDesc = "Moves the chosen resource from the cell behind the arrow to the cell in front: room to belt, belt to room, room to room or belt to belt. Works with cargo holds, factories and weapons, never with the electrical network. Pick the resource with the filter button; the default None moves nothing. Needs no power. Costs 4 steel + 2 coils."
+    FilterNone = "Belt filter: None. Nothing passes. Pick a resource or Any."
+    FilterAny = "Belt filter: Any resource."
 }
-
-

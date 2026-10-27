@@ -1,0 +1,35 @@
+// Connector resource filter (docs/BELTS_DESIGN.md §7). Choice index = C# filter (BeltTypes.FilterFromMode):
+// 0 none (default, passes nothing), 1 any, then BeltTypes.Ids in order. Resource tooltips/icons are vanilla.
+Toggle
+{
+    ToggleID = "morgott.crewless_logistics.belt_filter"
+    Style = Popout
+    ShowInEditor = true
+    SortOrder = 2
+    Choices
+    [
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.none"; ButtonToolTipKey = "CrewlessLogistics/FilterNone"; ButtonSprite { Texture { File = "./Data/gui/cancel.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.any"; ButtonToolTipKey = "CrewlessLogistics/FilterAny"; ButtonSprite { Texture { File = "./Data/ships/terran/storage_2x2/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.sulfur"; ButtonToolTipKey = "Resource/Sulfur"; ButtonSprite { Texture { File = "./Data/resources/sulfur/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.iron"; ButtonToolTipKey = "Resource/Iron"; ButtonSprite { Texture { File = "./Data/resources/iron/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.copper"; ButtonToolTipKey = "Resource/Copper"; ButtonSprite { Texture { File = "./Data/resources/copper/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.carbon"; ButtonToolTipKey = "Resource/Carbon"; ButtonSprite { Texture { File = "./Data/resources/carbon/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.gold"; ButtonToolTipKey = "Resource/Gold"; ButtonSprite { Texture { File = "./Data/resources/gold/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.uranium"; ButtonToolTipKey = "Resource/Uranium"; ButtonSprite { Texture { File = "./Data/resources/uranium/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.diamond"; ButtonToolTipKey = "Resource/Diamond"; ButtonSprite { Texture { File = "./Data/resources/diamond/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.hyperium"; ButtonToolTipKey = "Resource/Hyperium"; ButtonSprite { Texture { File = "./Data/resources/hyperium/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.steel"; ButtonToolTipKey = "Resource/Steel"; ButtonSprite { Texture { File = "./Data/resources/steel/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.coil"; ButtonToolTipKey = "Resource/Coil"; ButtonSprite { Texture { File = "./Data/resources/coil/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.coil2"; ButtonToolTipKey = "Resource/Coil2"; ButtonSprite { Texture { File = "./Data/resources/coil2/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.tristeel"; ButtonToolTipKey = "Resource/Tristeel"; ButtonSprite { Texture { File = "./Data/resources/tristeel/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.tritanium"; ButtonToolTipKey = "Resource/Tritanium"; ButtonSprite { Texture { File = "./Data/resources/tritanium/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.processor"; ButtonToolTipKey = "Resource/Processor"; ButtonSprite { Texture { File = "./Data/resources/processor/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.enriched_uranium"; ButtonToolTipKey = "Resource/EnrichedUranium"; ButtonSprite { Texture { File = "./Data/resources/enriched_uranium/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.bullet"; ButtonToolTipKey = "Resource/Bullet"; ButtonSprite { Texture { File = "./Data/resources/bullet/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.missile_part_he"; ButtonToolTipKey = "Resource/MissilePartHE"; ButtonSprite { Texture { File = "./Data/resources/missile_part_he/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.missile_part_emp"; ButtonToolTipKey = "Resource/MissilePartEMP"; ButtonSprite { Texture { File = "./Data/resources/missile_part_emp/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.missile_part_nuke"; ButtonToolTipKey = "Resource/MissilePartNuke"; ButtonSprite { Texture { File = "./Data/resources/missile_part_nuke/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.missile_part_thermal"; ButtonToolTipKey = "Resource/MissilePartThermal"; ButtonSprite { Texture { File = "./Data/resources/missile_part_thermal/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_filter.mine_part"; ButtonToolTipKey = "Resource/MinePart"; ButtonSprite { Texture { File = "./Data/resources/mine_part/icon.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+    ]
+}

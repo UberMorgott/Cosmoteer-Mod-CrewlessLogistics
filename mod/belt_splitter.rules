@@ -1,0 +1,54 @@
+// Belt splitter 1x2 (docs/BELTS_DESIGN.md §6): two inputs behind, two outputs in front; per lane, items alternate
+// between outputs, a blocked output yields to the other, one connected output merges. Lane-preserving, no filter.
+Part : <belt.rules>/Part
+{
+    ID = morgott.crewless_logistics.belt_splitter
+    NameKey = "CrewlessLogistics/SplitterName"
+    IconNameKey = "CrewlessLogistics/SplitterName"
+    DescriptionKey = "CrewlessLogistics/SplitterDesc"
+    SelectionTypeID = morgott.crewless_logistics.belt_splitter
+    Size = [2, 1]
+    Resources = [[steel, 8], [coil, 4]]
+    EditorIcon { Texture { File = "assets/belt_splitter_icon.png"; SampleMode = Linear }; Size = [64, 32] }
+    Components : <belt.rules>/Part/Components
+    {
+        Darkness_Components2 : <./Data/ships/terran/corridor/corridor.rules>/Part/Components/Darkness_Components
+        {
+            Components
+            {
+                DarknessBlend : <./Data/ships/terran/corridor/corridor.rules>/Part/Components/Darkness_Components/Components/DarknessBlend { Location = [1.5, .5] }
+            }
+        }
+        WallsBlend2 : <./Data/ships/terran/conveyor/conveyor.rules>/Part/Components/WallsBlend { Location = [1.5, .5] }
+        BlueprintWalls2 : <./Data/ships/terran/conveyor/conveyor.rules>/Part/Components/BlueprintWalls { Location = [1.5, .5] }
+        Graphics : <belt.rules>/Part/Components/Graphics
+        {
+            Location = [1, .5]
+            Floor
+            {
+                Layer = "floors"
+                DamageLevels
+                [
+                    { File = "assets/belt_splitter.png"; Size = [2, 1] }
+                ]
+            }
+            Roof
+            {
+                Layer = "roofs"
+                DamageLevels
+                [
+                    : <./Data/ships/terran/corridor/corridor.rules>/Part/Components/Graphics/Roof/DamageLevels/0 { Size = [2, 1] }
+                    : <./Data/ships/terran/corridor/corridor.rules>/Part/Components/Graphics/Roof/DamageLevels/1 { Size = [2, 1] }
+                    : <./Data/ships/terran/corridor/corridor.rules>/Part/Components/Graphics/Roof/DamageLevels/2 { Size = [2, 1] }
+                ]
+            }
+        }
+        DestroyedEffects : <./Data/ships/terran/conveyor/conveyor.rules>/Part/Components/DestroyedEffects { Location = [1, .5] }
+        Blueprints
+        {
+            Type = BlueprintSprite
+            File = "assets/belt_splitter_blueprint.png"
+            Size = [2, 1]
+        }
+    }
+}

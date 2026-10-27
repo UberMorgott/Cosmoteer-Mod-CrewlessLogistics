@@ -21,7 +21,7 @@ sealed partial class NativeProbe
             var root = Open(Path.Combine(gameRoot, "Data", "cosmoteer.rules"));
             foreach (var action in actions) Call(action!, "ApplyAction", root);
             using var consumerMapping = JsonDocument.Parse(File.ReadAllText(Path.Combine(projectRoot, "docs", "consumer-coverage.json")));
-            Require(actions.Count == 55 + consumerMapping.RootElement.GetProperty("moddedGeneratedActions").GetInt32(), "Unexpected vanilla/enabled-mod compatibility action count");
+            Require(actions.Count == 56 + consumerMapping.RootElement.GetProperty("moddedGeneratedActions").GetInt32(), "Unexpected vanilla/enabled-mod compatibility action count");
             ValidateCableMaterialLayer(root);
             CableEditorMetadataProbe();
             var crossingFile = Open(Path.Combine(modDirectory, "cable_crossing.rules"));
@@ -70,6 +70,7 @@ sealed partial class NativeProbe
             Require((string)ReadRuleObject(root, "<ships/terran/terran.rules>/Terran/Parts/97/ID", typeof(string)) == "morgott.crewless_logistics.cable_crossing", "Crew crossing was not appended to the vanilla registry");
             Require((string)ReadRuleObject(root, "<ships/terran/terran.rules>/Terran/Parts/98/ID", typeof(string)) == "morgott.crewless_logistics.cable_heat_crossing", "Independent heat/electric crossover was not appended to the registry");
             Require(((string[])ReadRuleObject(Open(Path.Combine(modDirectory, "cable_heat_crossing.rules")), "Part/OtherIDs", typeof(string[]))).SequenceEqual(new[] { "morgott.powergrid.cable_heat_crossing" }), "Heat crossover lost its pre-0.3.3 part ID alias");
+            BeltPartsProbe(root);
             foreach (string cable in new[] { "cable.rules", "cable_crossing.rules" }) {
                 var cableFile = Open(Path.Combine(modDirectory, cable));
                 bool crossing = cable == "cable_crossing.rules";
