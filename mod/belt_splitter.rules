@@ -17,11 +17,13 @@ Part : <belt.rules>/Part
             Components
             {
                 // ToggledComponents children join the part's flat component list: the base already has DarknessBlend.
-                DarknessBlend2 : <./Data/ships/terran/corridor/corridor.rules>/Part/Components/Darkness_Components/Components/DarknessBlend { Location = [1.5, .5] }
+                DarknessBlend2 : <./Data/ships/terran/corridor/corridor.rules>/Part/Components/Darkness_Components/Components/DarknessBlend { Location = [1.5, .5]; CellOffset = [1, 0] }
             }
         }
-        WallsBlend2 : <./Data/ships/terran/conveyor/conveyor.rules>/Part/Components/WallsBlend { Location = [1.5, .5] }
-        BlueprintWalls2 : <./Data/ships/terran/conveyor/conveyor.rules>/Part/Components/BlueprintWalls { Location = [1.5, .5] }
+        // CellOffset: blend sprites compute their neighbour situation from CellOffset, not Location; without it the second
+        // cell reuses cell 0's situation and draws a wall across the housing middle (over the chevron).
+        WallsBlend2 : <./Data/ships/terran/conveyor/conveyor.rules>/Part/Components/WallsBlend { Location = [1.5, .5]; CellOffset = [1, 0] }
+        BlueprintWalls2 : <./Data/ships/terran/conveyor/conveyor.rules>/Part/Components/BlueprintWalls { Location = [1.5, .5]; CellOffset = [1, 0] }
         Graphics : <belt.rules>/Part/Components/Graphics
         {
             Location = [1, .5]

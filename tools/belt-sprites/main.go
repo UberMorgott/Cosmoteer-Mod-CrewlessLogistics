@@ -21,6 +21,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -544,7 +545,7 @@ func animVariants(artDir string) []struct {
 }
 
 // bakeAnim writes <out>/belt_anim/<variant>_<k>.png (64 px) for k < animFrames.
-func bakeAnim(artDir, outDir string) {
+func bakeAnim(artDir, outDir string, floor *image.NRGBA) {
 	belt := load(filepath.Join(artDir, "belt.png"))
 	dir := filepath.Join(outDir, "belt_anim")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -558,7 +559,133 @@ func bakeAnim(artDir, outDir string) {
 			if v.name == "curve" {
 				curveEdges(m, resize(f, 64, 64))
 			}
+			m = floorMargins(m, floor)
+			if v.name == "curve" {
+				curveFloor(m, floor)
+			}
 			save(m, filepath.Join(dir, fmt.Sprintf("%s_%02d.png", v.name, k)))
+		}
+	}
+}
+
+// floorMargins replaces the Codex-painted floor plate outside rails and housings (grey, lum 70..140, reached from the
+// sprite border; ~110 vs vanilla ~176) with the vanilla corridor floor pixels at the same tile position, so belt parts sit
+// on the same floor as the corridors around them. 1 px seams inside the plate go with it.
+func floorMargins(m, floor *image.NRGBA, keep ...image.Rectangle) *image.NRGBA {
+	w, h := m.Rect.Dx(), m.Rect.Dy()
+	plate := func(c color.NRGBA) bool {
+		hi, lo := max(c.R, c.G, c.B), min(c.R, c.G, c.B)
+		l := (299*int(c.R) + 587*int(c.G) + 114*int(c.B)) / 1000
+		return hi-lo < 25 && l >= 55 && l <= 140
+	}
+	isPlate := make([]bool, w*h)
+	for i := range isPlate {
+		isPlate[i] = plate(m.NRGBAAt(i%w, i/w)) && !inAny(image.Pt(i%w, i/w), keep)
+	}
+	// Flood over the plate eroded by 1 px (outside the sprite counts as plate), so 1-2 px gaps in housing outlines do not
+	// leak into the housings, then grow the result back by 1 px over plate pixels.
+	core := make([]bool, w*h)
+	for y := range h {
+		for x := range w {
+			core[y*w+x] = true
+			for dy := -1; dy <= 1; dy++ {
+				for dx := -1; dx <= 1; dx++ {
+					nx, ny := x+dx, y+dy
+					if nx >= 0 && ny >= 0 && nx < w && ny < h && !isPlate[ny*w+nx] {
+						core[y*w+x] = false
+					}
+				}
+			}
+		}
+	}
+	reached := make([]bool, w*h)
+	var stack []int
+	for y := range h {
+		for x := range w {
+			if (x == 0 || y == 0 || x == w-1 || y == h-1) && core[y*w+x] {
+				reached[y*w+x] = true
+				stack = append(stack, y*w+x)
+			}
+		}
+	}
+	for len(stack) > 0 {
+		i := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		x, y := i%w, i/w
+		for _, d := range [4][2]int{{1, 0}, {-1, 0}, {0, 1}, {0, -1}} {
+			nx, ny := x+d[0], y+d[1]
+			if nx >= 0 && ny >= 0 && nx < w && ny < h && !reached[ny*w+nx] && core[ny*w+nx] {
+				reached[ny*w+nx] = true
+				stack = append(stack, ny*w+nx)
+			}
+		}
+	}
+	in := make([]bool, w*h)
+	for y := range h {
+		for x := range w {
+			for dy := -1; dy <= 1 && isPlate[y*w+x]; dy++ {
+				for dx := -1; dx <= 1; dx++ {
+					nx, ny := x+dx, y+dy
+					if nx >= 0 && ny >= 0 && nx < w && ny < h && reached[ny*w+nx] {
+						in[y*w+x] = true
+					}
+				}
+			}
+		}
+	}
+	at := func(x, y int) bool { return x >= 0 && y >= 0 && x < w && y < h && in[y*w+x] }
+	out := image.NewNRGBA(m.Rect)
+	copy(out.Pix, m.Pix)
+	fw, fh := floor.Rect.Dx(), floor.Rect.Dy()
+	for y := range h {
+		for x := range w {
+			if at(x, y) || at(x-1, y) && at(x+1, y) || at(x, y-1) && at(x, y+1) {
+				out.SetNRGBA(x, y, floor.NRGBAAt(x%fw, y%fh))
+			}
+		}
+	}
+	return out
+}
+
+// chevronSrc: the splitter master's yellow output chevron (master px, points to the front); chevronAt: where it goes on
+// the connector master (housing centre).
+var chevronSrc, chevronAt = image.Rect(240, 102, 270, 136), image.Pt(113, 102)
+
+// withChevron copies the splitter chevron onto the connector master, weighted by its warm tint (R-B) so only the
+// chevron pixels move and the housing plate under it stays.
+func withChevron(conn, split *image.NRGBA) *image.NRGBA {
+	out := image.NewNRGBA(conn.Rect)
+	copy(out.Pix, conn.Pix)
+	for y := chevronSrc.Min.Y; y < chevronSrc.Max.Y; y++ {
+		for x := chevronSrc.Min.X; x < chevronSrc.Max.X; x++ {
+			s := split.NRGBAAt(x, y)
+			a := min(max((float64(s.R)-float64(s.B)-12)/24, 0), 1)
+			dx, dy := chevronAt.X+x-chevronSrc.Min.X, chevronAt.Y+y-chevronSrc.Min.Y
+			d := out.NRGBAAt(dx, dy)
+			mix := func(dc, sc uint8) uint8 { return uint8(float64(dc)*(1-a) + float64(sc)*a + .5) }
+			out.SetNRGBA(dx, dy, color.NRGBA{mix(d.R, s.R), mix(d.G, s.G), mix(d.B, s.B), d.A})
+		}
+	}
+	return out
+}
+
+func inAny(p image.Point, rs []image.Rectangle) bool {
+	return slices.ContainsFunc(rs, p.In)
+}
+
+// floorKeep: housing areas painted in the same grey as the floor plate (64 px/tile frame), never floor.
+var floorKeep = map[string][]image.Rectangle{
+	"belt_splitter": {image.Rect(2, 12, 126, 46), image.Rect(48, 46, 80, 51), image.Rect(14, 0, 58, 12), image.Rect(70, 0, 114, 12), image.Rect(14, 46, 58, 64), image.Rect(70, 46, 114, 64)},
+}
+
+// curveFloor: the polar remap smears the straight margin (columns <8 and >=56) into dark seams the colour flood misses;
+// on the curve those columns are radii from the front-left corner, so set them to floor by geometry.
+func curveFloor(m, floor *image.NRGBA) {
+	for y := range m.Rect.Dy() {
+		for x := range m.Rect.Dx() {
+			if r := math.Hypot(float64(x)+.5, float64(y)+.5); r < 8 || r >= 56 {
+				m.SetNRGBA(x, y, floor.NRGBAAt(x, y))
+			}
 		}
 	}
 }
@@ -714,13 +841,17 @@ func main() {
 		}
 	}
 	arrow := vanillaArrow(*game)
+	floor := load(filepath.Join(*game, "Data", "ships", "terran", "corridor", "floor.png"))
 	for _, sp := range sprites {
 		m := load(filepath.Join(*artDir, sp.master+".png"))
+		if sp.master == "belt_connector" {
+			m = withChevron(m, load(filepath.Join(*artDir, "belt_splitter.png")))
+		}
 		rot := 0
 		if strings.HasSuffix(sp.master, "_crossing") {
 			m, rot = rotateCW(m), 1
 		}
-		save(resize(m, sp.w*64, sp.h*64), filepath.Join(*outDir, sp.file))
+		save(floorMargins(resize(m, sp.w*64, sp.h*64), floor, floorKeep[sp.master]...), filepath.Join(*outDir, sp.file))
 		if sp.blueprint != "" {
 			save(markBlueprint(blueprintOf(resize(m, sp.w*64, sp.h*64)), arrow, rot), filepath.Join(*outDir, sp.blueprint))
 		}
@@ -728,7 +859,7 @@ func main() {
 			save(resize(m, sp.w*32, sp.h*32), filepath.Join(*outDir, sp.icon))
 		}
 	}
-	bakeAnim(*artDir, *outDir)
+	bakeAnim(*artDir, *outDir, floor)
 	bakeLamps(*artDir, *outDir)
 	if *previewPath != "" {
 		preview(*game, *outDir, *previewPath)
