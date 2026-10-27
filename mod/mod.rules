@@ -33,6 +33,26 @@ Actions : <generated.actions.rules>/Actions
         ToAdd = &<belt_filter_toggle.rules>/Toggle
     }
     {
+        Action = Add
+        AddTo = "<gui/game/parts/part_toggles.rules>/PartToggles"
+        ToAdd = &<belt_input_priority_toggle.rules>/Toggle
+    }
+    {
+        Action = Add
+        AddTo = "<gui/game/parts/part_toggles.rules>/PartToggles"
+        ToAdd = &<belt_output_priority_toggle.rules>/Toggle
+    }
+    {
+        Action = Add
+        AddTo = "<gui/game/parts/part_toggles.rules>/PartToggles"
+        ToAdd = &<belt_splitter_filter_toggle.rules>/Toggle
+    }
+    {
+        Action = Add
+        AddTo = "<gui/game/parts/part_toggles.rules>/PartToggles"
+        ToAdd = &<belt_source_priority_toggle.rules>/Toggle
+    }
+    {
         Action = AddMany
         AddTo = "<ships/terran/terran.rules>/Terran/Parts"
         ManyToAdd

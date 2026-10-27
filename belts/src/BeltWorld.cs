@@ -58,9 +58,14 @@ public sealed class Node
     /// <summary>Connector: front output, rooms it pulls from (back, left, right; only where no belt part is, deduped), first input kind (diagnostics).</summary>
     internal Sink? Front;
     internal readonly IRoom?[] Rooms = new IRoom?[3];
+    /// <summary>Connector (§23): lane tiles and connectors whose output enters it from the back, left, right.</summary>
+    internal readonly List<int>[] FeedTiles = { new(), new(), new() };
+    internal readonly List<Node>[] FeedConns = { new(), new(), new() };
     internal string? Input;
     /// <summary>Connector: may pass one item this tick (cooldown was 0 at tick start).</summary>
     internal bool Ready;
+    /// <summary>Connector with a source priority (§23): its priority side had something to pass at handoff start, so the other sides wait this tick.</summary>
+    internal bool Claim, ClaimNext;
     /// <summary>Render only (§21), never read by the sim: belt side inputs (bit 0 left, bit 1 right of travel).</summary>
     public int SideIn;
     /// <summary>Render only (§21), never read by the sim, not saved/hashed: items passed (connector [0], splitter output i [i]).</summary>
@@ -108,6 +113,12 @@ public sealed class BeltWorld
             n.Tile0 = n.State.Tiles.Length > 0 ? tiles.Count : -1;
             n.Out[0] = n.Out[1] = n.Front = null;
             n.Rooms[0] = n.Rooms[1] = n.Rooms[2] = null;
+            for (int k = 0; k < 3; k++)
+            {
+                n.FeedTiles[k].Clear();
+                n.FeedConns[k].Clear();
+            }
+            n.Claim = false;
             n.Input = null;
             n.Shape = Shape.Straight;
             n.SideIn = 0;
@@ -162,13 +173,14 @@ public sealed class BeltWorld
             {
                 (feeders[_tileNode[b.Tile0]] ??= new()).Add((-1, fs));
             }
-            // §21 D8: pull from rooms at the back, left and right (left of travel = (Dy, -Dx)), each room once.
+            // §21 D8: pull from rooms at the back, left and right (left of travel = (Dy, -Dx)). A room on several sides is
+            // kept on each (§23 priority side) and pulled once per round (Extract).
             for (int k = 0; k < 3; k++)
             {
                 int x = k == 0 ? c.X - c.Dx : k == 1 ? c.X + c.Dy : c.X - c.Dy, y = k == 0 ? c.Y - c.Dy : k == 1 ? c.Y - c.Dx : c.Y + c.Dx;
-                if (nodeAt(x, y) < 0 && roomAt(x, y) is { } r && Array.IndexOf(c.Rooms, r) < 0)
+                if (nodeAt(x, y) < 0)
                 {
-                    c.Rooms[k] = r;
+                    c.Rooms[k] = roomAt(x, y);
                 }
             }
         }
@@ -230,6 +242,7 @@ public sealed class BeltWorld
             if (s.Conn is { } c)
             {
                 c.Input ??= n.Kind == NodeKind.Belt ? "belt" : "splitter";
+                c.FeedTiles[(int)s.Entry].Add(t);
             }
             if (n.Kind == NodeKind.Belt && s.Tile >= 0)
             {
@@ -247,6 +260,7 @@ public sealed class BeltWorld
             if (c.Kind == NodeKind.Connector && c.Front?.Conn is { } m)
             {
                 m.Input ??= "connector";
+                m.FeedConns[(int)c.Front.Entry].Add(c);
             }
         }
         // A closed connector loop has no end: cut it at its first connector (node order), so every chain terminates.
@@ -302,6 +316,23 @@ public sealed class BeltWorld
             }
         }
         _sim.Tick(tick);
+        // §23: claims before any handoff, independent of node order: pass 0 without splitter overflow, then each pass judges
+        // overflows against the previous pass's claims until nothing changes (cascades through several splitters).
+        // shortcut: stops after ClaimPasses; a cyclic claim dependency keeps the last pass (deterministic, may be suboptimal).
+        bool changed = true;
+        for (int pass = 0; changed && pass < ClaimPasses; pass++)
+        {
+            foreach (Node n in _nodes)
+            {
+                n.ClaimNext = n.Kind == NodeKind.Connector && n.State.SourcePriority > 0 && Pending(n, n.State.SourcePriority - 1, ClaimDepth, pass > 0);
+            }
+            changed = pass == 0;
+            foreach (Node n in _nodes)
+            {
+                changed |= n.Claim != n.ClaimNext;
+                n.Claim = n.ClaimNext;
+            }
+        }
         foreach (Node n in _nodes)
         {
             if (n.Kind == NodeKind.Splitter)
@@ -330,28 +361,93 @@ public sealed class BeltWorld
         }
     }
 
-    /// <summary>§6: per lane, items of both inputs alternate between both outputs; a blocked output yields to the other.</summary>
+    /// <summary>Half of a splitter on the left of travel (§23: settings mean the same on a flipped part).</summary>
+    public static int LeftHalf(Node n) => n.Sx == n.Dy && n.Sy == -n.Dx ? 1 : 0;
+
+    /// <summary>§23 splitter half routed first each tick (input priority; none = half 0, as before §23).</summary>
+    private static int FirstHalf(Node n) => n.State.InPriority == 0 ? 0 : n.State.InPriority == 1 ? LeftHalf(n) : LeftHalf(n) ^ 1;
+
+    /// <summary>§23 splitter output priority half, -1 none.</summary>
+    private static int OutPriorityHalf(Node n) => n.State.OutPriority == 0 ? -1 : n.State.OutPriority == 1 ? LeftHalf(n) : LeftHalf(n) ^ 1;
+
+    /// <summary>§23 output half of filtered items (output priority side, left when none), -1 no filter.</summary>
+    private static int FilterHalf(Node n) => n.State.SplitFilter < 0 ? -1 : OutPriorityHalf(n) is int p and >= 0 ? p : LeftHalf(n);
+
+    /// <summary>Output half a splitter offers this item to first (§6 alternation, §23 output priority / filter side).</summary>
+    private static int FirstOut(Node n, int type, int lane) => FilterHalf(n) is var fs and >= 0 ? (type == n.State.SplitFilter ? fs : fs ^ 1)
+        : OutPriorityHalf(n) is var p and >= 0 ? p : n.State.RoundRobin[lane];
+
+    /// <summary>
+    /// §6: per lane, items of both inputs alternate between both outputs; a blocked output yields to the other. §23
+    /// (Factorio): the input priority half is routed first each tick (none: half 0, as before), so the other input only
+    /// uses spare output capacity; output priority replaces the alternation; a filter sends matching items only to the
+    /// output priority side (left when none) and the rest only to the other side, a blocked side holds its lane.
+    /// </summary>
     private void Route(Node n)
     {
+        NodeState st = n.State;
+        int first = FirstHalf(n);
+        int filterSide = FilterHalf(n);
         for (int lane = 0; lane < 2; lane++)
         {
-            for (int h = 0; h < 2; h++)
+            for (int k = 0; k < 2; k++)
             {
+                int h = first ^ k;
                 int type = _sim.PeekDrained(n.Tile0 + h, lane);
                 if (type < 0)
                 {
                     continue;
                 }
-                int o = n.State.RoundRobin[lane];
-                int used = Offer(n.Out[o], lane, type) ? o : Offer(n.Out[o ^ 1], lane, type) ? o ^ 1 : -1;
+                int o = FirstOut(n, type, lane);
+                int used = Offer(n.Out[o], lane, type) ? o : filterSide < 0 && Offer(n.Out[o ^ 1], lane, type) ? o ^ 1 : -1;
                 if (used >= 0)
                 {
                     _sim.TryTakeDrained(n.Tile0 + h, lane, out _);
-                    n.State.RoundRobin[lane] = used ^ 1;
+                    st.RoundRobin[lane] = used ^ 1;
                     n.Events[used]++;
                 }
             }
         }
+    }
+
+    /// <summary>Connector chains are a few parts long; deeper feeder trees count as not pending (no recursion blow-up).</summary>
+    private const int ClaimDepth = 8;
+
+    /// <summary>Claim passes per tick (§23): one without overflow, then up to this many - 1 overflow refinements.</summary>
+    private const int ClaimPasses = 8;
+
+    /// <summary>
+    /// §23: whether side <paramref name="side"/> of connector <paramref name="c"/> has something that could pass now: a
+    /// room supply, a held drained item, or a feeding connector with something pending, matching the chain filter and
+    /// acceptable to a room end. A splitter output counts only when a trial of this tick's Route offers an item to it
+    /// (<see cref="SplitterFeeds"/>), so a claim means an offer this tick and an overflow is never starved by the other sides.
+    /// </summary>
+    private bool Pending(Node c, int side, int depth, bool overflow)
+    {
+        if (depth == 0 || !Resolve(c.Out[0], false, out Sink end, out int filter))
+        {
+            return false;
+        }
+        if (c.Rooms[side] is { } r && !ReferenceEquals(r, end.Room) && r.FindSupply(filter, end.Room) >= 0)
+        {
+            return true;
+        }
+        foreach (int t in c.FeedTiles[side])
+        {
+            Node n = _nodes[_tileNode[t]];
+            if (n.Kind == NodeKind.Splitter ? SplitterFeeds(n, t - n.Tile0, overflow, filter, end.Room) : Passes(_sim.PeekDrained(t, 0), filter, end.Room) || Passes(_sim.PeekDrained(t, 1), filter, end.Room))
+            {
+                return true;
+            }
+        }
+        foreach (Node f in c.FeedConns[side])
+        {
+            if (Pending(f, 0, depth - 1, overflow) || Pending(f, 1, depth - 1, overflow) || Pending(f, 2, depth - 1, overflow))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>
@@ -364,7 +460,8 @@ public sealed class BeltWorld
         filter = BeltTypes.FilterAny;
         for (; s?.Conn is { } c; s = c.Front)
         {
-            if (c.Filter == BeltTypes.FilterNone || (ready && !c.Ready))
+            // §23: a claimed connector takes only from its priority side; its own rooms are arbitrated in Extract.
+            if (c.Filter == BeltTypes.FilterNone || (ready && (!c.Ready || (c.Claim && s != c.Out[0] && (int)s.Entry != c.State.SourcePriority - 1))))
             {
                 end = null!;
                 return false;
@@ -378,6 +475,58 @@ public sealed class BeltWorld
         }
         end = s!;
         return s != null;
+    }
+
+    private static bool Passes(int type, int filter, IRoom? room) => type >= 0 && (filter < 0 || type == filter) && (room?.CanAccept(type) ?? true);
+
+    /// <summary>
+    /// §23: side-effect-free trial of this tick's <see cref="Route"/>: whether a held item passing the chain filter is
+    /// offered to output o: its first choice, then (no filter) the other output when the first cannot take it or already took
+    /// an item this tick (one per lane into a belt's back, one per output otherwise); accepted items reserve that capacity.
+    /// </summary>
+    private bool SplitterFeeds(Node n, int o, bool overflow, int filter, IRoom? room)
+    {
+        int first = FirstHalf(n), used = 0;
+        for (int lane = 0; lane < 2; lane++)
+        {
+            for (int k = 0; k < 2; k++)
+            {
+                int type = _sim.PeekDrained(n.Tile0 + (first ^ k), lane);
+                if (type < 0)
+                {
+                    continue;
+                }
+                int f = FirstOut(n, type, lane);
+                // Pass 0 reads no claims (they are not saved: a rejoining peer must compute the same), so no overflow.
+                for (int a = 0; a < (overflow && FilterHalf(n) < 0 ? 2 : 1); a++)
+                {
+                    int to = f ^ a, bit = 1 << (2 * to + (n.Out[to] is { Node.Kind: not NodeKind.Connector, Entry: Entry.Rear } ? lane : 0));
+                    if (to == o && Passes(type, filter, room))
+                    {
+                        return true;
+                    }
+                    if (overflow && (used & bit) == 0 && CanTake(n.Out[to], lane, type))
+                    {
+                        used |= bit; // accepted there: that capacity is taken for the later items of this tick
+                        break;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /// <summary>Whether <see cref="Offer"/> would accept now (current claims included), without side effects.</summary>
+    private bool CanTake(Sink? s, int lane, int type)
+    {
+        if (!Resolve(s, true, out Sink end, out int filter) || (filter >= 0 && filter != type))
+        {
+            return false;
+        }
+        return end.Room != null ? end.Room.CanAccept(type)
+            : end.Inserter ? Slot(end, lane, out _, out _)
+            : end.Entry == Entry.Rear ? _sim.PutBackPos(end.Tile, lane) >= 0
+            : _sim.Fits(end.Tile, end.Entry == Entry.SideLeft ? 0 : 1, LaneSim.SideEntryPos);
     }
 
     /// <summary>The single handoff (§7a): one item from any output into its sink; true = accepted (never lost).</summary>
@@ -447,10 +596,12 @@ public sealed class BeltWorld
         {
             return; // reserve the belt slot first, then take exactly one unit
         }
-        for (int k = 0; k < 3; k++)
+        // §23: the priority room first (k = -1); the rest round-robin, each room once, unless the priority side claimed.
+        int prio = c.State.SourcePriority - 1;
+        for (int k = prio < 0 ? 0 : -1; k < 3; k++)
         {
-            int i = (c.State.RoundRobin[0] + k) % 3;
-            if (c.Rooms[i] is not { } back || ReferenceEquals(back, end.Room))
+            int i = k < 0 ? prio : (c.State.RoundRobin[0] + k) % 3;
+            if (c.Rooms[i] is not { } back || ReferenceEquals(back, end.Room) || (k >= 0 && (i == prio || c.Claim || Array.IndexOf(c.Rooms, back) != i)))
             {
                 continue; // chain loops back into its own room: no-op
             }
@@ -469,7 +620,10 @@ public sealed class BeltWorld
                 _sim.TryInsert(end.Tile, lane, pos, type);
                 c.State.Alternate = lane ^ 1;
             }
-            c.State.RoundRobin[0] = (i + 1) % 3;
+            if (k >= 0)
+            {
+                c.State.RoundRobin[0] = (i + 1) % 3; // the priority room does not move the fallback cursor
+            }
             Commit(self);
             return;
         }

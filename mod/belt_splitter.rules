@@ -1,5 +1,6 @@
 // Belt splitter 1x2 (docs/BELTS_DESIGN.md §6): two inputs behind, two outputs in front; per lane, items alternate
-// between outputs, a blocked output yields to the other, one connected output merges. Lane-preserving, no filter.
+// between outputs, a blocked output yields to the other, one connected output merges. Lane-preserving.
+// §23 toggles: input priority, output priority, item filter (Factorio splitter).
 Part : <belt.rules>/Part
 {
     ID = morgott.crewless_logistics.belt_splitter
@@ -54,6 +55,30 @@ Part : <belt.rules>/Part
             Type = BlueprintSprite
             File = "assets/belt_splitter_blueprint.png"
             Size = [2, 1]
+        }
+        BeltInputPriority
+        {
+            Type = UIToggle
+            ToggleID = "morgott.crewless_logistics.belt_input_priority"
+            Default = 0
+            RequiresCommand = false
+            RememberValue = true
+        }
+        BeltOutputPriority
+        {
+            Type = UIToggle
+            ToggleID = "morgott.crewless_logistics.belt_output_priority"
+            Default = 0
+            RequiresCommand = false
+            RememberValue = true
+        }
+        BeltSplitterFilter
+        {
+            Type = UIToggle
+            ToggleID = "morgott.crewless_logistics.belt_splitter_filter"
+            Default = 0
+            RequiresCommand = false
+            RememberValue = true
         }
     }
 }

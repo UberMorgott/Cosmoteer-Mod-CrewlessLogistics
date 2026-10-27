@@ -9,7 +9,7 @@ namespace CrewlessLogistics.Belts.Tests;
 /// empty tile takes any type), TypedResourceGrid factory (typed input sink + typed output source), weapon ammo sink.
 /// The real source/sink adapter (PartRoom) is game glue, exercised in game only.
 /// </summary>
-static class WorldProbes
+static partial class WorldProbes
 {
     const int Up = 0, Right = 1, Down = 2, Left = 3;
     static readonly (int X, int Y)[] Dir = { (0, -1), (1, 0), (0, 1), (-1, 0) };

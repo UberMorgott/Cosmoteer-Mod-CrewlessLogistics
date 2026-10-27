@@ -33,5 +33,13 @@ Part : <belt.rules>/Part
             RequiresCommand = false
             RememberValue = true
         }
+        BeltSourcePriority
+        {
+            Type = UIToggle
+            ToggleID = "morgott.crewless_logistics.belt_source_priority"
+            Default = 0
+            RequiresCommand = false
+            RememberValue = true
+        }
     }
 }

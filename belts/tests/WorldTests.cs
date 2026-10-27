@@ -49,4 +49,22 @@ public class WorldTests
 
     [Fact]
     public void MultiSideIntake() => Probe.Run(WorldProbes.MultiSideIntake);
+
+    [Fact]
+    public void SplitterInputPriority() => Probe.Run(WorldProbes.SplitterInputPriority);
+
+    [Fact]
+    public void SplitterOutputPriority() => Probe.Run(WorldProbes.SplitterOutputPriority);
+
+    [Fact]
+    public void SplitterFilter() => Probe.Run(WorldProbes.SplitterFilter);
+
+    [Fact]
+    public void DefaultsUnchanged() => Probe.Run(WorldProbes.DefaultsUnchanged);
+
+    [Fact]
+    public void ConnectorSourcePriority() => Probe.Run(WorldProbes.ConnectorSourcePriority);
+
+    [Fact]
+    public void SettingsOutsidePayload() => Probe.Run(WorldProbes.SettingsOutsidePayload);
 }

@@ -59,6 +59,12 @@ public sealed class NodeState
     public int Alternate;
     /// <summary>Connector: types it may pass (§20), derived from the neighbour parts on rebuild/mode change; not saved.</summary>
     public uint Allowed = BeltTypes.AllMask;
+    /// <summary>
+    /// §23 settings: copied from the part's UIToggles every tick (vanilla saves, copies and MP-syncs the toggles), so not in
+    /// the payload; hashed. Splitter: InPriority / OutPriority 0 none, 1 left, 2 right of travel; SplitFilter -1 none, else
+    /// a type. Connector: SourcePriority 0 round-robin, 1 back, 2 left, 3 right. 0 / -1 = behaviour before §23.
+    /// </summary>
+    public int InPriority, OutPriority, SplitFilter = -1, SourcePriority;
 
     public NodeState(NodeKind kind)
     {
@@ -154,8 +160,15 @@ public sealed class NodeState
         Add(ref h, RoundRobin[1]);
         Add(ref h, Cooldown);
         Add(ref h, Alternate);
+        Add(ref h, InPriority);
+        Add(ref h, OutPriority);
+        Add(ref h, SplitFilter);
+        Add(ref h, SourcePriority);
         return (int)h;
     }
+
+    /// <summary>A UIToggle mode as a §23 setting: out of range (rules changed, bad input) -> 0, the pre-§23 behaviour.</summary>
+    public static int Setting(int? mode, int choices) => mode is int m && m >= 0 && m < choices ? m : 0;
 
     internal static void Add(ref uint h, int v) => h = (h ^ (uint)v) * 16777619;
 

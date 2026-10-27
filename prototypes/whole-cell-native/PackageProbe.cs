@@ -21,7 +21,7 @@ sealed partial class NativeProbe
             var root = Open(Path.Combine(gameRoot, "Data", "cosmoteer.rules"));
             foreach (var action in actions) Call(action!, "ApplyAction", root);
             using var consumerMapping = JsonDocument.Parse(File.ReadAllText(Path.Combine(projectRoot, "docs", "consumer-coverage.json")));
-            Require(actions.Count == 56 + consumerMapping.RootElement.GetProperty("moddedGeneratedActions").GetInt32(), "Unexpected vanilla/enabled-mod compatibility action count");
+            Require(actions.Count == 60 + consumerMapping.RootElement.GetProperty("moddedGeneratedActions").GetInt32(), "Unexpected vanilla/enabled-mod compatibility action count");
             ValidateCableMaterialLayer(root);
             CableEditorMetadataProbe();
             var crossingFile = Open(Path.Combine(modDirectory, "cable_crossing.rules"));

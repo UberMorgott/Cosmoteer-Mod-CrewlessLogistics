@@ -50,7 +50,7 @@ internal sealed class BeltManager : ShipComponent
     private bool _dirty = true;
     private int _lastTick = int.MinValue;
     private int _dumpAtTick = -1;
-    private ID<PartToggleGuiRules> _filterToggle;
+    private ID<PartToggleGuiRules> _filterToggle, _inputPriority, _outputPriority, _splitterFilter, _sourcePriority;
     /// <summary>UI toggles of the parts in front of / behind connectors: a mode change (launcher type) re-derives §20 sets.</summary>
     private readonly List<PartUIToggle> _watched = new();
     private bool _flowDirty;
@@ -186,6 +186,14 @@ internal sealed class BeltManager : ShipComponent
                             toggle.Mode = normal;
                         }
                         _nodes[i].Filter = PartFlow.Filter(allowed, normal);
+                        _nodes[i].State.SourcePriority = Setting(i, _sourcePriority, 4);
+                    }
+                    else if (_nodes[i].Kind == NodeKind.Splitter)
+                    {
+                        NodeState st = _nodes[i].State;
+                        st.InPriority = Setting(i, _inputPriority, 3);
+                        st.OutPriority = Setting(i, _outputPriority, 3);
+                        st.SplitFilter = Setting(i, _splitterFilter, BeltTypes.Ids.Length + 1) - 1;
                     }
                 }
                 _world.Tick(tick);
@@ -205,9 +213,16 @@ internal sealed class BeltManager : ShipComponent
         Probes.OnTick(sim, tick, duplicate, _nodes.Count, Stopwatch.GetTimestamp() - t0);
     }
 
+    /// <summary>§23 setting of node i from its UIToggle (synced sim state on every peer).</summary>
+    private int Setting(int i, ID<PartToggleGuiRules> toggle, int choices) => NodeState.Setting(PartUIToggle.GetOnPart(_nodeParts[i], toggle)?.Mode, choices);
+
     private void Rebuild(Ship ship)
     {
         _filterToggle = new ID<PartToggleGuiRules>(BeltState.FilterToggleId);
+        _inputPriority = new ID<PartToggleGuiRules>(BeltState.InputPriorityToggleId);
+        _outputPriority = new ID<PartToggleGuiRules>(BeltState.OutputPriorityToggleId);
+        _splitterFilter = new ID<PartToggleGuiRules>(BeltState.SplitterFilterToggleId);
+        _sourcePriority = new ID<PartToggleGuiRules>(BeltState.SourcePriorityToggleId);
         _nodes.Clear();
         _nodeParts.Clear();
         _index.Clear();

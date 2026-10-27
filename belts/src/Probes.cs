@@ -131,7 +131,11 @@ internal static class Probes
             }
             if (n.Kind == NodeKind.Connector)
             {
-                sb.Append('/').Append(n.Mode).Append(" f=").Append(n.Filter);
+                sb.Append('/').Append(n.Mode).Append(" f=").Append(n.Filter).Append(" sp=").Append(n.State.SourcePriority);
+            }
+            else if (n.Kind == NodeKind.Splitter)
+            {
+                sb.Append($"/in={n.State.InPriority} out={n.State.OutPriority} f={n.State.SplitFilter} left={BeltWorld.LeftHalf(n)}");
             }
         }
         string line = sb.ToString();

@@ -125,7 +125,7 @@ Belt output = its front cell, always. Input classification from neighbours that 
 - Two input cells (back of each half), two output cells (front of each half). Lane-preserving: L stays L, R stays R.
 - Per lane, items from both inputs alternate between both outputs (round-robin counter per lane, saved).
   Blocked output -> all goes to the free one. One input only -> even split. One output connected -> merge.
-- No filter/priority in v1 (Factorio priority/filter = open question Q4).
+- Priority / filter: §23 (Factorio splitter settings).
 - Replaces old merger + 3-way splitter.
 
 ## 7. Connector (replaces extractor, loader, inserter, underground)
@@ -534,3 +534,46 @@ Decisions (Claude / Codex `codex exec -s read-only`, engine-verified / agreed):
   split told apart on a live ship); item quads still free/create atlas quads on hide/show (§21 D7); no frame
   interpolation of item positions; connector with several outputs not built. Not verified: in-game look of still/moving
   surfaces and the hold value, Auto/None icons in the popout, MP.
+
+## 23. Factorio-style splitter / connector settings (2026-10-28)
+
+Reference: wiki.factorio.com/Splitter, /Belt_transport_system (input priority: the other input only when the priority
+belt has a gap; output priority: the other output only when the priority one is full; a filter uses the output slider:
+matching items to that side only, the rest to the other only; lanes split independently).
+
+Decisions (Claude / Codex `codex exec -s read-only`, static engine reading / agreed):
+
+| # | Claude | Codex | Agreed + why |
+| --- | --- | --- | --- |
+| D1 storage | 4 new vanilla UIToggles (Popout, `RememberValue`, `Default = 0`) like `belt_filter`: splitter `belt_input_priority` / `belt_output_priority` (0 none, 1 left, 2 right), `belt_splitter_filter` (0 none, 1+i = `BeltTypes.Ids[i]`); connector `belt_source_priority` (0 round-robin, 1 back, 2 left, 3 right) | AGREE; MP applies `Mode` via `MPSetUITogglesInput.cs:88`; splitter filter needs its own decoder (the connector map reserves 23) | save, blueprint copy and MP sync are vanilla toggle state; `BeltManager` copies the modes into `NodeState` every tick (`NodeState.Setting`: out of range -> 0); payload v2 unchanged; settings hashed in `NodeState.Digest` (Codex: the MP hash would miss them otherwise); `ProtocolVersion` 7 |
+| D2 left/right | relative to travel: left half = `(Sx,Sy) == (Dy,-Dx)` (`BeltWorld.LeftHalf`) | AGREE (holds for rotation + FlipX) | same rule for input, output and filter |
+| D3 input priority | the priority half is routed first each tick (none = half 0 first, the old code): the other input only fills spare output capacity; a backlogged priority input is ready again the tick after a take | AGREE; keep none as it was (on a flipped splitter none favours the right half) | `Route`; none stays bit-identical (golden test) |
+| D4 output priority | `o` = priority side instead of the round-robin; overflow to `o ^ 1` as before | AGREE, but a deferred handoff must not count as a full output (D6) | D6 became a claim (a real block for that tick), so a refusal is a full output |
+| D5 filter | matching -> output priority side (left when none, the Factorio GUI rule computed in the sim), the rest -> the other side, no overflow; a blocked side holds its lane head (head-of-line, Factorio) | AGREE | items never lost: the held drain is saved as before |
+| D6 connector priority | two handoff passes (non-priority intakes deferred to pass 2) | DISAGREE: chain A -> B starves A's input when B runs first in pass 2; `Extract` self-sink is `Rear`; room dedup loses sides | **claim**: before any handoff, a priority connector computes `Pending(side)` (room supply, a held drained item of a feeding belt / splitter half, or a feeding connector with anything pending, under the chain filter and acceptable to a room end); while claimed, `Resolve` refuses every hop into it from another side and `Extract` skips its other rooms. Order-independent; rooms kept per side (pulled once per round as before); the priority room does not move the round-robin cursor |
+| D7 rules / UI | one rules file per toggle, vanilla icons (alternating, rotate left/right, minimap arrow, resource icons); `FilterUi` stays connector-only | AGREE | 8 languages; splitter offers all 21 types |
+| D8 visual hint | skip (lamps already flash on transfers; a static side hint needs new art) | AGREE | not built |
+| D9 tests | pure world tests | DISAGREE: also chain counterexample in both node orders, multi-side room, 4 rotations x flip, blocked filter side; engine save/blueprint/MP | added all pure ones; engine-backed save/blueprint/MP not testable headless (see below) |
+
+- Codex diff review 1: P1 (a splitter holding items for its other output, by filter or output priority, claimed the
+  connector forever). Review 2: P1 (an overflow into the priority side never claimed, so an endless side room starved
+  it when the connector ran first). Fixed: `SplitterOffers` = first choice (`FirstOut`, shared with `Route`) or,
+  without a filter, overflow when the first choice cannot take it (`CanTake`, side-effect free). Review 3: P1 (`CanTake`
+  ignored claims, so a first choice claimed by its own room looked free). Fixed: claims in two order-independent
+  passes (pass 0 without overflow, pass 1 judges overflow against the pass-0 claims). Review 4: P1 (every held item saw
+  the first choice free although it takes one per tick). Fixed: `SplitterFeeds` = side-effect-free trial of `Route`
+  reserving one item per lane into a belt's back, one per output otherwise. Review 5: P1 (a fallback after a filter
+  refusal reserved nothing). Fixed: the trial models both attempts and reserves where the item is accepted; pass 0 reads
+  no claims (claims are not saved, so a rejoining peer computes the same). Regression tests red before, green after.
+- Review 6: P1 (two passes miss a cascade of overflows through two splitters). Fixed: claim passes repeat until no claim
+  changes (at most 8, each reading only the previous pass: order-independent); this cascade has no dedicated test.
+- Known limits (`shortcut:`): a cyclic claim dependency keeps the 8th pass; a connector feeder tree deeper than 8
+  counts as not pending. Belts feeding a round-robin connector
+  still enter in node order (as before; only rooms take turns).
+- Tests (`belts/tests/SettingsProbes.cs`): input priority (16 cases), output priority (16), filter (48: 4 rotations x
+  flip x output none/left/right x other side open/blocked), defaults golden digest recorded on the pre-§23 code,
+  connector source priority (rooms per mode, belt vs room both ways, room on two sides, Codex chain counterexample in
+  both node orders, splitter holding items for its other output, overflow vs an endless room), settings outside
+  the payload + rules toggles/registration. `RulesProbes.Assets` (R2, owner crash 9dac7b9): list items
+  comma/newline separated, every referenced asset/rules file exists.
+- Not verified: in game (popout icons and tooltips, blueprint copy/paste of the new toggles, save/load, MP late join).

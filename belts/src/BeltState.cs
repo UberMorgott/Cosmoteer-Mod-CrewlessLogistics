@@ -14,7 +14,7 @@ internal static class BeltState
 {
     public const string PayloadPath = "Components/morgott.belt";
     /// <summary>Integrity-hash protocol (§10); bump with any sim/payload change.</summary>
-    public const int ProtocolVersion = 6;
+    public const int ProtocolVersion = 7;
 
     public const string BeltId = "morgott.crewless_logistics.belt";
     public const string SplitterId = "morgott.crewless_logistics.belt_splitter";
@@ -23,6 +23,11 @@ internal static class BeltState
     public const string HeatCrossingId = "morgott.crewless_logistics.belt_heat_crossing";
     public const string CableCrossingId = "morgott.crewless_logistics.belt_cable_crossing";
     public const string FilterToggleId = "morgott.crewless_logistics.belt_filter";
+    /// <summary>§23 splitter / connector settings (mod/belt_*_priority_toggle.rules, belt_splitter_filter_toggle.rules).</summary>
+    public const string InputPriorityToggleId = "morgott.crewless_logistics.belt_input_priority";
+    public const string OutputPriorityToggleId = "morgott.crewless_logistics.belt_output_priority";
+    public const string SplitterFilterToggleId = "morgott.crewless_logistics.belt_splitter_filter";
+    public const string SourcePriorityToggleId = "morgott.crewless_logistics.belt_source_priority";
 
     private static readonly ConditionalWeakTable<Part, NodeState> States = new();
 

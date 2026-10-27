@@ -1,0 +1,14 @@
+// Splitter input priority (docs/BELTS_DESIGN.md §23): 0 none (default, current behaviour), 1 left, 2 right, relative to travel.
+Toggle
+{
+    ToggleID = "morgott.crewless_logistics.belt_input_priority"
+    Style = Popout
+    ShowInEditor = true
+    SortOrder = 2
+    Choices
+    [
+        { ChoiceID = "morgott.crewless_logistics.belt_input_priority.none"; ButtonToolTipKey = "CrewlessLogistics/InputPriorityNone"; ButtonSprite { Texture { File = "./Data/gui/game/parts/toggle_alternating_on.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_input_priority.left"; ButtonToolTipKey = "CrewlessLogistics/InputPriorityLeft"; ButtonSprite { Texture { File = "./Data/gui/game/designer/tool_rotate_left.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_input_priority.right"; ButtonToolTipKey = "CrewlessLogistics/InputPriorityRight"; ButtonSprite { Texture { File = "./Data/gui/game/designer/tool_rotate_right.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+    ]
+}
