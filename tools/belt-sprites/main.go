@@ -117,11 +117,11 @@ func bakeLamps(artDir, outDir string) {
 func exists(path string) bool { _, err := os.Stat(path); return err == nil }
 
 func load(path string) *image.NRGBA {
-	f, err := os.Open(path)
+	f, err := openFile(path, false)
 	if err != nil {
 		fail(err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }() // read-only: nothing to lose
 	src, err := png.Decode(f)
 	if err != nil {
 		fail(fmt.Errorf("%s: %w", path, err))
@@ -137,7 +137,7 @@ func load(path string) *image.NRGBA {
 }
 
 func save(img *image.NRGBA, path string) {
-	f, err := os.Create(path)
+	f, err := openFile(path, true)
 	if err != nil {
 		fail(err)
 	}
@@ -148,6 +148,28 @@ func save(img *image.NRGBA, path string) {
 		fail(err)
 	}
 	fmt.Println("wrote", path, img.Rect.Dx(), "x", img.Rect.Dy())
+}
+
+// openFile opens (or creates) path scoped to its own directory, so the name cannot escape it.
+func openFile(path string, create bool) (*os.File, error) {
+	root, err := os.OpenRoot(filepath.Dir(path))
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = root.Close() }() // a directory handle only; files opened in it stay open
+	if create {
+		return root.Create(filepath.Base(path))
+	}
+	return root.Open(filepath.Base(path))
+}
+
+// crop returns the sub-image of img inside r (SubImage of an *image.NRGBA is always one).
+func crop(img *image.NRGBA, r image.Rectangle) *image.NRGBA {
+	sub, ok := img.SubImage(r).(*image.NRGBA)
+	if !ok {
+		fail(fmt.Errorf("crop: unexpected %T", img.SubImage(r)))
+	}
+	return sub
 }
 
 func fail(err error) {
@@ -162,7 +184,7 @@ func trimKeyRows(img *image.NRGBA) *image.NRGBA {
 	w, h := img.Rect.Dx(), img.Rect.Dy()
 	keyRow := func(y int) bool {
 		n := 0
-		for x := 0; x < w; x++ {
+		for x := range w {
 			if magenta(img.NRGBAAt(x, y)) {
 				n++
 			}
@@ -176,7 +198,7 @@ func trimKeyRows(img *image.NRGBA) *image.NRGBA {
 	for y1 > y0 && keyRow(y1-1) {
 		y1--
 	}
-	return img.SubImage(image.Rect(0, y0, w, y1)).(*image.NRGBA)
+	return crop(img, image.Rect(0, y0, w, y1))
 }
 
 // resize is an alpha-weighted area average (exact for integer downscales, nearest-area otherwise).
@@ -184,9 +206,9 @@ func resize(img *image.NRGBA, w, h int) *image.NRGBA {
 	out := image.NewNRGBA(image.Rect(0, 0, w, h))
 	ox, oy := img.Rect.Min.X, img.Rect.Min.Y
 	sw, sh := img.Rect.Dx(), img.Rect.Dy()
-	for y := 0; y < h; y++ {
+	for y := range h {
 		y0, y1 := y*sh/h, max((y+1)*sh/h, y*sh/h+1)
-		for x := 0; x < w; x++ {
+		for x := range w {
 			x0, x1 := x*sw/w, max((x+1)*sw/w, x*sw/w+1)
 			var r, g, b, a, n float64
 			for sy := y0; sy < y1; sy++ {
@@ -212,8 +234,8 @@ func resize(img *image.NRGBA, w, h int) *image.NRGBA {
 func rotateCW(img *image.NRGBA) *image.NRGBA {
 	n := img.Rect.Dx()
 	out := image.NewNRGBA(image.Rect(0, 0, n, n))
-	for y := 0; y < n; y++ {
-		for x := 0; x < n; x++ {
+	for y := range n {
+		for x := range n {
 			out.SetNRGBA(x, y, img.NRGBAAt(img.Rect.Min.X+y, img.Rect.Min.Y+n-1-x))
 		}
 	}
@@ -336,7 +358,7 @@ func shiftBand(img *image.NRGBA, d int) *image.NRGBA {
 	n := img.Rect.Dy()
 	out := image.NewNRGBA(image.Rect(0, 0, img.Rect.Dx(), n))
 	copy(out.Pix, img.Pix)
-	for y := 0; y < n; y++ {
+	for y := range n {
 		copy(out.Pix[y*out.Stride+surf0*4:y*out.Stride+surf1*4], img.Pix[((y+d)%n)*img.Stride+surf0*4:((y+d)%n)*img.Stride+surf1*4])
 	}
 	return out
@@ -346,7 +368,7 @@ func shiftBand(img *image.NRGBA, d int) *image.NRGBA {
 // approximate near the corner): front row = straight front row, left column = straight back row (radius = column).
 func curveEdges(c, s *image.NRGBA) {
 	n := c.Rect.Dx()
-	for i := 0; i < n; i++ {
+	for i := range n {
 		c.SetNRGBA(i, 0, s.NRGBAAt(i, 0))
 		c.SetNRGBA(0, i, s.NRGBAAt(i, n-1))
 	}
@@ -379,8 +401,8 @@ func sample(img *image.NRGBA, fx, fy float64) color.NRGBA {
 func curveLeft(img *image.NRGBA) *image.NRGBA {
 	n := img.Rect.Dx()
 	out := image.NewNRGBA(image.Rect(0, 0, n, n))
-	for y := 0; y < n; y++ {
-		for x := 0; x < n; x++ {
+	for y := range n {
+		for x := range n {
 			px, py := float64(x)+.5, float64(y)+.5
 			r := math.Hypot(px, py)
 			a := math.Atan2(py, px) / (math.Pi / 2)
@@ -408,7 +430,7 @@ func join(dst, frame *image.NRGBA, left bool) {
 func pasteBand(base, frame *image.NRGBA) *image.NRGBA {
 	out := image.NewNRGBA(base.Rect)
 	copy(out.Pix, base.Pix)
-	for y := 0; y < masterTile; y++ {
+	for y := range masterTile {
 		for x := surf0; x < surf1; x++ {
 			out.SetNRGBA(x, y, frame.NRGBAAt(x, y))
 		}
@@ -447,7 +469,7 @@ func bakeAnim(artDir, outDir string) {
 		fail(err)
 	}
 	for _, v := range animVariants(artDir) {
-		for k := 0; k < animFrames; k++ {
+		for k := range animFrames {
 			// Moving up the screen = texture rows scroll up: frame k shows the texture k/animFrames of a tile further on.
 			f := shiftBand(belt, k*masterTile/animFrames)
 			m := resize(v.build(f), 64, 64)
@@ -463,8 +485,8 @@ func bakeAnim(artDir, outDir string) {
 func flipH(img *image.NRGBA) *image.NRGBA {
 	w, h := img.Rect.Dx(), img.Rect.Dy()
 	out := image.NewNRGBA(image.Rect(0, 0, w, h))
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
+	for y := range h {
+		for x := range w {
 			out.SetNRGBA(x, y, img.NRGBAAt(img.Rect.Min.X+w-1-x, img.Rect.Min.Y+y))
 		}
 	}
@@ -491,9 +513,9 @@ func overhaul(game, assets string, k int, lit bool) *image.NRGBA {
 	out := image.NewNRGBA(image.Rect(0, 0, W*64, H*64))
 	floor := load(filepath.Join(game, "Data", "ships", "terran", "corridor", "floor.png"))
 	room := load(filepath.Join(game, "Data", "ships", "terran", "storage_2x2", "floor.png"))
-	room = resize(room.SubImage(image.Rect(0, 0, room.Rect.Dx()/2, room.Rect.Dy()/2)).(*image.NRGBA), 64, 64)
-	for ty := 0; ty < H; ty++ {
-		for tx := 0; tx < W; tx++ {
+	room = resize(crop(room, image.Rect(0, 0, room.Rect.Dx()/2, room.Rect.Dy()/2)), 64, 64)
+	for ty := range H {
+		for tx := range W {
 			paste(out, resize(floor, 64, 64), tx*64, ty*64)
 		}
 	}
@@ -565,7 +587,7 @@ func overhaulPreview(game, assets, pngPath string) {
 	f0 := overhaul(game, assets, 0, true)
 	save(resize(f0, f0.Rect.Dx()*2, f0.Rect.Dy()*2), pngPath)
 	anim := &gif.GIF{}
-	for k := 0; k < animFrames; k++ {
+	for k := range animFrames {
 		f := overhaul(game, assets, k, k&2 == 0)
 		p := image.NewPaletted(f.Rect, palette.Plan9)
 		draw.FloydSteinberg.Draw(p, f.Rect, f, image.Point{})
@@ -573,7 +595,7 @@ func overhaulPreview(game, assets, pngPath string) {
 		anim.Delay = append(anim.Delay, 3) // 1/32 s per frame is below GIF resolution; 30 ms
 	}
 	gifPath := strings.TrimSuffix(pngPath, filepath.Ext(pngPath)) + ".gif"
-	f, err := os.Create(gifPath)
+	f, err := openFile(gifPath, true)
 	if err != nil {
 		fail(err)
 	}
