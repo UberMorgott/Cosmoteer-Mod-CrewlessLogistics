@@ -110,10 +110,13 @@ internal static class Probes
         }
     }
 
-    /// <summary>One line per belt network rebuild on the local player's ships: node kinds, curves, connector modes.</summary>
+    /// <summary>
+    /// One line per changed belt network of any ship in this session (Creative ships are not the local player's):
+    /// node kinds, curves, connector modes. Unchanged rebuilds are skipped, at most 10 lines per second.
+    /// </summary>
     public static void DumpTopology(Ship ship, List<Node> nodes, List<Part> parts)
     {
-        if (!IsLocal(ship) || nodes.Count == 0)
+        if (nodes.Count == 0)
         {
             return;
         }
@@ -131,8 +134,27 @@ internal static class Probes
                 sb.Append('/').Append(n.Mode).Append(" f=").Append(n.Filter);
             }
         }
-        Log.Info(sb.ToString());
+        string line = sb.ToString();
+        if (LastTopology.TryGetValue(ship, out string? last) && last == line)
+        {
+            return;
+        }
+        long now = Stopwatch.GetTimestamp();
+        if (now - _topologyWindow >= Stopwatch.Frequency)
+        {
+            _topologyWindow = now;
+            _topologyLines = 0;
+        }
+        if (_topologyLines++ < 10)
+        {
+            LastTopology.AddOrUpdate(ship, line); // only logged lines count, so a throttled one logs on the next rebuild
+            Log.Info(line);
+        }
     }
+
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Ship, string> LastTopology = new();
+    private static long _topologyWindow;
+    private static int _topologyLines;
 
     private static (List<string> Src, List<string> Snk) Entry(Dictionary<Part, (List<string>, List<string>)> d, Part p)
     {

@@ -111,7 +111,7 @@ Belt output = its front cell, always. Input classification from neighbours that 
 - A feeder pointing into the side of a **straight** belt (has rear feeder, or two side feeders) puts all items onto
   the **near** lane at the entry position (pos 128 of that tile); feeder from the left -> target L, right -> R.
 - A feeder into a curve keeps its lanes (section 4).
-- Feeder into the back of a splitter / connector: see 6/7.
+- Feeder into the back or outer side of a splitter half / any side but the front of a connector: see 6/7/7a.
 - Merge priority when two inputs compete for one lane gap: rear first, then alternate sides by `Tick` parity
   (deterministic, no Rand needed).
 
@@ -135,9 +135,11 @@ Directional 1x1, arrow back -> front. Behaviour from what occupies the back cell
 | belt | part (room) | loader: take filtered items from belt end, insert into part sinks |
 | part | part | direct room-to-room transfer |
 | belt | belt | pass-through belt tile with filter (non-matching items block) |
+| belt / splitter / connector (back or side) | belt / splitter / connector / room | handoff chain (§7a) |
 | empty / other | any | idle |
 
-- Belt end condition: back belt must point into the connector; front belt must not point back into it.
+- Belt end condition: a belt pointing into the connector's back or side feeds it; front part must not point back
+  into it (§7a).
 - Put onto belt: connector at the belt's back -> alternate L/R; connector at the belt's side -> **far** lane
   (owner rule from inserter). Take from belt: both lanes, head items only.
 - Sources/sinks = the part's vanilla `IResourceSource` / `IResourceSink` objects (crew transfer API, section 1). This
@@ -175,6 +177,28 @@ Directional 1x1, arrow back -> front. Behaviour from what occupies the back cell
   react to crew deliveries do not fire for belt inserts.
 - Missile launcher modes: no special case; launcher's mode-specific storages appear/disappear via ToggledComponents
   (`D:\missile_launcher\missile_launcher.rules:129-199`), sinks of the wrong type report 0 capacity for the filter type.
+
+## 7a. Connectivity: one handoff for every adjacency (2026-10-27, owner: any combination must work)
+
+- Every output (belt end, splitter half front, connector front) looks at its front cell with one rule (`SinkAt`):
+  belt / splitter half / connector there = its input, entered from its back, left or right; empty cell = room
+  (connector fronts only). Entry from the target's **front** (two outputs facing each other) = defined no-op.
+- Belt -> belt / splitter half: a LaneSim move (downstream-first order, §3): back = lanes kept, side of a straight
+  tile = near lane at pos 128 (§5), lone side feeder = curve (§4). Splitter halves accept side entry too (only the outer
+  side exists; the inner side is the other half).
+- Everything else is one handoff `Offer(sink, lane, item)`: lane tile = splitter-style put (back: same lane at the
+  tail, side: near lane at 128); connector = gate (filter, `Ready` = cooldown 0 at tick start) forwarding to its own
+  front; room = `Put`. Connector chains are walked to their end: filters intersect (any ∩ x = x, x ∩ y≠x = blocked),
+  every connector passed gets the 1-per-`ConnectorPeriod` cooldown, the end lands with connector rules (back:
+  preferred lane then the other, side: far lane). A belt end into a connector opens its drains with the chain filter.
+- Drivers (node order, after the LaneSim tick): belt end into a connector (alternating lanes), splitter (§6
+  round-robin per lane over both half sinks; a refused output yields to the other), connector with a room behind it
+  (reserve the end slot / check the end room, then take one unit). Plain connectors are passive gates.
+- Defined no-ops (no crash, no loss): outputs facing each other (belt/splitter/connector into the front of a part
+  whose front faces back), closed connector loops (cut at the loop's first connector in part order), chains that end
+  in nothing or in the room they started from, filter none anywhere on the chain.
+- Tested exhaustively (`WorldProbes.AdjacencyMatrix`): source {belt, curve L/R, connector any/iron/none, splitter half
+  A/B} x target {belt, connector any/iron/none, splitter half A/B} x 4 rotations x entry {back, left, right, front}.
 
 ## 8. Endpoints (examples, all via sources/sinks — no whitelist)
 
@@ -363,8 +387,8 @@ Spot-checked: `Part.cs:827,1371`, `SimRoot.cs:605-618`, `FixedUpdateBuckets.cs` 
   `NodeState` (payload v2). Changes vs §3/§10: speed remainder is derived from `Sim.Tick`
   (`floor((t+1)*512/30) - floor(t*512/30)`), so no accumulator is saved; drains open for one tick only (held items
   are saved); carriable types = 21 vanilla stackable resources (`BeltTypes.Ids`, append-only); connector rate
-  1 item / 2 ticks (Q3); a connector straight in front of a splitter half is fed by the splitter's
-  routing (its filter acts as that output's gate; a mismatch yields to the other output).
+  1 item / 2 ticks (Q3); every adjacency goes through one handoff (§7a), e.g. a connector in front of a
+  splitter half is that output's gate (a mismatch yields to the other output).
 - Glue: `BeltManager` rebuilds from `ship.Parts` order and `ship.Parts[cell]`; `PartRoom` = live
   `ResourceManager._sources/_sinks` of the part with the P2 gate; items drawn as `ManagedShipQuad` on `doodads_low`
   with each resource's `StackSprites[0]` (updated per tick, no frame interpolation); destroyed belts drop nuggets.
