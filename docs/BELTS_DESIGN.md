@@ -73,10 +73,16 @@ is handled by rotation, no flip state needed). Splitter `IsFlippable = false` (s
 
 - Per belt tile: lanes L, R (L = left of travel direction). Each lane = ordered slots, cap `K = 4` items/lane/tile.
 - Item = `(ResourceType id, int pos)`; `pos` integer 0..255 along the tile (fixed point, no float -> determinism).
-- v1 = per-tile state (Codex: segments/sleep premature). Min gap 64 (= 256/K). Staged transfer per tick: compute all
-  moves from the previous-tick snapshot, then apply, so iteration order never moves an item across two tiles in one
-  tick; spacing and overflow carry across tile boundaries and closed loops. Segments (Factorio transport lines) only
-  if P3 shows a need.
+- v1 = per-tile state (Codex: segments/sleep premature). Min gap 64 (= 256/K). ~~Staged transfer per tick: compute all
+  moves from the previous-tick snapshot, then apply~~ **Changed by P3 (2026-10-27):** a previous-tick snapshot stalls
+  every follower in a packed line (`new <= ahead.old - 64 = own pos`), halving compressed throughput. Instead each tile
+  is moved exactly once per tick in a **downstream-first order** precomputed at topology rebuild (belt ends first by
+  ascending index, then one root per cycle; feeders rear, left, right = §5 priority). An item entering an
+  already-moved tile never moves twice; overshoot carries across tile boundaries. Accepted limit: a 100% packed closed
+  loop freezes (cycle root sees its successor's old tail). Connector put = right behind the tail (`TryPutBack`, back
+  quarter of the tile); connector take = drain-on-cross at a belt end (`OpenDrain`/`TryTakeDrained`) keeping
+  overshoot — taking a head parked at 255 caps a lane at 7.5/s instead of 8/s (measured). `belts/src/LaneSim.cs`.
+  Segments (Factorio transport lines) not needed: P3 cost is ~6-8 us/tick at 500 tiles.
 - Speed: integer pos-units per sim tick + remainder accumulator (sim = 30 ticks/s, `Data/cosmoteer.rules:76`,
   `SimRoot.cs:1396`; 2 tiles/s = 512/30 is fractional). Tick-count driven, never wall time.
 - Mixed types, strict FIFO per lane (the rules-model limitation disappears).
@@ -155,6 +161,18 @@ Directional 1x1, arrow back -> front. Behaviour from what occupies the back cell
   choices on a small screen. `RememberValue = true` stores it in `Ship.Metadata.PartUIToggleStates` keyed by
   (PartSaveData, ToggleID) (`PartUIToggle.cs:62-71,234-236`); export/import with ship designs confirmed
   (`Ship.cs:1540,3198`). C# reads the toggle value; no custom state, no blueprint payload.
+- **P2 static finding (2026-10-27): "all sinks of the part" is too wide.** Besides storages, a part can own
+  `PartConstructionSink` / `PartRepairSink` (`IsConstructionSink = true`, `QueuedPartConstruction.cs:85`,
+  `QueuedPartRepair.cs:82`), `StatusResourceSink` (`StatusResourceSink.cs:27`) and `Airlock` (`Airlock.cs:20`, type
+  `default`). Proposed gate: only `BaseResourceStorage` subclasses and the `ResourceTile`s of `TypedResourceGrid` /
+  `FlexResourceGrid` (`BaseResourceStorage.cs:30`, `TypedResourceGrid.cs:38`, `FlexResourceGrid.cs:37`), never
+  `IsConstructionSink`. Crewless Logistics network storages are `BaseResourceStorage` too: exclude
+  `BasePartNetworkResourceStorage` subclasses so belts never touch batteries in the energy network.
+- **P5 static finding:** `ReceiveResources(isCrewDelivery:false)` does not touch anticipated delivery (job-owned:
+  `ResourceTransferJob.AnticipatedDelivery` setter `:362-376`, reversed by `UpdateDeltas(-1)` `:1569-1573`); a crew
+  arriving at a sink the belt already filled keeps the excess in hand (`DeliverResources` `:1458-1463`, uses returned
+  qty). Difference vs crew: `CrewResourcesReceived` trigger is not raised (`BaseResourceStorage.cs:819`) — rules that
+  react to crew deliveries do not fire for belt inserts.
 - Missile launcher modes: no special case; launcher's mode-specific storages appear/disappear via ToggledComponents
   (`D:\missile_launcher\missile_launcher.rules:129-199`), sinks of the wrong type report 0 capacity for the filter type.
 
@@ -251,6 +269,40 @@ after belts ship.
 - P4: MP 2 peers: build, run, save, rejoin; integrity hash stable.
 - P5: `ReceiveResources` into weapons/factories outside crew path does not break anticipated-delivery bookkeeping
   (`IResourceSink.UpdateAnticipatedDelivery`, `IResourceSink.cs:197`).
+
+### 14.1 Probe results (2026-10-27, code in `belts/`)
+
+Headless: `belts\tests\Run-BeltProbes.ps1` (game's own .NET 10.0.12 runtime + real 0.30.5 `Cosmoteer.dll` + loader
+`0Harmony.dll`). Live: test-only mod `belts\probe-mod` installed by `Install-BeltProbe.ps1` as
+`Mods\CrewlessLogisticsBeltProbe` (separate ID `morgott.crewless_logistics.belt_probe`; energy package untouched).
+
+| Probe | Result | Evidence |
+|---|---|---|
+| P1 patch targets | headless PASS; in-game run pending | loader Harmony MVID dc2e7251 loads; 4 postfixes install + verify + roll back; 0 R2R inliners of the targets; `BeltManager` type loads, bucket -11. Loader already loads DLLs from Workshop folders (modloader log 2026-10-27 14:33: 3765559239, 3299057292, 3823252178) |
+| P2 endpoints | static done (§7 finding); in-game dump pending | log lines `P2 part=... src[...] sink[...]` per distinct part signature |
+| P3 cost | headless PASS; in-game tick rate pending | loop 500 tiles/2000 items 3.9-7.5 us/tick; comb 400+100 sideload feeders/4000 items ~6 us/tick; 0 B alloc; packed line 800/800 per 100 s per lane (8/s) |
+| P4 MP | pending (owner, 2 peers) | probe saves a tick counter on every `cosmoteer.corridor` (`Components/morgott.belt`), hashes it + protocol version |
+| P5 direct insert | static PASS (§7 finding); in-game pending | opt-in `p5_parts.txt`: 1 unit / 60 ticks, logs anticipated before/after |
+
+Attach point (not named before): Harmony postfix on the private `Ship(ShipRules,string,int,ulong?,bool,ObjectID)`
+ctor (`Ship.cs:1130`) that every ship ctor chains into (new, loaded, split) adds `BeltManager`; `ComponentsCreated` is
+an instance event (`Ship.cs:1103`), so no static hook exists. Patch set = this + the three §10 targets, all-or-nothing.
+
+Owner steps (single player first):
+1. `& E:\DEV\cosmoteer\Energy\belts\probe-mod\Install-BeltProbe.ps1` (already done once). In game: Mods list -> enable
+   "Crewless Logistics belt probe" -> trust its library -> restart.
+2. P1/P3: load a creative game. `Mods\CrewlessLogisticsBeltProbe\CrewlessLogistics.Belts.log` must show
+   `P1 patched 4 targets`, then every ~10 s `P1 tick=... calls/tick=N simShips=N duplicates=0 ... P3 rate=30.0 ticks/s`.
+   FAIL: `ERR patch`, `DISABLED`, `duplicates>0`, calls/tick != simShips (culled/stasis ships may lower calls).
+3. P2: build one ship with storage_2x2, factory_ammo, factory_he/emp/nuke/thermal, factory_mine, cannon_med,
+   cannon_large, cannon_deck, flak_cannon_large, railgun_loader, chaingun, missile_launcher (switch through all modes,
+   wait 3 s each). Log: one `P2 part=...` line per part and per launcher mode.
+4. P4 save: build corridors, wait 10 s, save, quit to menu, load: no errors; disable the probe, load the same save:
+   loads (vanilla ignores `Components/morgott.belt`). MP: 2 peers with probe, host the save, play 2 min, client
+   rejoins: no desync message; game log has no integrity mismatch.
+5. P5: `Install-BeltProbe.ps1 -P5Parts cosmoteer.cannon_med,cosmoteer.factory_ammo` (single player only), restart,
+   fire the cannon while crew resupply: `P5 ... got=1 anticipated=a->a` (unchanged, never negative); crew keep
+   delivering, no crew stuck carrying ammo. Reinstall without `-P5Parts` afterwards.
 
 ## 15. Implementation order
 
