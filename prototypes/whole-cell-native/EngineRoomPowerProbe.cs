@@ -164,7 +164,7 @@ sealed partial class NativeProbe
             directWireAndTwoRoomOverlap = true, distributionAndNetworkGates = true, recipientSwitchGate = true, disconnectAndReconnect = true,
             overclock = "Electrical 1:1 conversion has no overclock references; original crew multiplier remains unchanged.",
             limitations = new[] { "Synthetic ownership; actual native outgoing-buff add/remove callbacks are invoked directly. Full grid-provider adjacency scanning is not exercised.", "Actual native MultiToggle events are exercised; automatic simulation scheduling, crew lifecycle and overclock controller are not instantiated.", "Remote rocket extension/battery aliases are not traversed by this direct-recipient adapter." }
-        }, new JsonSerializerOptions { WriteIndented = true }));
+        }, IndentedJson));
         Console.WriteLine("PASS: engine-room local-reserve native whole-cell delivery; two engines, retained cell, fractional waits, gates, recipient switch, 3 reactor bootstrap queries, shared engine/direct wire and native buff callback removal.");
     }
 }

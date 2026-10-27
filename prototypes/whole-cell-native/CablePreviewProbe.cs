@@ -73,7 +73,7 @@ sealed partial class NativeProbe
             fixedParts.Add(new { name, file, spriteSize = new[] { Convert.ToSingle(Property(Property(sprites[0], "Size"), "X")), Convert.ToSingle(Property(Property(sprites[0], "Size"), "Y")) } });
         }
         var report = Path.Combine(projectRoot, "artifacts", "whole-cell-native", "cable-placement-validation.json");
-        File.WriteAllText(report, JsonSerializer.Serialize(new { verifiedAtUtc = DateTimeOffset.UtcNow, adaptiveStates = 16, nativeShapes = shapes, heldRendererCases = cases, fixedParts, originalEmptyArrayCrashReproduced = reproduced, limits = "Native blueprint rules, sprite selection and held-part CPU quad calculation; no game UI/GPU drawing." }, new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText(report, JsonSerializer.Serialize(new { verifiedAtUtc = DateTimeOffset.UtcNow, adaptiveStates = 16, nativeShapes = shapes, heldRendererCases = cases, fixedParts, originalEmptyArrayCrashReproduced = reproduced, limits = "Native blueprint rules, sprite selection and held-part CPU quad calculation; no game UI/GPU drawing." }, IndentedJson));
         scenarioResults.Add(new { name = "visible native cable placement previews", adaptiveStates = 16, heldRendererCases = cases, fixedParts = 2, reproducedOriginalIndexOutOfRange = reproduced, gpuDraw = false });
         Console.WriteLine($"PASS: visible cable placement previews; native six-shape adaptive selection, {cases} held-part renderer cases and both fixed crossing sprites; evidence={report}");
     }

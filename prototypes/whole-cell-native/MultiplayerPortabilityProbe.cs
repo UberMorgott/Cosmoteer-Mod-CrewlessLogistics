@@ -140,7 +140,7 @@ sealed partial class NativeProbe
             absoluteTarget = new { appliedHash = applied.Hash, skippedHash = skipped.Hash, appliedComponents = applied.Components, skippedComponents = skipped.Components, hashesDiffer = applied.Hash != skipped.Hash },
             relocatedTarget = new { machineAHash = relocatedA.Hash, machineBHash = relocatedB.Hash, components = relocatedA.Components, identicalHash = relocatedA.Hash == relocatedB.Hash },
             limits = "Real native optional ModAddBaseAction and PartComponentRules hashing in isolated OTFile fixtures. Absolute-missing peer is explicitly modeled with an absent fixture path, not separate filesystem namespaces. Representative native battery/cell-view/store/port adapter; does not start game, lobby, multiplayer simulation or hash the entire Rules object. Installed package byte identity is checked separately by installer."
-        }, new JsonSerializerOptions { WriteIndented = true }));
+        }, IndentedJson));
         scenarioResults.Add(new { name = "native multiplayer compatibility path portability", absoluteMismatchHashDetected = true, relocatedSteamLibrariesHashIdentical = true, packageRelativeWorkshopTargets = relativeTargets.Count });
         Console.WriteLine("PASS: native optional absolute-target mismatch changes component hash; identical relative targets across two Steam libraries preserve it; seven candidate workshop targets are portable.");
     }

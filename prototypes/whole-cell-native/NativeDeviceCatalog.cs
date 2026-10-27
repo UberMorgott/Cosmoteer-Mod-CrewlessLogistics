@@ -160,7 +160,7 @@ sealed partial class NativeProbe
             // compatibility is stale. Validate the candidate after generation.
             var enabledRootSmoke = validateCandidate ? ValidateEnabledRootRegistry() : null;
             string output = Path.Combine(projectRoot, "docs", "device-catalog.json");
-            File.WriteAllText(output, JsonSerializer.Serialize(new { generatedAtUtc = DateTimeOffset.UtcNow, gameVersion = "0.30.5", settingsPath = PortablePath(settingsPath), excludedModIds = SelfModIds, mods = mods.Select(m => new { id = m.Id, directory = PortablePath(m.Directory), manifest = PortablePath(m.Manifest), version = m.Version, nativeActions = m.Actions.Count, dllFiles = m.DllFiles }), appliedActions = actionReport, runtimeModAssemblies, enabledRootSmoke, registeredPartCount = partNodes.Length, parts = reports, limits = "Metadata only; mod DLLs never loaded. Known native battery schemas are classified; custom resource/receiver semantics require explicit mappings. Regenerate after enabled mods or versions change." }, new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            File.WriteAllText(output, JsonSerializer.Serialize(new { generatedAtUtc = DateTimeOffset.UtcNow, gameVersion = "0.30.5", settingsPath = PortablePath(settingsPath), excludedModIds = SelfModIds, mods = mods.Select(m => new { id = m.Id, directory = PortablePath(m.Directory), manifest = PortablePath(m.Manifest), version = m.Version, nativeActions = m.Actions.Count, dllFiles = m.DllFiles }), appliedActions = actionReport, runtimeModAssemblies, enabledRootSmoke, registeredPartCount = partNodes.Length, parts = reports, limits = "Metadata only; mod DLLs never loaded. Known native battery schemas are classified; custom resource/receiver semantics require explicit mappings. Regenerate after enabled mods or versions change." }, CatalogJson));
             Console.WriteLine($"PASS: enabled-mod native device catalog; mods={mods.Count}, parts={partNodes.Length}, actions={actionReport.Count}; output={output}");
         } finally { Environment.CurrentDirectory = originalDirectory; }
     }
@@ -240,6 +240,7 @@ sealed partial class NativeProbe
         var path = Game("Cosmoteer.Mods.ModInfo").GetMethod("GetModInfoPath", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, new[] { Activator.CreateInstance(Core("Halfling.IO.AbsolutePath"), directory) });
         return path?.ToString();
     }
+    static readonly JsonSerializerOptions CatalogJson = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     // Current mod ID first; the legacy ID is the pre-0.3.3 package name.
     static readonly string[] SelfModIds = { "morgott.crewless_logistics", "morgott.powergrid" };
     static bool IsSelfModId(string id) => Array.IndexOf(SelfModIds, id) >= 0;
@@ -257,7 +258,7 @@ sealed partial class NativeProbe
     static string PortablePath(string path)
     {
         string profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (path.StartsWith(profile + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) path = "%USERPROFILE%" + path.Substring(profile.Length);
+        if (path.StartsWith(profile + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) path = string.Concat("%USERPROFILE%", path.AsSpan(profile.Length));
         return Regex.Replace(path, @"([\\/]Cosmoteer[\\/])\d{17}(?=[\\/]|$)", "$1<SteamID>");
     }
     sealed record CatalogMod(string Id, string Directory, string Manifest, string? Version, IList Actions, string[] DllFiles);

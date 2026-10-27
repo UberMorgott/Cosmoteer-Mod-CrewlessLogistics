@@ -77,9 +77,9 @@ sealed partial class NativeProbe
         var cases = new List<object>();
         for (int transform = 0; transform < 8; transform++) cases.Add(HeatElectricCrossingCase(source, transform));
         string art = Path.Combine(projectRoot, "artifacts", "heat-electric-crossing-native.json");
-        File.WriteAllText(art, JsonSerializer.Serialize(new { generatedAtUtc = DateTimeOffset.UtcNow, description = "Native orange thermal cylinder above rotated baked blue electrical path (its lamp lies fully under the opaque cylinder), native dark armor substrate and plain exterior armor. Two source pixels overlap each axial seam. Dynamic thermal-load glow is deliberately omitted from this CPU still-image preview.", excludedDynamicThermalGlow = true, styles = new Dictionary<string, List<CableAppearancePrimitive>> { ["heat_electric"] = visual } }, new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText(art, JsonSerializer.Serialize(new { generatedAtUtc = DateTimeOffset.UtcNow, description = "Native orange thermal cylinder above rotated baked blue electrical path (its lamp lies fully under the opaque cylinder), native dark armor substrate and plain exterior armor. Two source pixels overlap each axial seam. Dynamic thermal-load glow is deliberately omitted from this CPU still-image preview.", excludedDynamicThermalGlow = true, styles = new Dictionary<string, List<CableAppearancePrimitive>> { ["heat_electric"] = visual } }, IndentedJson));
         string proof = Path.Combine(projectRoot, "artifacts", "whole-cell-native", "heat-electric-crossing-validation.json");
-        File.WriteAllText(proof, JsonSerializer.Serialize(new { verifiedAtUtc = DateTimeOffset.UtcNow, transforms = cases, graphicsPrimitives = visual.Count, connectorRoofsOmitted = 2, plainArmorRoof = true, nativeThermalMechanics = true, separateNodesAndPortTypes = true, limits = "Actual native component rules, port discovery, topology queries and resource operations with synthetic ownership; converter ticks stepped manually. Full part/rendering/scheduler/save-load/multiplayer not exercised." }, new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText(proof, JsonSerializer.Serialize(new { verifiedAtUtc = DateTimeOffset.UtcNow, transforms = cases, graphicsPrimitives = visual.Count, connectorRoofsOmitted = 2, plainArmorRoof = true, nativeThermalMechanics = true, separateNodesAndPortTypes = true, limits = "Actual native component rules, port discovery, topology queries and resource operations with synthetic ownership; converter ticks stepped manually. Full part/rendering/scheduler/save-load/multiplayer not exercised." }, IndentedJson));
         scenarioResults.Add(new { name = "native orthogonal thermal/electric crossing", transforms = 8, independentChannels = true, heatAndBatteryConserved = true, nativeDamageArt = true, plainArmorRoof = true });
         Console.WriteLine($"PASS: native orthogonal heat/electric crossover; eight rotations/mirrors, isolated native IO, whole cells and plain armor roof; art={art}; evidence={proof}");
     }
@@ -97,7 +97,7 @@ sealed partial class NativeProbe
         {
             var rules = Rules(name, "Cosmoteer.Ships.Networks.PartNetworkPortRules");
             var facing = Field(rules.GetType(), "Direction"); facing.SetValue(rules, Enum.Parse(facing.FieldType, direction));
-            if (endpoint != null) { var field = rules.GetType().GetProperty("RouteEndpoint", All)!; field.SetValue(rules, Id(Nullable.GetUnderlyingType(field.PropertyType)!, endpoint)); }
+            if (endpoint != null) Route(rules, "RouteEndpoint", endpoint);
             var port = Component(rules); Call(port, "OnAddedToPart", part); return port;
         }
         Place(-1, 0);

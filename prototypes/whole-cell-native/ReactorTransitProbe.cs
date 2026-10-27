@@ -50,8 +50,7 @@ sealed partial class NativeProbe
                     Require(Property(portRules, "RouteSource")?.ToString() == "CrewlessLogisticsNode" && Property(portRules, "RouteEndpoint")?.ToString() == "CrewlessLogisticsNode", "Reactor perimeter socket does not use the shared electrical bus: " + name + "/" + portName);
                     Require(!(bool)Field(Read(prefix, "CrewlessLogisticsSource").GetType(), "AllowReceiving").GetValue(Read(prefix, "CrewlessLogisticsSource"))!, "A relay reactor must never accept stored cells from another source");
                     if (legacy) {
-                        var source = portRules.GetType().GetProperty("RouteSource", All)!; var endpoint = portRules.GetType().GetProperty("RouteEndpoint", All)!;
-                        source.SetValue(portRules, Id(Nullable.GetUnderlyingType(source.PropertyType)!, "CrewlessLogisticsInput")); endpoint.SetValue(portRules, Id(Nullable.GetUnderlyingType(endpoint.PropertyType)!, "CrewlessLogisticsSource"));
+                        Route(portRules, "RouteSource", "CrewlessLogisticsInput"); Route(portRules, "RouteEndpoint", "CrewlessLogisticsSource");
                     }
                     Make(prefix, portName, false, portRules);
                 }

@@ -42,7 +42,7 @@ sealed partial class NativeProbe
         string description = (string)ReadRuleObject(modFile, "Description", typeof(string));
         Require(description.Contains("RU:") && description.Contains("EN:") && description.Contains('\n'), "Mod-list description must include both languages");
         string report = Path.Combine(projectRoot, "artifacts", "whole-cell-native", "localization-validation.json");
-        File.WriteAllText(report, JsonSerializer.Serialize(new { verifiedAtUtc = DateTimeOffset.UtcNow, languages = values.Keys, uiKeys = references.OrderBy(key => key), translatedStrings = values.Sum(pair => pair.Value.Count), nativeParser = true, metadata = "Bilingual plain strings; native ModInfo has no localized name/description fields", limits = "Native rules parsing and exact UI key coverage; no live language switch or GUI rendering." }, new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText(report, JsonSerializer.Serialize(new { verifiedAtUtc = DateTimeOffset.UtcNow, languages = values.Keys, uiKeys = references.OrderBy(key => key), translatedStrings = values.Sum(pair => pair.Value.Count), nativeParser = true, metadata = "Bilingual plain strings; native ModInfo has no localized name/description fields", limits = "Native rules parsing and exact UI key coverage; no live language switch or GUI rendering." }, IndentedJson));
         Console.WriteLine($"PASS: {values.Count}-language localization ({string.Join("/", values.Keys)}); {references.Count} UI keys per language, bilingual mod metadata; evidence={report}");
     }
 }

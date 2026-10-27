@@ -40,11 +40,12 @@ try {
 sealed partial class NativeProbe
 {
     const BindingFlags All = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+    static readonly JsonSerializerOptions IndentedJson = new() { WriteIndented = true };
     readonly Assembly game;
     readonly Assembly core;
     readonly string gameRoot;
     readonly string projectRoot;
-    readonly object file;
+    readonly object rulesFile;
     readonly object serializer;
     readonly Type serialStateType;
     object part;
@@ -61,7 +62,7 @@ sealed partial class NativeProbe
         game = Assembly.LoadFrom(Path.Combine(AppContext.BaseDirectory, "Cosmoteer.dll"));
         core = Assembly.LoadFrom(Path.Combine(AppContext.BaseDirectory, "HalflingCore.dll"));
         serializer = Activator.CreateInstance(Core("Halfling.Serialization.ObjectText.ObjectTextSerializer"), new object[] { true })!;
-        file = Activator.CreateInstance(Core("Halfling.ObjectText.OTFile"), new object[] {
+        rulesFile = Activator.CreateInstance(Core("Halfling.ObjectText.OTFile"), new object[] {
             Path.Combine(projectRoot, "prototypes", "whole-cell-native", "components.rules")
         })!;
         serialStateType = Core("Halfling.Serialization.SerialState");
@@ -99,6 +100,11 @@ sealed partial class NativeProbe
     static void Add(object storage, int quantity) => Call(storage, "AddResources", quantity);
     static void SetCount(object storage, int quantity) => storage.GetType().GetProperty("Resources", All)!.SetValue(storage, quantity);
     object Id(Type idType, string name) => Activator.CreateInstance(idType, new object[] { name })!;
+    void Route(object rules, string property, string id)
+    {
+        var p = rules.GetType().GetProperty(property, All)!;
+        p.SetValue(rules, Id(Nullable.GetUnderlyingType(p.PropertyType)!, id));
+    }
     // Generated device sockets are named CrewlessLogisticsPort_{Direction}_{x}_{y}.
     static string Socket(string side, int x, int y) => $"CrewlessLogisticsPort_{side}_{x}_{y}";
     static string PerimeterSocket(int size, string side, int i) => side switch { "Up" => Socket(side, i, 0), "Down" => Socket(side, i, size - 1), "Left" => Socket(side, 0, i), _ => Socket(side, size - 1, i) };
@@ -109,7 +115,7 @@ sealed partial class NativeProbe
         ("BottomRight", Socket("Right", 1, 1)), ("RightDown", Socket("Down", 1, 1)), ("LeftDown", Socket("Down", 0, 1)), ("BottomLeft", Socket("Left", 0, 1))
     };
 
-    object Rules(string path, string typeName, object? sourceFile = null) => ReadRuleObject(sourceFile ?? file, path, Game(typeName));
+    object Rules(string path, string typeName, object? sourceFile = null) => ReadRuleObject(sourceFile ?? rulesFile, path, Game(typeName));
 
     object ReadRuleObject(object sourceFile, string path, Type type)
     {
@@ -398,7 +404,7 @@ sealed partial class NativeProbe
             checks,
             scenarios = scenarioResults,
             limitations = new[] { "synthetic ownership and media-free physical storage fixtures with original IDs/capacities; no live world or rendering", "native topology discovery covered by shared-port, voltage and source/capacitor fixtures; exhaustive IO cases retain seeded membership", "native DebugToggle models operational/overclock inputs; actual overclock controller and UI not exercised", "no automatic simulation scheduling", "no full construction/destruction/ship-split lifecycle, save/load or multiplayer", "capacitor unscaled overclock proxy and separate electrical-delivery heat tested; full crew pickup/delivery lifecycle not exercised" }
-        }, new JsonSerializerOptions { WriteIndented = true }));
+        }, IndentedJson));
         Console.WriteLine($"PASS: all checks={checks}; evidence={resultPath}");
     }
 }
