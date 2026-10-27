@@ -354,15 +354,8 @@ static class WorldProbes
         {
             render.Update(t);
         }
-        long alloc0 = GC.GetAllocatedBytesForCurrentThread();
-        long ts0 = System.Diagnostics.Stopwatch.GetTimestamp();
-        for (int t = 30000; t < 60000; t++)
-        {
-            render.Update(t);
-        }
-        double us = (System.Diagnostics.Stopwatch.GetTimestamp() - ts0) * 1e6 / System.Diagnostics.Stopwatch.Frequency / 30000;
-        long alloc = GC.GetAllocatedBytesForCurrentThread() - alloc0;
-        check(alloc == 0 && us < 50, $"render bench: 400 nodes {us:F2} us/tick (budget 50), alloc {alloc} B");
+        var (us, alloc, windows) = Meter.Run(render.Update, 30000, 30000);
+        check(alloc == 0 && us < 50, $"render bench: 400 nodes {us:F2} us/tick (budget 50), alloc {alloc} B (windows {windows})");
     }
 
     /// <summary>

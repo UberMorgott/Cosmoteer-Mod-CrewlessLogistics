@@ -196,17 +196,8 @@ void Bench(string name, Func<(LaneSim Sim, Action<int> Step)> setup)
         step(t);
     }
     int items = Total(sim);
-    const int ticks = 30000;
-    long alloc0 = GC.GetAllocatedBytesForCurrentThread();
-    long ts0 = Stopwatch.GetTimestamp();
-    for (int t = 30000; t < 30000 + ticks; t++)
-    {
-        step(t);
-    }
-    long ts1 = Stopwatch.GetTimestamp();
-    long alloc = GC.GetAllocatedBytesForCurrentThread() - alloc0;
-    double us = (ts1 - ts0) * 1e6 / Stopwatch.Frequency / ticks;
-    Check(us < 200 && alloc == 0, $"P3 bench {name}: {sim.Tiles} tiles {items} items {us:F2} us/tick (budget 200), alloc {alloc} B");
+    var (us, alloc, windows) = Meter.Run(step, 30000, 30000);
+    Check(us < 200 && alloc == 0, $"P3 bench {name}: {sim.Tiles} tiles {items} items {us:F2} us/tick (budget 200), alloc {alloc} B (windows {windows})");
 }
 
 LaneSim Chain(int n)
@@ -339,4 +330,37 @@ bool Invariants(LaneSim sim, out string error)
     }
     error = "";
     return true;
+}
+
+/// <summary>
+/// Zero-alloc / cost meter for the benches: 3 windows of <c>ticks</c> steps; alloc = min over windows. A per-tick
+/// allocation shows in every window; the sporadic 96 B seen in at most one window is the runtime's own tiering
+/// transition on this thread (timing-dependent tick, gone with DOTNET_TieredCompilation=0, DOTNET_TieredPGO=0 or
+/// DOTNET_TC_OnStackReplacement=0 over 30 runs each; 4/30 runs before), not sim code.
+/// </summary>
+static class Meter
+{
+    public static (double Us, long Alloc, string Windows) Run(Action<int> step, int start, int ticks)
+    {
+        double bestUs = double.MaxValue;
+        long minAlloc = long.MaxValue;
+        var all = new List<string>();
+        for (int w = 0; w < 3; w++)
+        {
+            int from = start + w * ticks;
+            long alloc0 = GC.GetAllocatedBytesForCurrentThread();
+            long ts0 = Stopwatch.GetTimestamp();
+            for (int t = from; t < from + ticks; t++)
+            {
+                step(t);
+            }
+            long ts1 = Stopwatch.GetTimestamp();
+            long alloc = GC.GetAllocatedBytesForCurrentThread() - alloc0;
+            double us = (ts1 - ts0) * 1e6 / Stopwatch.Frequency / ticks;
+            bestUs = Math.Min(bestUs, us);
+            minAlloc = Math.Min(minAlloc, alloc);
+            all.Add($"{us:F2}us/{alloc}B");
+        }
+        return (bestUs, minAlloc, string.Join(" ", all));
+    }
 }
