@@ -89,7 +89,8 @@ func keyMagenta(img *image.NRGBA) *image.NRGBA {
 
 // damageFrame: frame m (64 px/tile, before floorMargins) at level k: floor margins from the level's vanilla corridor floor,
 // decal (64 px tile, mirrored on odd tiles) only over part pixels, i.e. pixels the level-0 bake keeps (keep = floorKeep).
-func damageFrame(m *image.NRGBA, floors []*image.NRGBA, decals []*image.NRGBA, k int, post func(*image.NRGBA, *image.NRGBA), keep ...image.Rectangle) *image.NRGBA {
+// Animation frames pass the moving surface (mask alpha >= 128) and its scrolled decal surf (surfaceDecal); nil = static.
+func damageFrame(m *image.NRGBA, floors []*image.NRGBA, decals []*image.NRGBA, k int, post func(*image.NRGBA, *image.NRGBA), surf, mask *image.NRGBA, keep ...image.Rectangle) *image.NRGBA {
 	base := floorMargins(m, floors[0], keep...)
 	if post != nil {
 		post(base, floors[0])
@@ -114,6 +115,9 @@ func damageFrame(m *image.NRGBA, floors []*image.NRGBA, decals []*image.NRGBA, k
 						continue // floor pixel: the vanilla damaged floor already shows the damage
 					}
 					s, o := d.NRGBAAt(x, y), out.NRGBAAt(tx+x, ty+y)
+					if mask != nil && mask.NRGBAAt(tx+x, ty+y).A >= 128 {
+						s = surf.NRGBAAt(tx+x, ty+y) // moving surface: its decal scrolls with it, rails / frame keep the static one
+					}
 					// Belt ends and rails join the neighbour tile: fade the decal out over the 3 px next to each tile edge (Codex).
 					edge := min(x, y, 63-x, 63-y)
 					al := float64(s.A) / 255 * min(float64(edge)/3, 1)
@@ -631,17 +635,16 @@ func pasteBand(base, frame *image.NRGBA) *image.NRGBA {
 
 // animVariants: output prefix -> builder from straight frame k. Order and names are wired in mod/belt.rules
 // BeltSurfaceSprites and belts/src/BeltRender.cs (Variant).
-func animVariants(artDir string) []struct {
+type variant struct {
 	name  string
 	build func(*image.NRGBA) *image.NRGBA
-} {
+}
+
+func animVariants(artDir string) []variant {
 	heat, cable := load(filepath.Join(artDir, "belt_heat_crossing.png")), load(filepath.Join(artDir, "belt_cable_crossing.png"))
 	heatCable, cableHeat := mixedCrossing(heat, cable), mixedCrossing(cable, heat)
 	clone := func(f *image.NRGBA) *image.NRGBA { o := image.NewNRGBA(f.Rect); copy(o.Pix, f.Pix); return o }
-	return []struct {
-		name  string
-		build func(*image.NRGBA) *image.NRGBA
-	}{
+	return []variant{
 		{"straight", func(f *image.NRGBA) *image.NRGBA { return f }},
 		{"join_l", func(f *image.NRGBA) *image.NRGBA { o := clone(f); join(o, f, true); return o }},
 		{"join_r", func(f *image.NRGBA) *image.NRGBA { o := clone(f); join(o, f, false); return o }},
@@ -657,27 +660,81 @@ func animVariants(artDir string) []struct {
 	}
 }
 
+// fadeRows: §26 surface damage fades in / out over this many master rows (8 px in game) at the tile entry and exit.
+const fadeRows = 8 * masterTile / 64
+
+// surfaceDecal: frame k of the §26 surface damage on the straight master: the decal's belt band scrolled exactly like the
+// surface texture (shiftBand, wraps within the tile like its own roller module), alpha ramped to 0 at the entry and exit
+// rows so no mark pops at the wrap and tile joins stay those of the undamaged belt; outside the band transparent.
+func surfaceDecal(dec *image.NRGBA, k int) *image.NRGBA {
+	out := shiftBand(dec, k*masterTile/animFrames)
+	for y := range masterTile {
+		f := min(float64(min(y, masterTile-1-y))/fadeRows, 1)
+		for x := range masterTile {
+			i := y*out.Stride + x*4 + 3
+			if x < surf0 || x >= surf1 {
+				out.Pix[i] = 0
+			} else {
+				out.Pix[i] = uint8(float64(out.Pix[i])*f + .5)
+			}
+		}
+	}
+	return out
+}
+
+// animFrame: frame k of variant v (64 px) at every §26 damage level. The surface decal and the surface mask go through
+// the variant's own remap, so on curves, joins and crossings the damage follows the surface mapping of the frame.
+func animFrame(belt *image.NRGBA, surfDecals []*image.NRGBA, v variant, k int, floors, decals []*image.NRGBA) []*image.NRGBA {
+	var post func(*image.NRGBA, *image.NRGBA)
+	over := v.build
+	if v.name == "curve" {
+		post = curveFloor
+	}
+	if strings.HasSuffix(v.name, "_crossing") {
+		over = rotateCW // crossings paste the band onto their master: for a band-only image that is the bare rotation
+	}
+	remap := func(build func(*image.NRGBA) *image.NRGBA, f *image.NRGBA) *image.NRGBA {
+		m := resize(build(f), 64, 64)
+		if v.name == "curve" {
+			curveEdges(m, resize(f, 64, 64))
+		}
+		return m
+	}
+	// Moving up the screen = texture rows scroll up: frame k shows the texture k/animFrames of a tile further on.
+	m := remap(v.build, shiftBand(belt, k*masterTile/animFrames))
+	band := image.NewNRGBA(belt.Rect)
+	for y := range masterTile {
+		for x := surf0; x < surf1; x++ {
+			band.SetNRGBA(x, y, color.NRGBA{255, 255, 255, 255})
+		}
+	}
+	mask := remap(over, band)
+	out := make([]*image.NRGBA, len(damageSuffix))
+	for lvl := range damageSuffix {
+		var surf *image.NRGBA
+		if lvl > 0 {
+			surf = remap(over, surfaceDecal(surfDecals[lvl], k))
+		}
+		out[lvl] = damageFrame(m, floors, decals, lvl, post, surf, mask)
+	}
+	return out
+}
+
 // bakeAnim writes <out>/belt_anim/<variant><damage>_<k>.png (64 px) for k < animFrames and every §26 damage level.
 func bakeAnim(artDir, outDir string, floors, decals []*image.NRGBA) {
 	belt := load(filepath.Join(artDir, "belt.png"))
+	surfDecals := []*image.NRGBA{nil}
+	for _, sfx := range damageSuffix[1:] {
+		surfDecals = append(surfDecals, load(filepath.Join(artDir, "belt_damage"+sfx+".png")))
+	}
 	dir := filepath.Join(outDir, "belt_anim")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		fail(err)
 	}
 	for _, v := range animVariants(artDir) {
-		var post func(*image.NRGBA, *image.NRGBA)
-		if v.name == "curve" {
-			post = curveFloor
-		}
 		for k := range animFrames {
-			// Moving up the screen = texture rows scroll up: frame k shows the texture k/animFrames of a tile further on.
-			f := shiftBand(belt, k*masterTile/animFrames)
-			m := resize(v.build(f), 64, 64)
-			if v.name == "curve" {
-				curveEdges(m, resize(f, 64, 64))
-			}
-			for lvl, sfx := range damageSuffix {
-				save(damageFrame(m, floors, decals, lvl, post), filepath.Join(dir, fmt.Sprintf("%s%s_%02d.png", v.name, sfx, k)))
+			for lvl, im := range animFrame(belt, surfDecals, v, k, floors, decals) {
+				save(im, filepath.Join(dir, fmt.Sprintf("%s%s_%02d.png", v.name, damageSuffix[lvl], k)))
 			}
 		}
 	}
@@ -910,15 +967,22 @@ func overhaul(game, assets string, k int, lit bool) *image.NRGBA {
 func overhaulPreview(game, assets, pngPath string) {
 	f0 := overhaul(game, assets, 0, true)
 	save(resize(f0, f0.Rect.Dx()*2, f0.Rect.Dy()*2), pngPath)
-	anim := &gif.GIF{}
+	var frames []*image.NRGBA
 	for k := range animFrames {
-		f := overhaul(game, assets, k, k&2 == 0)
+		frames = append(frames, overhaul(game, assets, k, k&2 == 0))
+	}
+	saveGIF(frames, strings.TrimSuffix(pngPath, filepath.Ext(pngPath))+".gif")
+}
+
+// saveGIF writes the animation frames (Plan9 palette, dithered) as a looping GIF.
+func saveGIF(frames []*image.NRGBA, gifPath string) {
+	anim := &gif.GIF{}
+	for _, f := range frames {
 		p := image.NewPaletted(f.Rect, palette.Plan9)
 		draw.FloydSteinberg.Draw(p, f.Rect, f, image.Point{})
 		anim.Image = append(anim.Image, p)
 		anim.Delay = append(anim.Delay, 3) // 1/32 s per frame is below GIF resolution; 30 ms
 	}
-	gifPath := strings.TrimSuffix(pngPath, filepath.Ext(pngPath)) + ".gif"
 	f, err := openFile(gifPath, true)
 	if err != nil {
 		fail(err)
@@ -929,7 +993,7 @@ func overhaulPreview(game, assets, pngPath string) {
 	if err := f.Close(); err != nil {
 		fail(err)
 	}
-	fmt.Println("wrote", gifPath, animFrames, "frames")
+	fmt.Println("wrote", gifPath, len(frames), "frames")
 }
 
 func main() {
@@ -975,7 +1039,7 @@ func main() {
 		}
 		for lvl, sfx := range damageSuffix {
 			if sp.file != "" {
-				out := damageFrame(resize(m, sp.w*64, sp.h*64), floors, decals, lvl, nil, floorKeep[sp.master]...)
+				out := damageFrame(resize(m, sp.w*64, sp.h*64), floors, decals, lvl, nil, nil, nil, floorKeep[sp.master]...)
 				save(out, filepath.Join(*outDir, strings.TrimSuffix(sp.file, ".png")+sfx+".png"))
 			}
 		}
@@ -1050,4 +1114,42 @@ func damagePreview(game, assets, path string) {
 		}
 	}
 	save(out, path)
+	damageScroll(game, assets, strings.TrimSuffix(path, filepath.Ext(path))+".gif")
+}
+
+// damageScroll animates at game scale (2x GIF tops 4 MB), one row per damage level 33 / 66: a damaged straight, curve and
+// heat crossing (an undamaged one below it), each between undamaged belts over vanilla corridor floor, to check the surface damage scrolls and the joins stay seamless.
+func damageScroll(game, assets, gifPath string) {
+	floor := resize(load(filepath.Join(game, "Data", "ships", "terran", "corridor", "floor.png")), 64, 64)
+	var frames []*image.NRGBA
+	for k := range animFrames {
+		a := func(v, sfx string) *image.NRGBA {
+			return load(filepath.Join(assets, "belt_anim", fmt.Sprintf("%s%s_%02d.png", v, sfx, k)))
+		}
+		const W, H = 7, 6
+		out := image.NewNRGBA(image.Rect(0, 0, W*64, H*64))
+		for ty := range H {
+			for tx := range W {
+				paste(out, floor, tx*64, ty*64)
+			}
+		}
+		for r, sfx := range damageSuffix[1:] {
+			y := 3*r + 1
+			put := func(im *image.NRGBA, tx, ty int) { paste(out, im, tx*64, (y+ty)*64) }
+			flow := rotateCW(a("straight", "")) // belt flowing right
+			put(a("straight", ""), 0, -1)
+			put(a("straight", sfx), 0, 0)
+			put(a("straight", ""), 0, 1)
+			put(flow, 1, 1)
+			put(a("curve", sfx), 2, 1)
+			put(a("straight", ""), 2, 0)
+			for i, s := range []string{sfx, ""} {
+				put(flow, 4, i)
+				put(a("heat_crossing", s), 5, i)
+				put(flow, 6, i)
+			}
+		}
+		frames = append(frames, out)
+	}
+	saveGIF(frames, gifPath)
 }
