@@ -84,10 +84,10 @@ sealed partial class NativeProbe
             int Find(string id)
             {
                 for (int i = 0; i < strong.Count; i++) foreach (var n in (IEnumerable)Field(strongType, "Nodes").GetValue(strong[i])!) {
-                        if (n.GetType().Name != "NetworkNodeWrapper") continue;
-                        var underlying = Property(n, "UnderlyingNode");
-                        if (Property(underlying, "ID").ToString() == id) return i;
-                    }
+                    if (n.GetType().Name != "NetworkNodeWrapper") continue;
+                    var underlying = Property(n, "UnderlyingNode");
+                    if (Property(underlying, "ID").ToString() == id) return i;
+                }
                 throw new InvalidOperationException("Native renderer omitted blueprint node " + id);
             }
             int thermalIndex = Find(thermalId), electricIndex = Find(electricId);
@@ -116,10 +116,10 @@ sealed partial class NativeProbe
         var candidateRules = NodeAndPortRules(true);
         var candidateCases = new List<object>();
         foreach (int transform in Enumerable.Range(0, 8)) foreach (bool both in new[] { false, true }) {
-                var result = Decompose(candidateRules, both, transform);
-                Require((int)Property(result, "components") == 3 && (int)Property(result, "thermalIndex") == 1 && (float)Property(result, "x") == 0f && (float)Property(result, "y") == 0f, "Native three-node spacing does not center the thermal channel");
-                candidateCases.Add(result);
-            }
+            var result = Decompose(candidateRules, both, transform);
+            Require((int)Property(result, "components") == 3 && (int)Property(result, "thermalIndex") == 1 && (float)Property(result, "x") == 0f && (float)Property(result, "y") == 0f, "Native three-node spacing does not center the thermal channel");
+            candidateCases.Add(result);
+        }
         var legacyRules = NodeAndPortRules(true).Where(r => RuleId(r) != "OverlaySpacingNode").ToArray();
         foreach (var rule in legacyRules.Where(r => RuleId(r).StartsWith("Port_"))) {
             bool thermal = RuleId(rule) is "Port_Up" or "Port_Down";

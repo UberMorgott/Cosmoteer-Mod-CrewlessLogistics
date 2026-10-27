@@ -54,12 +54,12 @@ sealed partial class NativeProbe
         Require(shapes.Count == 6, "Adaptive preview lost a native connection shape");
         int cases = 0;
         for (int rotation = 0; rotation < 4; rotation++) foreach (bool flip in new[] { false, true }) {
-                var list = (IList)Field(rendererType, "_data").GetValue(renderer)!; list.Clear();
-                // Part=null is the actual held-part path: it selects state zero.
-                Call(renderer, "CalculateBlendSpriteData", Data(rotation, flip), rules);
-                Require(list.Count == 1, "Held adaptive cable preview produced no native quad");
-                Visible(Property(list[0]!, "Sprite")); cases++;
-            }
+            var list = (IList)Field(rendererType, "_data").GetValue(renderer)!; list.Clear();
+            // Part=null is the actual held-part path: it selects state zero.
+            Call(renderer, "CalculateBlendSpriteData", Data(rotation, flip), rules);
+            Require(list.Count == 1, "Held adaptive cable preview produced no native quad");
+            Visible(Property(list[0]!, "Sprite")); cases++;
+        }
         var fixedParts = new List<object>();
         foreach (string name in new[] { "cable_crossing", "cable_heat_crossing" }) {
             var source = Open(Path.Combine(projectRoot, "mod", name + ".rules"));

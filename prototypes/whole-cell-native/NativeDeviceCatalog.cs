@@ -48,9 +48,9 @@ sealed partial class NativeProbe
             var root = Open(Path.Combine(gameRoot, "Data", "cosmoteer.rules"));
             var actionReport = new List<object>();
             foreach (var mod in mods) foreach (object action in mod.Actions) {
-                    try { Call(action, "ApplyAction", root); } catch (Exception error) { throw new InvalidOperationException($"Cannot apply enabled mod native action: {mod.Id}, {action.GetType().Name}. {Inner(error).Message}", error); }
-                    actionReport.Add(new { modId = mod.Id, actionType = action.GetType().Name });
-                }
+                try { Call(action, "ApplyAction", root); } catch (Exception error) { throw new InvalidOperationException($"Cannot apply enabled mod native action: {mod.Id}, {action.GetType().Name}. {Inner(error).Message}", error); }
+                actionReport.Add(new { modId = mod.Id, actionType = action.GetType().Name });
+            }
             const string registry = "<ships/terran/terran.rules>/Terran/Parts";
             var partNodes = Nodes(root, registry); var reports = new List<object>();
             for (int i = 0; i < partNodes.Length; i++) {
@@ -82,8 +82,8 @@ sealed partial class NativeProbe
                         }
                         if (Has(root, path + "/PartLocation")) entry.References["PartLocation"] = ReadRuleObject(root, path + "/PartLocation", typeof(int[]));
                         foreach (string field in new[] { "QuantityScale", "FromQuantity", "ToQuantity", "MinResourcesPickUp", "MaxResourcesPickUp" }) if (Has(root, path + "/" + field)) {
-                                try { entry.Values[field] = ReadRuleObject(root, path + "/" + field, typeof(float)); } catch { entry.MetadataWarnings.Add(field + " is a native modifiable value, not a plain scalar."); }
-                            }
+                            try { entry.Values[field] = ReadRuleObject(root, path + "/" + field, typeof(float)); } catch { entry.MetadataWarnings.Add(field + " is a native modifiable value, not a plain scalar."); }
+                        }
                         // false = crew deliver only while OperationalToggle is on (hyperdrives: FtlDrive spool-up).
                         if (Has(root, path + "/AllowNonOperationalMinPriorityDelivery")) entry.Values["AllowNonOperationalMinPriorityDelivery"] = ReadRuleObject(root, path + "/AllowNonOperationalMinPriorityDelivery", typeof(bool));
                         if (Has(root, path + "/MaxResources")) {
@@ -208,8 +208,8 @@ sealed partial class NativeProbe
             mods.Sort((a, b) => StringComparer.Ordinal.Compare(a.Id, b.Id));
             var root = Open(Path.Combine(gameRoot, "Data", "cosmoteer.rules"));
             foreach (var mod in mods) foreach (object action in mod.Actions) {
-                    try { Call(action, "ApplyAction", root); } catch (Exception error) { throw new InvalidOperationException("Enabled-mod validation failed: " + mod.Id + "/" + action.GetType().Name, error); }
-                }
+                try { Call(action, "ApplyAction", root); } catch (Exception error) { throw new InvalidOperationException("Enabled-mod validation failed: " + mod.Id + "/" + action.GetType().Name, error); }
+            }
             return root;
         } finally { Environment.CurrentDirectory = originalDirectory; }
     }
