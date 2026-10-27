@@ -84,6 +84,7 @@ sealed partial class NativeProbe
             BeltFactoryPullMatrix();
             BeltTypeSafety();
             BeltMirroredLayouts();
+            BeltArrowPlacement();
         } finally {
             SetField(ship, "<Parts>k__BackingField", null);
             SetTime(0);
@@ -502,42 +503,53 @@ sealed partial class NativeProbe
     }
 
     // ---- (3) ship mirroring: layouts mirrored by native PartInfo.MirrorX/MirrorY ----
-    void BeltMirroredLayouts()
+    const string FactoryPart = "<ships/terran/factory_ammo/factory_ammo.rules>/Part", CannonPart = "<ships/terran/cannon_med/cannon_med.rules>/Part";
+    // Places (kind, id, rules path, x, y, rotFlip, w, h) specs, optionally rotated by shipRot
+    // quarter turns, then mirrored by native PartInfo.MirrorX/MirrorY; fills the factory with 30.
+    (PlacedPart Factory, PlacedPart Cannon, List<PlacedPart> Belts) PlaceLayout((string Kind, string Id, string Path, int X, int Y, int R, int W, int H)[] layout, string mode, int shipRot = 0)
     {
         var partInfoType = Game("Cosmoteer.Ships.Parts.PartInfo");
         var mirrorX = partInfoType.GetMethod("MirrorX")!; var mirrorY = partInfoType.GetMethod("MirrorY")!;
         var rangeType = mirrorX.GetParameters()[0].ParameterType;
-        const string factoryPart = "<ships/terran/factory_ammo/factory_ammo.rules>/Part", cannonPart = "<ships/terran/cannon_med/cannon_med.rules>/Part";
-        // (kind, id, rules path, x, y, rotFlip, w, h). Right-turn and left-turn feeds.
+        layout = layout.Select(p => {
+            var a = Rot(shipRot, p.X, p.Y); var b = Rot(shipRot, p.X + ((p.R & 1) == 1 ? p.H : p.W) - 1, p.Y + ((p.R & 1) == 1 ? p.W : p.H) - 1);
+            return p with { X = Math.Min(a.X, b.X), Y = Math.Min(a.Y, b.Y), R = ((p.R + shipRot) & 3) | (p.R & 4) };
+        }).ToArray();
+        int minX = layout.Min(p => p.X), maxX = layout.Max(p => p.X + ((p.R & 1) == 1 ? p.H : p.W) - 1);
+        int minY = layout.Min(p => p.Y), maxY = layout.Max(p => p.Y + ((p.R & 1) == 1 ? p.W : p.H) - 1);
+        NewBeltGrid();
+        PlacedPart? factory = null, cannon = null; var belts = new List<PlacedPart>();
+        foreach (var spec in layout) {
+            // Native editor mirroring math on a PartRules carrying the parsed mirror fields.
+            string path = spec.Kind == "belt" ? beltRegistry[spec.Id] : spec.Path;
+            var rules = RuntimeHelpers.GetUninitializedObject(Game("Cosmoteer.Ships.Parts.PartRules"));
+            SetField(rules, "Size", Vector(spec.W, spec.H));
+            foreach (string flag in new[] { "IsFlippable", "IsRotateable" }) SetField(rules, flag, ReadRuleObject(beltRoot, path + "/" + flag, typeof(bool)));
+            foreach (string map in new[] { "FlipHRotate", "FlipVRotate" }) SetField(rules, map, ReadRuleObject(beltRoot, path + "/" + map, typeof(int[])));
+            object info = Activator.CreateInstance(partInfoType, rules, Vector(spec.X, spec.Y), spec.R & 3, spec.R >= 4)!;
+            if (mode.Contains('X')) info = mirrorX.Invoke(info, new[] { Activator.CreateInstance(rangeType, minX, maxX)! })!;
+            if (mode.Contains('Y')) info = mirrorY.Invoke(info, new[] { Activator.CreateInstance(rangeType, minY, maxY)! })!;
+            var loc = Field(partInfoType, "Location").GetValue(info)!;
+            int x = (int)loc.GetType().GetField("X")!.GetValue(loc)!, y = (int)loc.GetType().GetField("Y")!.GetValue(loc)!;
+            int rotFlip = (int)Field(partInfoType, "Rotation").GetValue(info)! | ((bool)Field(partInfoType, "FlipX").GetValue(info)! ? 4 : 0);
+            if (spec.Kind == "belt") belts.Add(Belt(spec.Id, x, y, rotFlip));
+            else if (spec.Kind == "factory") factory = Endpoint(spec.Id, x, y, rotFlip, spec.W, spec.H, Fixture("AmmoFactory/AmmoStorage"));
+            else cannon = Endpoint(spec.Id, x, y, rotFlip, spec.W, spec.H, Vanilla(CannonAmmo));
+        }
+        AttachAll();
+        SetCount(factory!["AmmoStorage"], 30);
+        return (factory, cannon!, belts);
+    }
+    void BeltMirroredLayouts()
+    {
+        // Right-turn and left-turn feeds.
         var layouts = new Dictionary<string, (string Kind, string Id, string Path, int X, int Y, int R, int W, int H)[]> {
-            ["right corner"] = new[] { ("factory", "cosmoteer.factory_ammo", factoryPart, 0, 0, 0, 2, 2), ("belt", BeltIds[0], "", 2, 1, 1, 1, 1), ("belt", BeltIds[2], "", 3, 1, 1, 1, 1), ("belt", BeltIds[0], "", 3, 2, 2, 1, 1), ("cannon", "cosmoteer.cannon_med", cannonPart, 3, 3, 0, 2, 2) },
-            ["left corner"] = new[] { ("factory", "cosmoteer.factory_ammo", factoryPart, 0, 0, 0, 2, 2), ("belt", BeltIds[0], "", 2, 1, 1, 1, 1), ("belt", BeltIds[1], "", 3, 1, 1, 1, 1), ("belt", BeltIds[0], "", 3, 0, 0, 1, 1), ("cannon", "cosmoteer.cannon_med", cannonPart, 3, -2, 0, 2, 2) } };
+            ["right corner"] = new[] { ("factory", "cosmoteer.factory_ammo", FactoryPart, 0, 0, 0, 2, 2), ("belt", BeltIds[0], "", 2, 1, 1, 1, 1), ("belt", BeltIds[2], "", 3, 1, 1, 1, 1), ("belt", BeltIds[0], "", 3, 2, 2, 1, 1), ("cannon", "cosmoteer.cannon_med", CannonPart, 3, 3, 0, 2, 2) },
+            ["left corner"] = new[] { ("factory", "cosmoteer.factory_ammo", FactoryPart, 0, 0, 0, 2, 2), ("belt", BeltIds[0], "", 2, 1, 1, 1, 1), ("belt", BeltIds[1], "", 3, 1, 1, 1, 1), ("belt", BeltIds[0], "", 3, 0, 0, 1, 1), ("cannon", "cosmoteer.cannon_med", CannonPart, 3, -2, 0, 2, 2) } };
         int runs = 0;
         foreach (var (layoutName, layout) in layouts) foreach (var mode in new[] { "none", "X", "Y", "XY" }) {
-            int minX = layout.Min(p => p.X), maxX = layout.Max(p => p.X + ((p.R & 1) == 1 ? p.H : p.W) - 1);
-            int minY = layout.Min(p => p.Y), maxY = layout.Max(p => p.Y + ((p.R & 1) == 1 ? p.W : p.H) - 1);
-            NewBeltGrid();
-            PlacedPart? factory = null, cannon = null; var belts = new List<PlacedPart>();
-            foreach (var spec in layout) {
-                // Native editor mirroring math on a PartRules carrying the parsed mirror fields.
-                string path = spec.Kind == "belt" ? beltRegistry[spec.Id] : spec.Path;
-                var rules = RuntimeHelpers.GetUninitializedObject(Game("Cosmoteer.Ships.Parts.PartRules"));
-                SetField(rules, "Size", Vector(spec.W, spec.H));
-                foreach (string flag in new[] { "IsFlippable", "IsRotateable" }) SetField(rules, flag, ReadRuleObject(beltRoot, path + "/" + flag, typeof(bool)));
-                foreach (string map in new[] { "FlipHRotate", "FlipVRotate" }) SetField(rules, map, ReadRuleObject(beltRoot, path + "/" + map, typeof(int[])));
-                object info = Activator.CreateInstance(partInfoType, rules, Vector(spec.X, spec.Y), spec.R & 3, spec.R >= 4)!;
-                if (mode.Contains('X')) info = mirrorX.Invoke(info, new[] { Activator.CreateInstance(rangeType, minX, maxX)! })!;
-                if (mode.Contains('Y')) info = mirrorY.Invoke(info, new[] { Activator.CreateInstance(rangeType, minY, maxY)! })!;
-                var loc = Field(partInfoType, "Location").GetValue(info)!;
-                int x = (int)loc.GetType().GetField("X")!.GetValue(loc)!, y = (int)loc.GetType().GetField("Y")!.GetValue(loc)!;
-                int rotFlip = (int)Field(partInfoType, "Rotation").GetValue(info)! | ((bool)Field(partInfoType, "FlipX").GetValue(info)! ? 4 : 0);
-                if (spec.Kind == "belt") belts.Add(Belt(spec.Id, x, y, rotFlip));
-                else if (spec.Kind == "factory") factory = Endpoint(spec.Id, x, y, rotFlip, spec.W, spec.H, Fixture("AmmoFactory/AmmoStorage"));
-                else cannon = Endpoint(spec.Id, x, y, rotFlip, spec.W, spec.H, Vanilla(CannonAmmo));
-            }
-            AttachAll();
-            SetCount(factory!["AmmoStorage"], 30);
-            BeltTicks(900, () => Require(Total("AmmoLaneBullet", factory["AmmoStorage"], cannon!["AmmoStorage"]) == 30, "Bullets not conserved in mirrored layout"));
+            var (factory, cannon, belts) = PlaceLayout(layout, mode);
+            BeltTicks(900, () => Require(Total("AmmoLaneBullet", factory["AmmoStorage"], cannon["AmmoStorage"]) == 30, "Bullets not conserved in mirrored layout"));
             bool cornerFlipped = (bool)Property(belts[1].Part, "FlipX");
             Require(cornerFlipped == (mode.Length == 1), "Native mirroring should flip the corner exactly for single-axis mirrors");
             Require(Rounds(cannon!["AmmoStorage"]) == 15 && belts.All(b => Rounds(b["AmmoLaneBullet"]) == 1), $"Mirrored layout broke ({layoutName}, mirror {mode})");
@@ -545,6 +557,56 @@ sealed partial class NativeProbe
         }
         Console.WriteLine($"PASS: ship mirroring: {runs} layouts (right/left corner feeds x none/MirrorX/MirrorY/both via native PartInfo mirroring): corner flips on single-axis mirrors, cannon_med fills 15/15, all lanes full, bullets conserved.");
         scenarioResults.Add(new { name = "ammo belt mirrored layouts", runs, nativeMirror = "PartInfo.MirrorX/MirrorY" });
+    }
+
+    // ---- (4) floor arrow = output side; players place belts by the arrow ----
+    // Arrow side in the part's unflipped frame, from the Graphics/BlueprintSprite built for
+    // this flip state. UVRotation turns the up-pointing vanilla arrow clockwise; the engine
+    // mirrors UVs before rotating them (AtlasQuad -> RotateQuadUVsAndTangents) and the arrow
+    // is U-symmetric, so a flipped part shows the same unflipped-frame side.
+    (int X, int Y) BeltArrow(string id, bool flipped)
+    {
+        string prefix = beltRegistry[id] + "/Components";
+        var dictType = typeof(Dictionary<,>).MakeGenericType(typeof(string), Core("Halfling.ObjectText.OTNode"));
+        var sides = new HashSet<(int, int)>();
+        foreach (string name in ((IDictionary)ReadRuleObject(beltRoot, prefix, dictType)).Keys.Cast<string>()) {
+            string path = prefix + "/" + name;
+            if (!HasRule(beltRoot, path + "/Type")) continue;
+            string type = (string)ReadRuleObject(beltRoot, path + "/Type", typeof(string));
+            if (type is not ("Graphics" or "BlueprintSprite")) continue;
+            if (HasRule(beltRoot, path + "/OnlyWithFlip") && (bool)ReadRuleObject(beltRoot, path + "/OnlyWithFlip", typeof(bool)) != flipped) continue;
+            string uv = path + (type == "Graphics" ? "/OperationalDoodad/DamageLevels/0/UVRotation" : "/UVRotation");
+            int r = HasRule(beltRoot, uv) ? (int)ReadRuleObject(beltRoot, uv, typeof(int)) : 0;
+            sides.Add(Rot(r, 0, -1));
+        }
+        Require(sides.Count == 1, $"Belt floor and blueprint arrows disagree or are missing: {id} flipped={flipped}");
+        return sides.Single();
+    }
+    void BeltArrowPlacement()
+    {
+        foreach (var id in BeltIds) foreach (bool flipped in new[] { false, true }) {
+            if (flipped && !(id == BeltIds[1] || id == BeltIds[2])) continue;
+            // Flip mirrors local X before rotation (PartRules.GetShipRelativeCell).
+            var arrow = BeltArrow(id, flipped); var output = (flipped ? -BeltOutputs[id][0].X : BeltOutputs[id][0].X, BeltOutputs[id][0].Y);
+            Require(output == arrow, $"Belt arrow does not point at its output: {id} flipped={flipped} arrow={arrow} output={output}");
+        }
+        // Live repro: factory_ammo flipped (output cell on its left face) -> 2 straights west
+        // -> left corner -> cannon_med rotated 180, corner above its top-right (back) cell.
+        // The corner is rotated so its arrow points at the cannon, as a player places it.
+        var arrowL = BeltArrow(BeltIds[1], false);
+        int cornerRot = Enumerable.Range(0, 4).Single(r => Rot(r, arrowL.X, arrowL.Y) == (0, 1));
+        var layout = new (string Kind, string Id, string Path, int X, int Y, int R, int W, int H)[] {
+            ("factory", "cosmoteer.factory_ammo", FactoryPart, 3, 0, 4, 2, 2), ("belt", BeltIds[0], "", 2, 1, 3, 1, 1), ("belt", BeltIds[1], "", 0, 1, cornerRot, 1, 1),
+            ("belt", BeltIds[0], "", 1, 1, 3, 1, 1), ("cannon", "cosmoteer.cannon_med", CannonPart, -1, 2, 2, 2, 2) };
+        int runs = 0;
+        foreach (int shipRot in new[] { 0, 1, 2, 3 }) foreach (var mode in new[] { "none", "X", "Y", "XY" }) {
+            var (factory, cannon, belts) = PlaceLayout(layout, mode, shipRot);
+            BeltTicks(900, () => Require(Total("AmmoLaneBullet", factory["AmmoStorage"], cannon["AmmoStorage"]) == 30, "Bullets not conserved in arrow-placed layout"));
+            Require(Rounds(cannon["AmmoStorage"]) == 15 && belts.All(b => Rounds(b["AmmoLaneBullet"]) == 1), $"Arrow-placed corner feed broke (ship rot {shipRot}, mirror {mode}, corner r{cornerRot}): cannon {Rounds(cannon["AmmoStorage"])}, lanes {string.Join(",", belts.Select(b => Rounds(b["AmmoLaneBullet"])))}");
+            runs++;
+        }
+        Console.WriteLine($"PASS: belt arrows point at the output (floor + blueprint, corners per flip state); arrow-placed live layout flipped factory_ammo -> 2 straights -> left corner r{cornerRot} -> cannon_med r2 back cell: {runs} runs (4 ship rot x none/MirrorX/MirrorY/both) fill 15/15, lanes full.");
+        scenarioResults.Add(new { name = "ammo belt arrow placement", runs, cornerRot });
     }
     // Emulates Part.AddComponents/RemoveComponent bookkeeping + native ComponentAdded/Removed events.
     void RaiseComponentChange(object p, string id, object component, bool added)
