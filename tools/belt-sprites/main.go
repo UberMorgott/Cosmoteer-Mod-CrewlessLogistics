@@ -6,6 +6,7 @@
 //	go run .                                             // bake art/ -> ..\..\mod\assets
 //	go run . -preview out.png                            // also compose new sprites next to vanilla ones
 //	go run . -overhaul out.png                           // §21 cases in game layering + animated out.gif
+//	go run . -blueprints out.png                         // blueprint ghosts in 4 rotations over floor (vanilla arrow)
 package main
 
 import (
@@ -79,6 +80,87 @@ func blueprintOf(m *image.NRGBA) *image.NRGBA {
 		o[3] = uint8((255 - r) * 0.8)
 	}
 	return out
+}
+
+// vanillaArrow lifts the direction arrow out of the vanilla conveyor blueprint (64 px, front = up): per row, every pixel
+// from the first to the last opaque outline pixel (outline + its enclosed fill), made fully opaque so it reads over our
+// busy blueprint art. Returns a 64 px tile holding only the arrow at its vanilla position.
+func vanillaArrow(game string) *image.NRGBA {
+	bp := load(filepath.Join(game, "Data", "ships", "terran", "conveyor", "blueprints.png"))
+	out := image.NewNRGBA(bp.Rect)
+	for y := range bp.Rect.Dy() {
+		x0, x1 := -1, -1
+		for x := range bp.Rect.Dx() {
+			if bp.NRGBAAt(x, y).A > 200 {
+				if x0 < 0 {
+					x0 = x
+				}
+				x1 = x
+			}
+		}
+		for x := x0; x >= 0 && x <= x1; x++ {
+			c := bp.NRGBAAt(x, y)
+			c.A = 255
+			out.SetNRGBA(x, y, c)
+		}
+	}
+	return out
+}
+
+// markBlueprint pastes the vanilla arrow onto each tile of a blueprint (rot = clockwise quarter turns of the flow).
+func markBlueprint(bp, arrow *image.NRGBA, rot int) *image.NRGBA {
+	for ; rot > 0; rot-- {
+		arrow = rotateCW(arrow)
+	}
+	for ty := 0; ty < bp.Rect.Dy(); ty += 64 {
+		for tx := 0; tx < bp.Rect.Dx(); tx += 64 {
+			paste(bp, arrow, tx, ty)
+		}
+	}
+	return bp
+}
+
+// blueprints lays out every belt-part ghost (plain belt = vanilla conveyor blueprint) in all 4 rotations over a vanilla
+// corridor floor tile, row 1 at game scale (64 px/tile), row 2 at 2x.
+func blueprints(game, assets, path string) {
+	floor := load(filepath.Join(game, "Data", "ships", "terran", "corridor", "floor.png"))
+	ghosts := []*image.NRGBA{load(filepath.Join(game, "Data", "ships", "terran", "conveyor", "blueprints.png"))}
+	for _, sp := range sprites {
+		if sp.blueprint != "" {
+			ghosts = append(ghosts, load(filepath.Join(assets, sp.blueprint)))
+		}
+	}
+	const gap = 16
+	rowW := gap
+	for _, g := range ghosts {
+		rowW += 4*(max(g.Rect.Dx(), g.Rect.Dy())+gap) + gap
+	}
+	out := image.NewNRGBA(image.Rect(0, 0, 2*rowW, gap+128+gap+256+gap))
+	for i := range out.Pix {
+		out.Pix[i] = 40
+		if i%4 == 3 {
+			out.Pix[i] = 255
+		}
+	}
+	for row, scale := range []int{1, 2} {
+		x, y := gap, gap+row*(128+gap)
+		for _, g := range ghosts {
+			im := g
+			for range 4 {
+				w, h := im.Rect.Dx()*scale, im.Rect.Dy()*scale
+				for ty := 0; ty < h; ty += 64 * scale {
+					for tx := 0; tx < w; tx += 64 * scale {
+						paste(out, resize(floor, 64*scale, 64*scale), x+tx, y+ty)
+					}
+				}
+				paste(out, resize(im, w, h), x, y)
+				x += max(g.Rect.Dx(), g.Rect.Dy())*scale + gap
+				im = rotateCW(im)
+			}
+			x += gap
+		}
+	}
+	save(out, path)
 }
 
 // layers are masters baked by code below, not by the sprites loop: belt_lamp = Codex indicator glow on black.
@@ -230,11 +312,11 @@ func resize(img *image.NRGBA, w, h int) *image.NRGBA {
 	return out
 }
 
-// rotateCW turns a square image 90 degrees clockwise (top row -> right column).
+// rotateCW turns an image 90 degrees clockwise (top row -> right column; w x h -> h x w).
 func rotateCW(img *image.NRGBA) *image.NRGBA {
-	n := img.Rect.Dx()
-	out := image.NewNRGBA(image.Rect(0, 0, n, n))
-	for y := range n {
+	n := img.Rect.Dy()
+	out := image.NewNRGBA(image.Rect(0, 0, n, img.Rect.Dx()))
+	for y := range img.Rect.Dx() {
 		for x := range n {
 			out.SetNRGBA(x, y, img.NRGBAAt(img.Rect.Min.X+y, img.Rect.Min.Y+n-1-x))
 		}
@@ -609,13 +691,14 @@ func overhaulPreview(game, assets, pngPath string) {
 }
 
 func main() {
-	game := flag.String("game", `D:\Steam\steamapps\common\Cosmoteer`, "game root (preview only)")
+	game := flag.String("game", `D:\Steam\steamapps\common\Cosmoteer`, "game root (vanilla blueprint arrow, previews)")
 	artDir := flag.String("art", "art", "master directory")
 	outDir := flag.String("out", filepath.Join("..", "..", "mod", "assets"), "output directory")
 	importDir := flag.String("import", "", "raw Codex output directory to import into -art first")
 	previewPath := flag.String("preview", "", "optional preview PNG path")
 	overhaulPath := flag.String("overhaul", "", "optional §21 overhaul preview PNG path (+ animated .gif next to it)")
 	crossingsPath := flag.String("crossings", "", "optional crossings preview PNG path (belts left/right, pipe or cable above/below)")
+	blueprintsPath := flag.String("blueprints", "", "optional blueprint ghost preview PNG path (4 rotations over floor, 1x and 2x)")
 	flag.Parse()
 
 	if *importDir != "" {
@@ -630,14 +713,16 @@ func main() {
 			save(resize(raw, sp.w*masterTile, sp.h*masterTile), filepath.Join(*artDir, sp.master+".png"))
 		}
 	}
+	arrow := vanillaArrow(*game)
 	for _, sp := range sprites {
 		m := load(filepath.Join(*artDir, sp.master+".png"))
+		rot := 0
 		if strings.HasSuffix(sp.master, "_crossing") {
-			m = rotateCW(m)
+			m, rot = rotateCW(m), 1
 		}
 		save(resize(m, sp.w*64, sp.h*64), filepath.Join(*outDir, sp.file))
 		if sp.blueprint != "" {
-			save(blueprintOf(resize(m, sp.w*64, sp.h*64)), filepath.Join(*outDir, sp.blueprint))
+			save(markBlueprint(blueprintOf(resize(m, sp.w*64, sp.h*64)), arrow, rot), filepath.Join(*outDir, sp.blueprint))
 		}
 		if sp.icon != "" {
 			save(resize(m, sp.w*32, sp.h*32), filepath.Join(*outDir, sp.icon))
@@ -653,5 +738,8 @@ func main() {
 	}
 	if *crossingsPath != "" {
 		crossings(*game, *outDir, *crossingsPath)
+	}
+	if *blueprintsPath != "" {
+		blueprints(*game, *outDir, *blueprintsPath)
 	}
 }
