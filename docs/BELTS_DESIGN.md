@@ -349,9 +349,11 @@ Spot-checked: `Part.cs:827,1371`, `SimRoot.cs:605-618`, `FixedUpdateBuckets.cs` 
   (`Install-Mod.ps1` builds and hash-checks it, removes the test-only `Mods\CrewlessLogisticsBeltProbe`);
   `Dependencies = ["3577650065"]`, `ModifiesMultiplayer = true`. Energy rules unchanged.
 - Parts (rules, vanilla components only): `belt.rules` (rotatable vanilla conveyor body, crew speed 1 every way,
-  static darker plates + vanilla chevron on `floors`), `belt_splitter.rules` (2x1), `belt_connector.rules` (+ UIToggle
+  static belt floor art on `floors`), `belt_splitter.rules` (2x1), `belt_connector.rules` (+ UIToggle
   `BeltFilter`, Popout `belt_filter_toggle.rules`: none (default), any, 21 types). Build tabs: Storage and Power.
-  Temporary art: `tools/belt-sprites` (Go, mechanical compose of vanilla conveyor/corridor/roof-decal arrows).
+  Art: Codex image-gen masters in `tools/belt-sprites/art` (256 px/tile), baked to 64 px/tile + icons by
+  `tools/belt-sprites` (Go, trim/downscale only). `belt_curve.png` is baked but not wired: floor art is static per
+  part, so curves need a C# floor quad chosen from `Shape.CurveLeft/CurveRight` (CurveRight = mirrored).
 - Core (pure, headless-tested): `LaneSim` (lanes on per-part `LaneTile`s), `BeltWorld` (topology §4-§7 + tick),
   `NodeState` (payload v2). Changes vs §3/§10: speed remainder is derived from `Sim.Tick`
   (`floor((t+1)*512/30) - floor(t*512/30)`), so no accumulator is saved; drains open for one tick only (held items
