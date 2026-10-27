@@ -14,6 +14,19 @@ public enum Variant : byte
     Curve,
     HeatCrossing,
     CableCrossing,
+    /// <summary>§25 belt crossing with nothing linked: the straight belt in the crossing frame (belt flows right).</summary>
+    PlainCrossing,
+    /// <summary>§25 heat pipe linked at the part Up edge, cable at Down (and the reverse).</summary>
+    HeatCableCrossing,
+    CableHeatCrossing,
+}
+
+/// <summary>§25 what a belt crossing's network ports link to at one edge, through any chain of crossings.</summary>
+public enum CrossLink : byte
+{
+    None,
+    Heat,
+    Cable,
 }
 
 /// <summary>
@@ -110,6 +123,16 @@ public sealed class BeltRenderState
 
     /// <summary>Items drawn per node: belts only; splitter contents sit inside its closed housing, connectors hold none.</summary>
     public static bool DrawsItems(Node n) => n.Kind == NodeKind.Belt;
+
+    /// <summary>§25 crossing art from what its Up / Down edges link to: one network on both or one edge, both, or none.</summary>
+    public static Variant CrossingVariant(CrossLink up, CrossLink down) => (up, down) switch
+    {
+        (CrossLink.Heat, CrossLink.Cable) => Variant.HeatCableCrossing,
+        (CrossLink.Cable, CrossLink.Heat) => Variant.CableHeatCrossing,
+        _ when up == CrossLink.Heat || down == CrossLink.Heat => Variant.HeatCrossing,
+        _ when up == CrossLink.Cable || down == CrossLink.Cable => Variant.CableCrossing,
+        _ => Variant.PlainCrossing,
+    };
 
     /// <summary>Surface sprite of a belt node and whether it is mirrored; crossings never curve nor show joins.</summary>
     public static (Variant V, bool FlipU) Select(Node n, Variant crossing = Variant.Straight)

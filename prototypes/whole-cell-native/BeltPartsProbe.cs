@@ -6,7 +6,7 @@ sealed partial class NativeProbe
     {
         const string parts = "<ships/terran/terran.rules>/Terran/Parts/";
         string[] ids = { "morgott.crewless_logistics.belt", "morgott.crewless_logistics.belt_splitter", "morgott.crewless_logistics.belt_connector",
-            "morgott.crewless_logistics.belt_heat_crossing", "morgott.crewless_logistics.belt_cable_crossing" };
+            "morgott.crewless_logistics.belt_crossing" };
         const string vanillaCrossing = "<ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/";
         bool Has(string path)
         {
@@ -38,11 +38,16 @@ sealed partial class NativeProbe
                 // Nothing may draw above the belt items: no pipe cylinder, darkness overlay or heat glow.
                 foreach (var g in new[] { "Darkness_Graphics/NonOperationalDoodad/Layer", "HeatGlow_Graphics/OperationalDoodad/Layer", "HeatGlow_Graphics/OperationalRoofDoodad/Layer" })
                     Require(!Has(p + "Components/" + g), "Belt crossing still draws " + g + ": " + ids[i]);
-                // Network axis = part Up/Down (belt front is part cell (1, 0) in BeltManager): heat or electric only.
-                bool heat = i == 3;
-                foreach (var side in new[] { "Up", "Down" })
-                    Require(((string[])ReadRuleObject(root, p + "Components/Port_" + side + "/Types", typeof(string[]))).SequenceEqual(new[] { heat ? "thermal" : "morgott.crewless_logistics.electric" }), "Belt crossing network port has the wrong type: " + ids[i] + " Port_" + side);
-                Require(!Has(p + "Components/Port_Left/Type") && !Has(p + "Components/Port_Right/Type"), "Belt crossing must not have network ports on the belt axis: " + ids[i]);
+                // §25 network axis = part Up/Down (belt front is part cell (1, 0) in BeltManager): thermal and electric
+                // ports on both edges (each links only a compatible neighbour), none on the belt axis.
+                foreach (var side in new[] { "Up", "Down" }) {
+                    Require(((string[])ReadRuleObject(root, p + "Components/Port_" + side + "/Types", typeof(string[]))).SequenceEqual(new[] { "thermal" }), "Belt crossing thermal port has the wrong type: Port_" + side);
+                    Require(((string[])ReadRuleObject(root, p + "Components/ElectricPort_" + side + "/Types", typeof(string[]))).SequenceEqual(new[] { "morgott.crewless_logistics.electric" }), "Belt crossing electric port has the wrong type: ElectricPort_" + side);
+                }
+                foreach (var side in new[] { "Left", "Right" })
+                    Require(!Has(p + "Components/Port_" + side + "/Type") && !Has(p + "Components/ElectricPort_" + side + "/Type"), "Belt crossing must not have network ports on the belt axis: " + side);
+                // Saves and blueprints of the two former crossings load as this part.
+                Require(((string[])ReadRuleObject(root, p + "OtherIDs", typeof(string[]))).SequenceEqual(new[] { "morgott.crewless_logistics.belt_heat_crossing", "morgott.crewless_logistics.belt_cable_crossing" }), "Belt crossing must keep the former crossing IDs in OtherIDs");
             }
             Require(!Has(p + "Components/Graphics/OperationalDoodad/Layer"), "Belt part still draws the vanilla crew-conveyor animation: " + ids[i]);
             Require((string)ReadRuleObject(root, p + "Components/Graphics/Floor/Layer", typeof(string)) == "floors", "Belt surface must stay under the item layer: " + ids[i]);
@@ -52,6 +57,6 @@ sealed partial class NativeProbe
         Require((string)ReadRuleObject(root, filter + "ToggleID", typeof(string)) == "morgott.crewless_logistics.belt_filter"
             && (int)ReadRuleObject(root, filter + "Default", typeof(int)) == 0 && (bool)ReadRuleObject(root, filter + "RememberValue", typeof(bool)), "Connector filter must default to None and be remembered (blueprints)");
         Require(((int[])ReadRuleObject(root, parts + "100/Size", typeof(int[]))).SequenceEqual(new[] { 2, 1 }), "Splitter must be 1x2");
-        Console.WriteLine("PASS: belt, splitter, connector, belt/heat and belt/cable crossings registered after the cables; Storage+Power tabs, rotatable, belt crew .7 / splitter+connector crew-blocked, connector filter default None; crossings keep vanilla crossing stats/doors, crew .7, Up/Down thermal resp. electric ports only, nothing drawn above items");
+        Console.WriteLine("PASS: belt, splitter, connector and adaptive belt crossing (old heat/cable crossing IDs in OtherIDs) registered after the cables; Storage+Power tabs, rotatable, belt crew .7 / splitter+connector crew-blocked, connector filter default None; crossings keep vanilla crossing stats/doors, crew .7, Up/Down thermal + electric ports only, nothing drawn above items");
     }
 }

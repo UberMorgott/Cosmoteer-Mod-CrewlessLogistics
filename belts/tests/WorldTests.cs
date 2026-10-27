@@ -70,4 +70,26 @@ public class WorldTests
 
     [Fact]
     public void ClaimCascade() => Probe.Run(WorldProbes.ClaimCascade);
+
+    /// <summary>§25 adaptive crossing art for every Up/Down link pair; belt.rules lists one surface per Variant, in order.</summary>
+    [Fact]
+    public void CrossingVariants()
+    {
+        CrossLink N = CrossLink.None, H = CrossLink.Heat, C = CrossLink.Cable;
+        var cases = new (CrossLink Up, CrossLink Down, Variant V)[]
+        {
+            (N, N, Variant.PlainCrossing), (H, N, Variant.HeatCrossing), (N, H, Variant.HeatCrossing), (H, H, Variant.HeatCrossing),
+            (C, N, Variant.CableCrossing), (N, C, Variant.CableCrossing), (C, C, Variant.CableCrossing),
+            (H, C, Variant.HeatCableCrossing), (C, H, Variant.CableHeatCrossing),
+        };
+        foreach (var (up, down, v) in cases)
+        {
+            Assert.Equal(v, BeltRenderState.CrossingVariant(up, down));
+        }
+        string rules = File.ReadAllText(Path.Combine(Env.ProjectRoot, "mod", "belt.rules"));
+        var listed = System.Text.RegularExpressions.Regex.Matches(rules, @"assets/belt_anim/(\w+)_00\.png").Select(m => m.Groups[1].Value).ToArray();
+        string[] expected = { "straight", "join_l", "join_r", "join_lr", "curve", "heat_crossing", "cable_crossing", "plain_crossing", "heat_cable_crossing", "cable_heat_crossing" };
+        Assert.Equal(expected.Length, Enum.GetValues<Variant>().Length);
+        Assert.Equal(expected, listed);
+    }
 }

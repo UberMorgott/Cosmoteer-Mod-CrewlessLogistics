@@ -19,9 +19,11 @@ internal static class BeltState
     public const string BeltId = "morgott.crewless_logistics.belt";
     public const string SplitterId = "morgott.crewless_logistics.belt_splitter";
     public const string ConnectorId = "morgott.crewless_logistics.belt_connector";
-    /// <summary>1x1 straight belt crossing a heat pipe / an electric cable (network on the part Up/Down axis).</summary>
-    public const string HeatCrossingId = "morgott.crewless_logistics.belt_heat_crossing";
-    public const string CableCrossingId = "morgott.crewless_logistics.belt_cable_crossing";
+    /// <summary>
+    /// 1x1 straight belt over a heat pipe or an electric cable (network on the part Up/Down axis, §25). The former
+    /// belt_heat_crossing / belt_cable_crossing IDs load as this part through its OtherIDs.
+    /// </summary>
+    public const string CrossingId = "morgott.crewless_logistics.belt_crossing";
     public const string FilterToggleId = "morgott.crewless_logistics.belt_filter";
     /// <summary>§23 splitter / connector settings (mod/belt_*_priority_toggle.rules, belt_splitter_filter_toggle.rules).</summary>
     public const string InputPriorityToggleId = "morgott.crewless_logistics.belt_input_priority";
@@ -35,7 +37,7 @@ internal static class BeltState
 
     public static NodeKind? KindOf(PartRules rules) => rules.ID.ToString() switch
     {
-        BeltId or HeatCrossingId or CableCrossingId => NodeKind.Belt,
+        BeltId or CrossingId => NodeKind.Belt,
         SplitterId => NodeKind.Splitter,
         ConnectorId => NodeKind.Connector,
         _ => null,
@@ -44,7 +46,7 @@ internal static class BeltState
     /// <summary>Crossings are belts that never auto-curve and run along the part Left/Right axis (front = part cell (1, 0)).</summary>
     public static bool IsCrossing(Part part) => IsCrossing(part.Rules);
 
-    public static bool IsCrossing(PartRules rules) => rules.ID.ToString() is HeatCrossingId or CableCrossingId;
+    public static bool IsCrossing(PartRules rules) => rules.ID.ToString() == CrossingId;
 
     public static bool TryGet(Part part, [NotNullWhen(true)] out NodeState? state) => States.TryGetValue(part, out state);
 

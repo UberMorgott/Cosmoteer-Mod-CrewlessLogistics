@@ -1,0 +1,65 @@
+// Straight conveyor belt over a heat pipe or an electrical cable (docs/BELTS_DESIGN.md §19, one part since §25). The
+// vanilla heat pipe crossing body (stats, Left/Right doors, thermal Port_Up/Port_Down, nodes, pipe connectors) plus our
+// electric ports on the same Up/Down edges: a port only links a compatible neighbour (PartNetworkPort.cs:70), so a heat
+// pipe joins the thermal ports and a cable the electric ones. The belt runs Left/Right (C# front = part cell (1, 0),
+// BeltState.IsCrossing), crew walk along it at .7 (owner Q6). The C# surface shows heat / cable / mixed / plain art from
+// what the crossing chain links to (BeltRenderState.CrossingVariant); the rules floor is the plain belt (no-DLL fallback).
+Part : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part
+{
+    ID = morgott.crewless_logistics.belt_crossing
+    OtherIDs = [morgott.crewless_logistics.belt_heat_crossing, morgott.crewless_logistics.belt_cable_crossing] // pre-§25 saves/blueprints
+    TypeCategories = [heat_management, crewless_logistics]
+    NameKey = "CrewlessLogistics/BeltCrossingName"
+    IconNameKey = "CrewlessLogistics/BeltCrossingName"
+    DescriptionKey = "CrewlessLogistics/BeltCrossingDesc"
+    EditorGroup = "Storage"
+    EditorGroups = ["Storage", "Power"]
+    DontStackInEditorGroups = ["Storage", "Power"]
+    EditorParentParts = []
+    SelectionTypeID = morgott.crewless_logistics.belt_crossing
+    CrewSpeedFactor = .7
+    IsFlippable = false
+    EditorIcon { Texture { File = "assets/belt_crossing_icon.png"; SampleMode = Linear }; Size = [32, 32] }
+    Components : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components
+    {
+        CrewlessLogisticsAvailable : <cable_graphics.rules>/Availability {}
+        CrewlessLogisticsAvailabilityRouter : <cable_graphics.rules>/AvailabilityRouter {}
+        // Blueprint overlay centering as cable_heat_crossing.rules (the renderer spaces independent blueprint nodes
+        // diagonally): electric uses the first inherited node, thermal the second, an isolated third centers thermal.
+        Port_Up : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Port_Up
+        {
+            BlueprintRouteSource = CrewlessLogisticsBlueprintNode
+            BlueprintRouteEndpoint = CrewlessLogisticsBlueprintNode
+        }
+        Port_Down : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Port_Down
+        {
+            BlueprintRouteSource = CrewlessLogisticsBlueprintNode
+            BlueprintRouteEndpoint = CrewlessLogisticsBlueprintNode
+        }
+        CrewlessLogisticsNode { Type = NetworkBasicNode; IncludeInPhysical = true }
+        CrewlessLogisticsBlueprintNode { Type = NetworkBasicNode; IncludeInBlueprints = true }
+        OverlaySpacingNode { Type = NetworkBasicNode; IncludeInBlueprints = true }
+        ElectricPort_Up : <common.rules>/CableElectricPort
+        {
+            Direction = Up
+            BlueprintRouteSource = BlueprintNetworkNode
+            BlueprintRouteEndpoint = BlueprintNetworkNode
+        }
+        ElectricPort_Down : ElectricPort_Up { Direction = Down }
+        // Fresh groups: no vanilla pipe cylinder (doodads_high), darkness overlay or heat glow above the belt items.
+        Graphics
+        {
+            Type = Graphics
+            Location = [.5, .5]
+            Floor { Layer = "floors"; DamageLevels [ { File = "assets/belt_crossing.png"; Size = [1, 1] } ] }
+            Walls : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Graphics/Walls {}
+            Roof = &<./Data/ships/terran/corridor/corridor.rules>/Part/Components/Graphics/Roof
+        }
+        Darkness_Graphics { Type = Graphics }
+        HeatGlow_Graphics { Type = Graphics }
+        Blueprints : <./Data/ships/terran/heat_pipe_crossing/heat_pipe_crossing.rules>/Part/Components/Blueprints
+        {
+            File = "assets/belt_crossing_blueprint.png"
+        }
+    }
+}

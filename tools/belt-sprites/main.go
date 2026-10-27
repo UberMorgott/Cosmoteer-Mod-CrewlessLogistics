@@ -41,10 +41,33 @@ var sprites = []sprite{
 	{"belt", 1, 1, "belt.png", "belt_icon.png", ""},
 	{"belt_connector", 1, 1, "belt_connector.png", "belt_connector_icon.png", "belt_connector_blueprint.png"},
 	{"belt_splitter", 2, 1, "belt_splitter.png", "belt_splitter_icon.png", "belt_splitter_blueprint.png"},
-	// Crossings: masters are drawn like belt.png (belt up, heat pipe / cable entering at the left and right edges under
-	// the belt); baked rotated 90 degrees clockwise into the part frame (belt flows right, network on Up/Down).
-	{"belt_heat_crossing", 1, 1, "belt_heat_crossing.png", "belt_heat_crossing_icon.png", "belt_heat_crossing_blueprint.png"},
-	{"belt_cable_crossing", 1, 1, "belt_cable_crossing.png", "belt_cable_crossing_icon.png", "belt_cable_crossing_blueprint.png"},
+	// §25 belt crossing, baked rotated 90 degrees clockwise into the part frame (belt flows right, network on Up/Down):
+	// rules floor = the plain belt (no-DLL fallback; the C# surface shows the linked network), icon and blueprint = the
+	// mixed master (heat pipe and cable both, see mixedCrossing).
+	{"belt", 1, 1, "belt_crossing.png", "", ""},
+	{"belt_crossing", 1, 1, "", "belt_crossing_icon.png", "belt_crossing_blueprint.png"},
+}
+
+// mixedCrossing: crossing masters are drawn like belt.png (belt up, heat pipe / cable entering at the left and right
+// edges under the belt). The mixed master keeps base's belt, rails and left entry and takes the right entry (columns from
+// the belt band's right edge) from other: no new pixel, the belt is never cut.
+func mixedCrossing(base, other *image.NRGBA) *image.NRGBA {
+	out := image.NewNRGBA(base.Rect)
+	copy(out.Pix, base.Pix)
+	for y := range base.Rect.Dy() {
+		for x := surf1; x < base.Rect.Dx(); x++ {
+			out.SetNRGBA(x, y, other.NRGBAAt(x, y))
+		}
+	}
+	return out
+}
+
+// master loads a master by name; belt_crossing is the mixed heat (left = part Up) / cable (right = part Down) master.
+func master(artDir, name string) *image.NRGBA {
+	if name == "belt_crossing" {
+		return mixedCrossing(load(filepath.Join(artDir, "belt_heat_crossing.png")), load(filepath.Join(artDir, "belt_cable_crossing.png")))
+	}
+	return load(filepath.Join(artDir, name+".png"))
 }
 
 // blueprintRamp: colour by luminance rank (0 = darkest), measured on the former Codex splitter blueprint master
@@ -345,7 +368,9 @@ func preview(game, assets, path string) {
 	vanilla := filepath.Join(game, "Data", "ships", "terran")
 	row1 := []*image.NRGBA{load(filepath.Join(vanilla, "corridor", "floor.png")), load(filepath.Join(vanilla, "conveyor", "conveyor1.png"))}
 	for _, sp := range sprites {
-		row1 = append(row1, load(filepath.Join(assets, sp.file)))
+		if sp.file != "" {
+			row1 = append(row1, load(filepath.Join(assets, sp.file)))
+		}
 	}
 	col := func(name string) *image.NRGBA { return load(filepath.Join(assets, name)) }
 	row2 := []*image.NRGBA{load(filepath.Join(vanilla, "corridor", "floor.png")), col("belt_connector.png"), col("belt.png"), col("belt.png"), col("belt_splitter.png"), col("belt.png"), col("belt_connector.png"), load(filepath.Join(vanilla, "corridor", "floor.png"))}
@@ -398,30 +423,36 @@ func preview(game, assets, path string) {
 	save(out, path)
 }
 
-// crossings lays out, at 2x game scale, each crossing in the part frame (rotation 0: belt flows right) between two
-// horizontal belts, with the vanilla heat pipe / our electric cable straight sprite above and below it.
+// crossings lays out, at 2x game scale, each §25 crossing art (animation frame 0) in the part frame (rotation 0: belt
+// flows right) between two horizontal belts, with what it links to above and below it: vanilla heat pipe / our cable
+// straight sprite or nothing (plain).
 func crossings(game, assets, path string) {
 	const s = 128
 	pipe := load(filepath.Join(game, "Data", "ships", "terran", "heat_pipe_adaptive", "floor_straight.png"))
 	cable := load(filepath.Join(assets, "cable_body_straight.png"))
 	belt := rotateCW(load(filepath.Join(assets, "belt.png")))
-	out := image.NewNRGBA(image.Rect(0, 0, 7*s+48, 3*s+32))
+	cases := []struct {
+		art      string
+		up, down *image.NRGBA
+	}{{"heat_crossing", pipe, pipe}, {"cable_crossing", cable, cable}, {"plain_crossing", nil, nil}, {"heat_cable_crossing", pipe, cable}, {"cable_heat_crossing", cable, pipe}}
+	out := image.NewNRGBA(image.Rect(0, 0, len(cases)*(3*s+16)+16, 3*s+32))
 	for i := range out.Pix {
 		out.Pix[i] = 40
 		if i%4 == 3 {
 			out.Pix[i] = 255
 		}
 	}
-	for k, c := range []struct {
-		cross string
-		net   *image.NRGBA
-	}{{"belt_heat_crossing.png", pipe}, {"belt_cable_crossing.png", cable}} {
+	for k, c := range cases {
 		ox := 16 + k*(3*s+16)
-		put := func(im *image.NRGBA, tx, ty int) { paste(out, resize(im, s, s), ox+tx*s, 16+ty*s) }
-		put(c.net, 1, 0)
-		put(c.net, 1, 2)
+		put := func(im *image.NRGBA, tx, ty int) {
+			if im != nil {
+				paste(out, resize(im, s, s), ox+tx*s, 16+ty*s)
+			}
+		}
+		put(c.up, 1, 0)
+		put(c.down, 1, 2)
 		put(belt, 0, 1)
-		put(load(filepath.Join(assets, c.cross)), 1, 1)
+		put(load(filepath.Join(assets, "belt_anim", c.art+"_00.png")), 1, 1)
 		put(belt, 2, 1)
 	}
 	save(out, path)
@@ -528,6 +559,7 @@ func animVariants(artDir string) []struct {
 	build func(*image.NRGBA) *image.NRGBA
 } {
 	heat, cable := load(filepath.Join(artDir, "belt_heat_crossing.png")), load(filepath.Join(artDir, "belt_cable_crossing.png"))
+	heatCable, cableHeat := mixedCrossing(heat, cable), mixedCrossing(cable, heat)
 	clone := func(f *image.NRGBA) *image.NRGBA { o := image.NewNRGBA(f.Rect); copy(o.Pix, f.Pix); return o }
 	return []struct {
 		name  string
@@ -541,6 +573,10 @@ func animVariants(artDir string) []struct {
 		// Crossings: baked into the part frame like their static sprites (belt flows right).
 		{"heat_crossing", func(f *image.NRGBA) *image.NRGBA { return rotateCW(pasteBand(heat, f)) }},
 		{"cable_crossing", func(f *image.NRGBA) *image.NRGBA { return rotateCW(pasteBand(cable, f)) }},
+		// §25: nothing linked (plain belt), heat at part Up + cable at Down, and the reverse.
+		{"plain_crossing", rotateCW},
+		{"heat_cable_crossing", func(f *image.NRGBA) *image.NRGBA { return rotateCW(pasteBand(heatCable, f)) }},
+		{"cable_heat_crossing", func(f *image.NRGBA) *image.NRGBA { return rotateCW(pasteBand(cableHeat, f)) }},
 	}
 }
 
@@ -843,15 +879,17 @@ func main() {
 	arrow := vanillaArrow(*game)
 	floor := load(filepath.Join(*game, "Data", "ships", "terran", "corridor", "floor.png"))
 	for _, sp := range sprites {
-		m := load(filepath.Join(*artDir, sp.master+".png"))
+		m := master(*artDir, sp.master)
 		if sp.master == "belt_connector" {
 			m = withChevron(m, load(filepath.Join(*artDir, "belt_splitter.png")))
 		}
 		rot := 0
-		if strings.HasSuffix(sp.master, "_crossing") {
+		if strings.HasSuffix(sp.master, "_crossing") || strings.HasSuffix(sp.file, "_crossing.png") {
 			m, rot = rotateCW(m), 1
 		}
-		save(floorMargins(resize(m, sp.w*64, sp.h*64), floor, floorKeep[sp.master]...), filepath.Join(*outDir, sp.file))
+		if sp.file != "" {
+			save(floorMargins(resize(m, sp.w*64, sp.h*64), floor, floorKeep[sp.master]...), filepath.Join(*outDir, sp.file))
+		}
 		if sp.blueprint != "" {
 			save(markBlueprint(blueprintOf(resize(m, sp.w*64, sp.h*64)), arrow, rot), filepath.Join(*outDir, sp.blueprint))
 		}

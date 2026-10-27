@@ -589,3 +589,24 @@ Debt from e268d18 (§23 review 6): the claim-pass repetition had no test, no Cod
 | D3 cost | early exit when nothing changes keeps the usual 1-2 passes | a long cascade costs up to K+1 full passes; an exact cheaper scheme is a dirty-connector queue over the claim-read graph | kept the simple loop (no measured need); queue = upgrade path if a tick profile shows it |
 
 - Codex diff review: no real bugs, lockstep-safe. Not measured: tick cost of a long cascade in game.
+
+## 25. One adaptive belt crossing (2026-10-28)
+
+`belt_heat_crossing` + `belt_cable_crossing` -> one build-menu part `morgott.crewless_logistics.belt_crossing`
+(`mod/belt_crossing.rules`, Storage + Power tabs), old IDs in its `OtherIDs` (saves, blueprints).
+
+| Decision | Claude | Codex | Agreed |
+| --- | --- | --- | --- |
+| D1 ports | no toggled ports (art depends on links; `PartToggledComponents` adds via `EnqueueDeterministic`): the vanilla crossing thermal `Port_Up/Down` and our `ElectricPort_Up/Down` always present; a port links only a compatible type (`PartNetworkPort.cs:70`) | AGREE (+ `PortHandler.cs:86` checks both sides); two always-available channels, mixed pipe/cable = two dead ends | as proposed; the mode is derived from neighbours, so an old heat / cable crossing loading as the new ID shows its mode with no migration |
+| D2 art | MultiToggles Any[ports] select three toggled floors | DISAGREE: two adjacent crossings link both networks (`PortHandler.cs:59`), so a cable -> crossing -> crossing -> cable chain would turn heat; walk the crossing chain to the part beyond; plain rules floor + C# surface | `BeltManager.CrossingVariant`: per Up/Down edge follow connected ports through crossings to the first other part (thermal link -> heat, electric -> cable), `BeltRenderState.CrossingVariant` (none -> plain, one network -> heat/cable, heat+cable -> mixed variants `HeatCableCrossing` / `CableHeatCrossing`), re-read each render tick (cached bools) and `SetSprite` on change; rules floor = plain belt (no-DLL fallback) |
+| D3 protocol | bump 7 -> 8 | DISAGREE: `ProtocolVersion` only feeds the sim hash; the part set change already changes the rules hash checked at join (`GameSetupScreen.cs:2364`) | kept 7: no sim/payload change (crossing stays a no-curve belt node) |
+| D4 icon | left half heat master + right half cable | DISAGREE with a cut through the belt; keep one master's belt/rails, take the other's side entry | `mixedCrossing` (columns right of the belt band from the other master), mechanical; icon/blueprint = heat Up + cable Down |
+| D5 registry | one AddMany entry, .7 crew, doors inherited, 8 languages | AGREE; set .7 explicitly (vanilla .8), fix the stale 80% texts | done (part strings + mod description) |
+| review | - | P2: the second independent blueprint node shifts the thermal overlay 1/6 cell diagonally | fixed like `cable_heat_crossing.rules`: thermal blueprint routes on `CrewlessLogisticsBlueprintNode`, electric on `BlueprintNetworkNode`, `OverlaySpacingNode` |
+
+- Art: new surface variants `plain_crossing`, `heat_cable_crossing`, `cable_heat_crossing` (`tools/belt-sprites`, mechanical from
+  the Codex masters); removed the two old static floors/icons/blueprints. `BeltRenderState.Variant` order = `belt.rules`
+  (test `WorldTests.CrossingVariants`, all 9 link pairs).
+- Probes: `BeltPartsProbe` (thermal + electric Up/Down ports, none on the belt axis, OtherIDs), `PackageProbe` (electric ports
+  `ElectricPort_*`), `LocalizationProbe` (30 keys), `NativeDeviceCatalog` added IDs.
+- Not verified: in game (old saves/blueprints loading as the new part, overlay centering, art switching when a pipe/cable is added).

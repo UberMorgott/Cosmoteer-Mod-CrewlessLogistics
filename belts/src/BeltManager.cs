@@ -9,6 +9,7 @@ using Cosmoteer.Resources;
 using Cosmoteer.Ships;
 using Cosmoteer.Ships.Parts;
 using Cosmoteer.Ships.Parts.Graphics;
+using Cosmoteer.Ships.Parts.Logic;
 using Cosmoteer.Ships.Parts.UI;
 using Cosmoteer.Ships.Rendering;
 using Cosmoteer.Simulation;
@@ -38,6 +39,8 @@ internal sealed class BeltManager : ShipComponent
     private const string LampSpritesComponent = "BeltLampSprites";
     private readonly BeltRenderState _render = new();
     private ManagedShipQuad?[] _surf = Array.Empty<ManagedShipQuad?>();
+    private Variant[] _surfV = Array.Empty<Variant>();
+    private AtlasSprite[][]? _surfSprites;
     private ManagedShipQuad?[] _lamps = Array.Empty<ManagedShipQuad?>();
     private bool _visualsDirty;
 
@@ -322,7 +325,7 @@ internal sealed class BeltManager : ShipComponent
     {
         DisposeVisuals();
         _render.Reset(_nodes);
-        AtlasSprite[][]? surf = Sprites(ship, SurfaceSpritesComponent, (int)Variant.CableCrossing + 1);
+        AtlasSprite[][]? surf = _surfSprites = Sprites(ship, SurfaceSpritesComponent, (int)Variant.CableHeatCrossing + 1);
         AtlasSprite[][]? lamps = Sprites(ship, LampSpritesComponent, 3);
         var surfLayer = new ID<ShipRenderLayerRules>(SurfaceLayer);
         var lampLayer = new ID<ShipRenderLayerRules>(LampLayer);
@@ -333,12 +336,8 @@ internal sealed class BeltManager : ShipComponent
             var center = (Vector2)p.Location + (Vector2)p.Size / 2f;
             if (n.Kind == NodeKind.Belt && surf != null)
             {
-                var (v, flip) = BeltRenderState.Select(n, p.Rules.ID.ToString() switch
-                {
-                    BeltState.HeatCrossingId => Variant.HeatCrossing,
-                    BeltState.CableCrossingId => Variant.CableCrossing,
-                    _ => Variant.Straight,
-                });
+                var (v, flip) = BeltRenderState.Select(n, n.NoCurve ? CrossingVariant(ship, p) : Variant.Straight);
+                _surfV[i] = v;
                 // Created still (speed 0 = frozen on the global-phase frame); Render starts it once its lanes move (§22).
                 _surf[i] = new ManagedShipQuad(renderer.GetLayerQuads(surfLayer), surf[(int)v][0], 0, flip ^ p.FlipX, center, Vector2.Zero, p.Direction,
                     ship.WorldUniformScale, Color.White, ship.Rules.RenderLayers[surfLayer].Inflate, 0f, sim.Clock);
@@ -371,8 +370,44 @@ internal sealed class BeltManager : ShipComponent
             }
         }
         _surf = new ManagedShipQuad?[_nodes.Count];
+        _surfV = new Variant[_nodes.Count];
         _lamps = new ManagedShipQuad?[2 * _nodes.Count];
     }
+
+    /// <summary>
+    /// §25 crossing art: what each Up/Down edge links to through any chain of crossings (a crossing links both networks
+    /// to a neighbouring crossing, so only the part past the chain tells). Render-only read of port connections.
+    /// </summary>
+    private static Variant CrossingVariant(Ship ship, Part p)
+    {
+        IntVector2 c = Cell(p, 0, 0);
+        return BeltRenderState.CrossingVariant(Link(ship, p, Cell(p, 0, -1) - c), Link(ship, p, Cell(p, 0, 1) - c));
+    }
+
+    private static IntVector2 Cell(Part p, int x, int y) => p.Rules.GetShipRelativeCell(new IntVector2(x, y), p.Location, p.Rotation, p.FlipX);
+
+    private static CrossLink Link(Ship ship, Part p, IntVector2 d)
+    {
+        // A straight chain of crossings ends within the ship; the bound only guards a malformed grid.
+        for (int hop = 0; hop < 1024; hop++)
+        {
+            IntVector2 c = Cell(p, 0, 0);
+            string edge = Cell(p, 0, -1) - c == d ? "Up" : Cell(p, 0, 1) - c == d ? "Down" : "";
+            bool heat = edge.Length > 0 && Linked(p, "Port_" + edge), cable = edge.Length > 0 && Linked(p, "ElectricPort_" + edge);
+            if (!heat && !cable)
+            {
+                return CrossLink.None;
+            }
+            if (ship.Parts[c + d] is not { } next || !BeltState.IsCrossing(next))
+            {
+                return heat ? CrossLink.Heat : CrossLink.Cable;
+            }
+            p = next;
+        }
+        return CrossLink.None;
+    }
+
+    private static bool Linked(Part p, string port) => p.TryGetComponent(new ID<PartComponentRules>(port), out IComponentToggleProvider? t) && t.IsToggleOn;
 
     /// <summary>Client visuals only (reads sim state, never writes it): surfaces, lamps, one pooled quad per item (§11, §21).</summary>
     private void Render(Ship ship, SimRoot sim)
@@ -390,6 +425,12 @@ internal sealed class BeltManager : ShipComponent
         _render.Update(sim.Tick);
         for (int i = 0; i < _surf.Length; i++)
         {
+            // §25: a crossing follows its links (ports connect after the topology rebuild, neighbours change).
+            if (_surf[i] is { } c && _nodes[i].NoCurve && _surfSprites != null && CrossingVariant(ship, _nodeParts[i]) is var v && v != _surfV[i])
+            {
+                _surfV[i] = v;
+                c.SetSprite(_surfSprites[(int)v][0], sim.Clock);
+            }
             if (_surf[i] is { } q && q.AnimationSpeedFactor != 0f != _render.Moving[i])
             {
                 // Pause freezes the current frame (ManagedShipQuad.cs:234); resume re-syncs to the global phase so moving
