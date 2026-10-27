@@ -8,10 +8,31 @@ import (
 	"testing"
 )
 
+func TestVisibilityFor(t *testing.T) {
+	for _, c := range []struct {
+		flag   string
+		create bool
+		want   int
+	}{
+		{"", false, -1}, // update without -visibility: leave unchanged
+		{"", true, 2},   // create without -visibility: private
+		{"public", false, 0},
+		{"hidden", true, 3},
+		{"unlisted", false, 3},
+	} {
+		if got, err := visibilityFor(c.flag, c.create); err != nil || got != c.want {
+			t.Errorf("visibilityFor(%q, %v) = %d, %v; want %d", c.flag, c.create, got, err, c.want)
+		}
+	}
+	if _, err := visibilityFor("bogus", false); err == nil {
+		t.Error("bogus visibility accepted")
+	}
+}
+
 func TestStageContentSkipsRuntimeJunk(t *testing.T) {
 	src, dst := t.TempDir(), t.TempDir()
-	keep := []string{".workshop", "Mod.dll", "mod.rules", "assets/a.png", "README.md"}
-	junk := []string{"Mod.log", "SharedShip.LOG", "Autofleet.state.json", "Autofleet.saves/x.json", "Autofleet.profiles.json.bad", "MiningDrone.settings.json"}
+	keep := []string{"Mod.dll", "mod.rules", "assets/a.png", "README.md"}
+	junk := []string{".workshop", "Mod.log", "SharedShip.LOG", "Autofleet.state.json", "Autofleet.saves/x.json", "Autofleet.profiles.json.bad", "MiningDrone.settings.json"}
 	for _, f := range append(keep, junk...) {
 		p := filepath.Join(src, f)
 		os.MkdirAll(filepath.Dir(p), 0o755)
