@@ -39,9 +39,8 @@ Native regression checks exercise real parser, storage, IO, topology and CPU pre
 
 The editor's shifted internal electrical spokes and compatible-device markers are suppressed. Exact native primary placement markers and physical cable artwork remain; permanent room socket dots are removed. Diagnostic electric cable routes are hidden. The mixed crossing retains a centered native thermal indicator.
 
-
 ## More
 
 - Version history: `CHANGELOG.md` in the source repository.
-- Source, issue tracker and bug reports: https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics
+- Source, issue tracker and bug reports: <https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics>
 - Cable and icon sprites in `assets/` are derived from Cosmoteer game art for modding purposes.

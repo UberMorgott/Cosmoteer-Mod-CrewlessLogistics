@@ -2,12 +2,12 @@
 
 A Cosmoteer mod for game version 0.30.5. Cables carry whole batteries from reactors and Power Capacitors straight to powered devices, freeing crew from battery runs. Normal crew delivery still works alongside the electrical network.
 
-**Steam Workshop:** https://steamcommunity.com/sharedfiles/filedetails/?id=3827751334
+**Steam Workshop:** <https://steamcommunity.com/sharedfiles/filedetails/?id=3827751334>
 
 ## Reporting issues
 
 **Report bugs only on GitHub, not in Workshop comments.** Open an issue with the **Bug report** template:
-https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues
+<https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues>
 
 Include the mod version from the Mods list, the game version from the bottom-left corner of the main menu, install source, all other enabled mods, and whether you were playing single-player or multiplayer (host/client and whether everyone has the same mod version). Give steps to reproduce, expected and actual results, and screenshots. Attach the `.ship.png` and save when relevant, plus the newest log from the affected session in `%USERPROFILE%\Saved Games\Cosmoteer\<SteamID>\Logs\` (`log YYYY-MM-DD HH_mm_ss.txt`).
 
