@@ -84,6 +84,8 @@ sealed partial class NativeProbe
                             try { entry.Values[field] = ReadRuleObject(root, path + "/" + field, typeof(float)); }
                             catch { entry.MetadataWarnings.Add(field + " is a native modifiable value, not a plain scalar."); }
                         }
+                        // false = crew deliver only while OperationalToggle is on (hyperdrives: FtlDrive spool-up).
+                        if (Has(root, path + "/AllowNonOperationalMinPriorityDelivery")) entry.Values["AllowNonOperationalMinPriorityDelivery"] = ReadRuleObject(root, path + "/AllowNonOperationalMinPriorityDelivery", typeof(bool));
                         if (Has(root, path + "/MaxResources")) {
                             try { entry.Values["MaxResources"] = ReadRuleObject(root, path + "/MaxResources", typeof(int)); }
                             catch (Exception error) { entry.MetadataWarnings.Add("MaxResources is not a plain native integer: " + Inner(error).Message.Split('\n')[0]); }

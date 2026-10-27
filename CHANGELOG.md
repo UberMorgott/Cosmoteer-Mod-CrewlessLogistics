@@ -2,6 +2,10 @@
 
 All notable changes to Crewless Logistics (formerly Powergrid). Versions match `mod/mod.rules` `Version`.
 
+## 0.3.5
+
+- Fix: switching a hyperdrive onto the electrical network no longer drains the network into its battery. Like crew delivery in the base game, the network now charges a hyperdrive only while it spools for a jump (FtlDrive), also via engine rooms.
+
 ## 0.3.4
 
 - Localization: German, Spanish, French, Japanese, Brazilian Portuguese and Simplified Chinese part names, descriptions and switch tooltips (`mod/strings`), using the game's own terms. Russian heat pipe term aligned with the game (теплопередатчик). The localization check now resolves every key in all eight game languages.

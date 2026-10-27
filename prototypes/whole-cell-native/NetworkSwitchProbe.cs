@@ -57,6 +57,7 @@ sealed partial class NativeProbe
         NativeComponent(reactorPrefix, "CrewlessLogisticsNode");
         NativeComponent(reactorPrefix, "CrewlessLogisticsSourceRouter");
         var sourcePort = NativeComponent(reactorPrefix, Socket("Right", 1, 0));
+        NativeComponent(reactorPrefix, Socket("Left", 0, 0)); // hyperdrive FtlDrive gate scenario
         var pumpRules = Read(reactorPrefix, "CrewlessLogisticsTransfer");
         Require(Field(pumpRules.GetType(), "OperationalToggle").GetValue(pumpRules)?.ToString() == "CrewlessLogisticsCanTransfer", "Source pump must honor operation and network switch");
         Require((string)ReadRuleObject(root, reactorPrefix + "CrewlessLogisticsCanTransfer/Mode", typeof(string)) == "All", "Source pump gate must require every condition");
@@ -110,6 +111,42 @@ sealed partial class NativeProbe
         CheckedPulse(circuit);
         Require(Count(source, "Resources") == 500 && Count(target, "Resources") == 3000, "Source reconnect failed whole-cell delivery");
         scenarioResults.Add(new { name = "per-device native network UI switches", defaultMode = 0, states = "off/off, on/off, on/on, on/off, on/on, off/on, on/on", source = 500, target = 3000, persistence = "not exercised; RememberValue bypassed in fixture only" });
+
+        // Vanilla hyperdrive BatteryConsumer: OperationalToggle = FtlDrive, AllowNonOperationalMinPriorityDelivery = false.
+        // The network receiver must accept only while the drive spools, beside an ungated weapon.
+        const string hyper = "<ships/terran/hyperdrive_small/hyperdrive_small.rules>/Part/Components/";
+        Require(((string[])ReadRuleObject(root, hyper + "CrewlessLogisticsAcceptGate/Toggles", typeof(string[]))).SequenceEqual(new[] { "CrewlessLogisticsToggle", "FtlDrive" }), "Hyperdrive receiver gate must mirror vanilla FtlDrive delivery");
+        Require((string)ReadRuleObject(root, hyper + "CrewlessLogisticsRoomInlet/ProxyToggle", typeof(string)) == "CrewlessLogisticsAcceptGate", "Hyperdrive engine-room inlet must use the FtlDrive gate");
+        Require((string)ReadRuleObject(root, consumerPrefix + "CrewlessLogisticsReceiver/OperationalToggle", typeof(string)) == "CrewlessLogisticsToggle", "Weapon receiver must stay switch-only");
+        NewTopologyPart(-2, 0, 0);
+        SetField(Property(part, "Rules"), "Size", Vector(2, 2));
+        var hyperSwitch = NativeSwitch(hyper);
+        var ftl = Component("PortProbeOverclock", "Cosmoteer.Ships.Parts.Logic.PartDebugToggleRules");
+        SetToggle(ftl, false);
+        componentMap[Id(componentIdType, "FtlDrive")] = ftl;
+        NativeComponent(hyper, "CrewlessLogisticsAcceptGate");
+        var hyperTarget = Storage("ReceiverStorage", 16000, 0);
+        componentMap[Id(componentIdType, "BatteryStorage")] = hyperTarget;
+        var hyperBias = NativeComponent(hyper, "CrewlessLogisticsReceivingBias");
+        NativeComponent(hyper, "CrewlessLogisticsReceivingAggregate");
+        NativeComponent(hyper, "CrewlessLogisticsCells");
+        var hyperStore = NativeComponent(hyper, "CrewlessLogisticsReceiver");
+        var hyperPort = NativeComponent(hyper, Socket("Right", 1, 0));
+        var both = new Circuit(new[] { source }, new[] { target, hyperTarget }, new[] { bias, hyperBias }, pump);
+        SetProperty(hyperSwitch, "Mode", 1);
+        Require(!Flag(hyperStore, "IsOperational"), "Hyperdrive receiver open with FtlDrive off");
+        SetCount(target, 1000); Add(source, 4000);
+        CheckedPulse(both); CheckedPulse(both); CheckedPulse(both);
+        Require(Count(hyperTarget, "Resources") == 0 && Count(target, "Resources") == 4000, "Switch-on hyperdrive accepted energy without FtlDrive, or weapon starved");
+        SetToggle(ftl, true);
+        Require(Flag(hyperStore, "IsOperational"), "Hyperdrive receiver closed while FtlDrive spools");
+        CheckedPulse(both);
+        Require(Count(hyperTarget, "Resources") == 1000, "Spooling hyperdrive did not fill from the network");
+        SetToggle(ftl, false);
+        CheckedPulse(both);
+        Require(Count(hyperTarget, "Resources") == 1000 && Count(source, "Resources") == 500, "Hyperdrive kept accepting after FtlDrive stopped");
+        scenarioResults.Add(new { name = "hyperdrive receiver mirrors vanilla FtlDrive crew delivery", ftlOff = 0, ftlOn = 1000, weapon = 4000 });
+        Console.WriteLine("PASS: switch-on hyperdrive receives 0 with FtlDrive off, fills while FtlDrive spools; weapon on the same network keeps receiving.");
         Console.WriteLine("PASS: actual package UIToggle events independently disconnect/reconnect both devices, retain energy and bootstrap an empty consumer without overclock.");
     }
 }

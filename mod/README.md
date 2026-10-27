@@ -1,4 +1,4 @@
-# Crewless Logistics 0.3.4
+# Crewless Logistics 0.3.5
 
 Ordinary Cosmoteer `.rules` mod for game 0.30.5. No gameplay DLL or mod loader required.
 

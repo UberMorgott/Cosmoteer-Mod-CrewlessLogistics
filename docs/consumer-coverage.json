@@ -4,7 +4,7 @@
   "moddedConsumerCount": 7,
   "moddedGeneratedActions": 7,
   "localPhysicalStorageOnly": true,
-  "catalogSha256": "51C41BC99EBCE4D514463120DA2C0B9D3FDB97F4ABA93A695DD0CB85CD4316B4",
+  "catalogSha256": "0357EC7812939442397AD2A6AC86BC245D63B3EC0B4CC0B8D1CED580AE9FD11F",
   "perimeterPolicy": "All physical rectangular perimeter edges with a neighboring cable cell outside Size and outside applicable native prohibition rectangles; original doors preserved.",
   "parts": [
     {
@@ -17,6 +17,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -130,6 +131,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 10000,
       "geometry": {
         "size": [
@@ -285,6 +287,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 6000,
       "geometry": {
         "size": [
@@ -426,6 +429,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 16000,
       "geometry": {
         "size": [
@@ -609,6 +613,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 24000,
       "geometry": {
         "size": [
@@ -923,6 +928,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 8000,
       "geometry": {
         "size": [
@@ -1073,6 +1079,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 6000,
       "geometry": {
         "size": [
@@ -1223,6 +1230,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 2000,
       "geometry": {
         "size": [
@@ -1378,6 +1386,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 2000,
       "geometry": {
         "size": [
@@ -1556,6 +1565,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 6000,
       "geometry": {
         "size": [
@@ -1734,6 +1744,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 18000,
       "geometry": {
         "size": [
@@ -1931,6 +1942,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 2000,
       "geometry": {
         "size": [
@@ -2016,6 +2028,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 1000,
       "geometry": {
         "size": [
@@ -2101,6 +2114,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 1000,
       "geometry": {
         "size": [
@@ -2191,6 +2205,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 1000,
       "geometry": {
         "size": [
@@ -2276,6 +2291,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 2000,
       "geometry": {
         "size": [
@@ -2389,6 +2405,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -2516,6 +2533,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 8000,
       "geometry": {
         "size": [
@@ -2685,6 +2703,7 @@
       "backingStorage": "RealBatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 6000,
       "geometry": {
         "size": [
@@ -2840,6 +2859,7 @@
       "backingStorage": "LocalBatteryStorage",
       "receiverStorage": "LocalBatteryStorage",
       "originalCrewReceiver": "ExtendableBatteryStorage",
+      "acceptToggle": null,
       "capacity": 2000,
       "geometry": {
         "size": [
@@ -3056,6 +3076,7 @@
       "backingStorage": "LocalBatteryStorage",
       "receiverStorage": "LocalBatteryStorage",
       "originalCrewReceiver": "ExtendableBatteryStorage",
+      "acceptToggle": null,
       "capacity": 2000,
       "geometry": {
         "size": [
@@ -3234,6 +3255,7 @@
       "backingStorage": "LocalBatteryStorage",
       "receiverStorage": "LocalBatteryStorage",
       "originalCrewReceiver": "ExtendableBatteryStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -3356,6 +3378,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryDistributionStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -3562,6 +3585,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 2000,
       "geometry": {
         "size": [
@@ -3712,6 +3736,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -3918,6 +3943,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 8000,
       "geometry": {
         "size": [
@@ -4180,6 +4206,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": "FtlDrive",
       "capacity": 16000,
       "geometry": {
         "size": [
@@ -4330,6 +4357,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": "FtlDrive",
       "capacity": 24000,
       "geometry": {
         "size": [
@@ -4536,6 +4564,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": "FtlDrive",
       "capacity": 32000,
       "geometry": {
         "size": [
@@ -4798,6 +4827,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 2000,
       "geometry": {
         "size": [
@@ -4948,6 +4978,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -5154,6 +5185,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -5388,6 +5420,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -5594,6 +5627,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 6000,
       "geometry": {
         "size": [
@@ -5856,6 +5890,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -6090,6 +6125,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -6352,6 +6388,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -6558,6 +6595,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -6792,6 +6830,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -7054,6 +7093,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 2000,
       "geometry": {
         "size": [
@@ -7232,6 +7272,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -7438,6 +7479,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -7672,6 +7714,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 10000,
       "geometry": {
         "size": [
@@ -7851,6 +7894,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -8001,6 +8045,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 24000,
       "geometry": {
         "size": [
@@ -8320,6 +8365,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 8000,
       "geometry": {
         "size": [
@@ -8527,6 +8573,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 12000,
       "geometry": {
         "size": [
@@ -8792,6 +8839,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -8978,6 +9026,7 @@
       "backingStorage": "LocalBatteryStorage",
       "receiverStorage": "LocalBatteryStorage",
       "originalCrewReceiver": "ExtendableBatteryStorage",
+      "acceptToggle": null,
       "capacity": 2000,
       "geometry": {
         "size": [
@@ -10067,6 +10116,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 8000,
       "geometry": {
         "size": [
@@ -10345,6 +10395,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 8000,
       "geometry": {
         "size": [
@@ -10607,6 +10658,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 4000,
       "geometry": {
         "size": [
@@ -10813,6 +10865,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 2000,
       "geometry": {
         "size": [
@@ -10963,6 +11016,7 @@
       "backingStorage": "BatteryStorage",
       "receiverStorage": "BatteryStorage",
       "originalCrewReceiver": "BatteryStorage",
+      "acceptToggle": null,
       "capacity": 2000,
       "geometry": {
         "size": [

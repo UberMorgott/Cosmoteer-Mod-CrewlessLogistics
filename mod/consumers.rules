@@ -295,6 +295,9 @@ control_room_large : <consumer_base.rules>/Components
 }
 hyperdrive_small : <consumer_base.rules>/Components
 {
+    CrewlessLogisticsAcceptGate { Type = MultiToggle; Mode = All; Toggles = [CrewlessLogisticsToggle, FtlDrive] }
+    CrewlessLogisticsReceiver : ^/0/CrewlessLogisticsReceiver { OperationalToggle = CrewlessLogisticsAcceptGate }
+    CrewlessLogisticsRoomInlet : ^/0/CrewlessLogisticsRoomInlet { ProxyToggle = CrewlessLogisticsAcceptGate }
     CrewlessLogisticsPort_Up_0_0 : <common.rules>/ConsumerElectricPort { Location = [0, 0]; Direction = Up }
     CrewlessLogisticsPort_Down_0_1 : <common.rules>/ConsumerElectricPort { Location = [0, 1]; Direction = Down }
     CrewlessLogisticsPort_Up_1_0 : <common.rules>/ConsumerElectricPort { Location = [1, 0]; Direction = Up }
@@ -306,6 +309,9 @@ hyperdrive_small : <consumer_base.rules>/Components
 }
 hyperdrive_med : <consumer_base.rules>/Components
 {
+    CrewlessLogisticsAcceptGate { Type = MultiToggle; Mode = All; Toggles = [CrewlessLogisticsToggle, FtlDrive] }
+    CrewlessLogisticsReceiver : ^/0/CrewlessLogisticsReceiver { OperationalToggle = CrewlessLogisticsAcceptGate }
+    CrewlessLogisticsRoomInlet : ^/0/CrewlessLogisticsRoomInlet { ProxyToggle = CrewlessLogisticsAcceptGate }
     CrewlessLogisticsPort_Up_0_0 : <common.rules>/ConsumerElectricPort { Location = [0, 0]; Direction = Up }
     CrewlessLogisticsPort_Down_0_2 : <common.rules>/ConsumerElectricPort { Location = [0, 2]; Direction = Down }
     CrewlessLogisticsPort_Up_1_0 : <common.rules>/ConsumerElectricPort { Location = [1, 0]; Direction = Up }
@@ -321,6 +327,9 @@ hyperdrive_med : <consumer_base.rules>/Components
 }
 hyperdrive_large : <consumer_base.rules>/Components
 {
+    CrewlessLogisticsAcceptGate { Type = MultiToggle; Mode = All; Toggles = [CrewlessLogisticsToggle, FtlDrive] }
+    CrewlessLogisticsReceiver : ^/0/CrewlessLogisticsReceiver { OperationalToggle = CrewlessLogisticsAcceptGate }
+    CrewlessLogisticsRoomInlet : ^/0/CrewlessLogisticsRoomInlet { ProxyToggle = CrewlessLogisticsAcceptGate }
     CrewlessLogisticsPort_Up_0_0 : <common.rules>/ConsumerElectricPort { Location = [0, 0]; Direction = Up }
     CrewlessLogisticsPort_Down_0_3 : <common.rules>/ConsumerElectricPort { Location = [0, 3]; Direction = Down }
     CrewlessLogisticsPort_Up_1_0 : <common.rules>/ConsumerElectricPort { Location = [1, 0]; Direction = Up }

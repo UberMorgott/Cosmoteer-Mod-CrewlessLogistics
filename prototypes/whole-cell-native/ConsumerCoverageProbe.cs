@@ -47,7 +47,12 @@ sealed partial class NativeProbe
             Require(Field(cellRules.GetType(), "FromStorage").GetValue(cellRules)!.ToString() == "CrewlessLogisticsReceivingAggregate", "Consumer cell view lost rounding adapter: " + name);
             var receiverRules = Read("CrewlessLogisticsReceiver");
             Require(!(bool)Field(receiverRules.GetType(), "AllowProviding").GetValue(receiverRules)! && (bool)Field(receiverRules.GetType(), "AllowReceiving").GetValue(receiverRules)!, "Consumer became an electrical source: " + name);
-            Require(Field(receiverRules.GetType(), "OperationalToggle").GetValue(receiverRules)!.ToString() == "CrewlessLogisticsToggle", "Consumer receiver is not gated: " + name);
+            // Gated vanilla crew consumers (AllowNonOperationalMinPriorityDelivery = false) also gate network and engine-room delivery.
+            string? accept = entry.GetProperty("acceptToggle").GetString();
+            string gate = accept == null ? "CrewlessLogisticsToggle" : "CrewlessLogisticsAcceptGate";
+            if (accept != null) Require(((string[])ReadRuleObject(root, prefix + "CrewlessLogisticsAcceptGate/Toggles", typeof(string[]))).SequenceEqual(new[] { "CrewlessLogisticsToggle", accept }) && (string)ReadRuleObject(root, prefix + "CrewlessLogisticsAcceptGate/Mode", typeof(string)) == "All", "Consumer accept gate does not mirror the vanilla crew consumer: " + name);
+            Require(Field(receiverRules.GetType(), "OperationalToggle").GetValue(receiverRules)!.ToString() == gate, "Consumer receiver is not gated: " + name);
+            Require((string)ReadRuleObject(root, prefix + "CrewlessLogisticsRoomInlet/ProxyToggle", typeof(string)) == gate, "Consumer engine-room inlet is not gated: " + name);
             Read("CrewlessLogisticsBlueprintNode");
             foreach (var socket in entry.GetProperty("ports").EnumerateArray()) {
                 string component = socket.GetProperty("component").GetString()!;
