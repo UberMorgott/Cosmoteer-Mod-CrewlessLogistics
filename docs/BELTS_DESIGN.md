@@ -354,6 +354,11 @@ Spot-checked: `Part.cs:827,1371`, `SimRoot.cs:605-618`, `FixedUpdateBuckets.cs` 
   Art: Codex image-gen masters in `tools/belt-sprites/art` (256 px/tile), baked to 64 px/tile + icons by
   `tools/belt-sprites` (Go, trim/downscale only). `belt_curve.png` is baked but not wired: floor art is static per
   part, so curves need a C# floor quad chosen from `Shape.CurveLeft/CurveRight` (CurveRight = mirrored).
+  Splitter and connector are closed machine housings; direction reads from the machinery (back = bulky intake with
+  hazard lip + feeder rollers, front = slim ejector shutter + green light), no painted arrows. Animation-ready layers
+  (art only, not baked/wired): `belt_{splitter,connector}_base.png` (housing, moving parts removed) and
+  `belt_{splitter,connector}_moving.png` (rollers, diverter shuttle/piston, shutters, lights on alpha); the game
+  uses the composed `belt_{splitter,connector}.png`.
 - Core (pure, headless-tested): `LaneSim` (lanes on per-part `LaneTile`s), `BeltWorld` (topology §4-§7 + tick),
   `NodeState` (payload v2). Changes vs §3/§10: speed remainder is derived from `Sim.Tick`
   (`floor((t+1)*512/30) - floor(t*512/30)`), so no accumulator is saved; drains open for one tick only (held items

@@ -37,6 +37,15 @@ var sprites = []sprite{
 	{"belt_splitter_blueprint", 2, 1, "belt_splitter_blueprint.png", ""},
 }
 
+// layers are animation-ready masters kept in art/ only (not baked yet): <part>_base = housing with moving parts removed,
+// <part>_moving = rollers/shuttle/shutters/lights alone on transparency. The game uses the composed <part> master.
+var layers = []sprite{
+	{master: "belt_connector_base", w: 1, h: 1}, {master: "belt_connector_moving", w: 1, h: 1},
+	{master: "belt_splitter_base", w: 2, h: 1}, {master: "belt_splitter_moving", w: 2, h: 1},
+}
+
+func exists(path string) bool { _, err := os.Stat(path); return err == nil }
+
 func load(path string) *image.NRGBA {
 	f, err := os.Open(path)
 	if err != nil {
@@ -161,7 +170,7 @@ func preview(game, assets, path string) {
 		return w
 	}
 	W := max(width(row1, 16), width(row2, 0)+32)
-	out := image.NewNRGBA(image.Rect(0, 0, W, 2*s+48))
+	out := image.NewNRGBA(image.Rect(0, 0, W, 5*s+80))
 	for i := range out.Pix {
 		out.Pix[i] = 40
 		if i%4 == 3 {
@@ -178,6 +187,27 @@ func preview(game, assets, path string) {
 		paste(out, resize(im, im.Rect.Dx()*s/64, s), x, s+32)
 		x += im.Rect.Dx() * s / 64
 	}
+	// Flow columns (front = top): belts feeding into and out of the splitter and the connector, to check edge joins.
+	put := func(name string, tx, ty int) {
+		im := col(name)
+		paste(out, resize(im, im.Rect.Dx()*s/64, im.Rect.Dy()*s/64), 16+tx*s, 2*s+48+ty*s)
+	}
+	for ty := 0; ty < 3; ty += 2 {
+		put("belt.png", 0, ty)
+		put("belt.png", 1, ty)
+		put("belt.png", 3, ty)
+	}
+	put("belt_splitter.png", 0, 1)
+	put("belt_connector.png", 3, 1)
+	// Editor icons and the splitter blueprint at their native pixel size, 2x.
+	ix := 16 + 5*s
+	for _, name := range []string{"belt_splitter_icon.png", "belt_connector_icon.png", "belt_icon.png"} {
+		im := col(name)
+		paste(out, resize(im, im.Rect.Dx()*2, im.Rect.Dy()*2), ix, 2*s+48)
+		ix += im.Rect.Dx()*2 + 16
+	}
+	bp := col("belt_splitter_blueprint.png")
+	paste(out, resize(bp, 2*s, s), 16+5*s, 3*s+48)
 	save(out, path)
 }
 
@@ -190,8 +220,25 @@ func main() {
 	flag.Parse()
 
 	if *importDir != "" {
-		for _, sp := range sprites {
-			raw := trimKeyRows(load(filepath.Join(*importDir, sp.master+"_master.png")))
+		// Only masters present in -import are replaced, so one part can be regenerated without touching the others.
+		for _, sp := range append(sprites, layers...) {
+			path := filepath.Join(*importDir, sp.master+"_master.png")
+			if !exists(path) {
+				continue
+			}
+			raw := load(path)
+			if base, ok := strings.CutSuffix(sp.master, "_moving"); ok {
+				// The overlay is mostly magenta, so crop it to the base layer's key bands and key magenta to alpha.
+				b := trimKeyRows(load(filepath.Join(*importDir, base+"_base_master.png"))).Rect
+				raw = raw.SubImage(image.Rect(0, b.Min.Y, raw.Rect.Dx(), b.Max.Y)).(*image.NRGBA)
+				for i := 0; i < len(raw.Pix); i += 4 {
+					if magenta(color.NRGBA{raw.Pix[i], raw.Pix[i+1], raw.Pix[i+2], 255}) {
+						raw.Pix[i+3] = 0
+					}
+				}
+			} else {
+				raw = trimKeyRows(raw)
+			}
 			save(resize(raw, sp.w*masterTile, sp.h*masterTile), filepath.Join(*artDir, sp.master+".png"))
 		}
 	}
