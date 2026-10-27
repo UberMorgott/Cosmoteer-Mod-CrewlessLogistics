@@ -1,0 +1,13 @@
+# Translations are not English; typos would flag native words (e.g. German "unter").
+[files]
+extend-exclude = ["mod/strings/*.rules", "!mod/strings/en.rules", "docs/workshop/*.txt", "!docs/workshop/english.txt"]
+
+[default.extend-identifiers]
+# "PNGs" (plural of PNG) is split by case into "PN" + "Gs".
+PNGs = "PNGs"
+
+[default.extend-words]
+# OT = ObjectText, Cosmoteer's rules format (OTFile, OTNode, "OT root").
+OT = "OT"
+# Cosmoteer part rules field IsRotateable, spelled this way by the game.
+Rotateable = "Rotateable"
