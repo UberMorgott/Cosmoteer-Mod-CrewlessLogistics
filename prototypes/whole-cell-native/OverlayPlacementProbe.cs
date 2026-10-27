@@ -48,24 +48,24 @@ sealed partial class NativeProbe
         SetField(partRules, "Size", Vector(4, 4));
         int exactPlacementCases = 0;
         foreach (int rotation in Enumerable.Range(0, 4)) foreach (bool flip in new[] { false, true }) {
-                var info = Activator.CreateInstance(Game("Cosmoteer.Ships.Parts.PartInfo"), new object[] { partRules, Vector(7, -3), rotation, flip })!;
-                foreach (string side in new[] { "Up", "Right", "Down", "Left" }) for (int i = 0; i < 4; i++) {
-                        var electric = Rules(large + PerimeterSocket(4, side, i), "Cosmoteer.Ships.Networks.PartNetworkPortRules", root);
-                        var thermal = Rules(large + $"Port_Thermal_{side}{i}", "Cosmoteer.Ships.Networks.PartNetworkPortRules", root);
-                        object DrawData(object portRules)
-                        {
-                            var pair = ((IEnumerable)Call(portRules, "GetPartCells")!).Cast<object>().Single();
-                            return getPortDrawData.Invoke(null, new[] { info, Field(pair.GetType(), "Item1").GetValue(pair), Field(pair.GetType(), "Item2").GetValue(pair), icon, null, false, true })!;
-                        }
-                        var actual = Property(DrawData(electric), "Midpoint");
-                        var original = Property(DrawData(thermal), "Midpoint");
-                        Require(Equals(actual, original), "Native primary electrical marker no longer matches native thermal attachment geometry");
-                        if (rotation == 0 && !flip && side == "Up" && i == 0) {
-                            Require(Math.Abs((float)Property(actual, "X") - 7.5f) < 0.00001f && Math.Abs((float)Property(actual, "Y") + 3f) < 0.00001f, "Native primary placement midpoint is displaced from the exact physical edge");
-                        }
-                        exactPlacementCases++;
-                    }
+            var info = Activator.CreateInstance(Game("Cosmoteer.Ships.Parts.PartInfo"), new object[] { partRules, Vector(7, -3), rotation, flip })!;
+            foreach (string side in new[] { "Up", "Right", "Down", "Left" }) for (int i = 0; i < 4; i++) {
+                var electric = Rules(large + PerimeterSocket(4, side, i), "Cosmoteer.Ships.Networks.PartNetworkPortRules", root);
+                var thermal = Rules(large + $"Port_Thermal_{side}{i}", "Cosmoteer.Ships.Networks.PartNetworkPortRules", root);
+                object DrawData(object portRules)
+                {
+                    var pair = ((IEnumerable)Call(portRules, "GetPartCells")!).Cast<object>().Single();
+                    return getPortDrawData.Invoke(null, new[] { info, Field(pair.GetType(), "Item1").GetValue(pair), Field(pair.GetType(), "Item2").GetValue(pair), icon, null, false, true })!;
+                }
+                var actual = Property(DrawData(electric), "Midpoint");
+                var original = Property(DrawData(thermal), "Midpoint");
+                Require(Equals(actual, original), "Native primary electrical marker no longer matches native thermal attachment geometry");
+                if (rotation == 0 && !flip && side == "Up" && i == 0) {
+                    Require(Math.Abs((float)Property(actual, "X") - 7.5f) < 0.00001f && Math.Abs((float)Property(actual, "Y") + 3f) < 0.00001f, "Native primary placement midpoint is displaced from the exact physical edge");
+                }
+                exactPlacementCases++;
             }
+        }
         var cableFile = Activator.CreateInstance(Core("Halfling.ObjectText.OTFile"), new object[] { Path.Combine(projectRoot, "mod", "cable.rules") })!;
         var cable = Rules("Part/Components/Port_Up", "Cosmoteer.Ships.Networks.PartNetworkPortRules", cableFile);
         var cableOverlay = Field(cable.GetType(), "Overlay").GetValue(cable)!;

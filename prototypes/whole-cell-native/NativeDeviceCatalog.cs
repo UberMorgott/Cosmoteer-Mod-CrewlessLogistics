@@ -48,9 +48,9 @@ sealed partial class NativeProbe
             var root = Open(Path.Combine(gameRoot, "Data", "cosmoteer.rules"));
             var actionReport = new List<object>();
             foreach (var mod in mods) foreach (object action in mod.Actions) {
-                    try { Call(action, "ApplyAction", root); } catch (Exception error) { throw new InvalidOperationException($"Cannot apply enabled mod native action: {mod.Id}, {action.GetType().Name}. {Inner(error).Message}", error); }
-                    actionReport.Add(new { modId = mod.Id, actionType = action.GetType().Name });
-                }
+                try { Call(action, "ApplyAction", root); } catch (Exception error) { throw new InvalidOperationException($"Cannot apply enabled mod native action: {mod.Id}, {action.GetType().Name}. {Inner(error).Message}", error); }
+                actionReport.Add(new { modId = mod.Id, actionType = action.GetType().Name });
+            }
             const string registry = "<ships/terran/terran.rules>/Terran/Parts";
             var partNodes = Nodes(root, registry); var reports = new List<object>();
             for (int i = 0; i < partNodes.Length; i++) {
@@ -82,8 +82,8 @@ sealed partial class NativeProbe
                         }
                         if (Has(root, path + "/PartLocation")) entry.References["PartLocation"] = ReadRuleObject(root, path + "/PartLocation", typeof(int[]));
                         foreach (string field in new[] { "QuantityScale", "FromQuantity", "ToQuantity", "MinResourcesPickUp", "MaxResourcesPickUp" }) if (Has(root, path + "/" + field)) {
-                                try { entry.Values[field] = ReadRuleObject(root, path + "/" + field, typeof(float)); } catch { entry.MetadataWarnings.Add(field + " is a native modifiable value, not a plain scalar."); }
-                            }
+                            try { entry.Values[field] = ReadRuleObject(root, path + "/" + field, typeof(float)); } catch { entry.MetadataWarnings.Add(field + " is a native modifiable value, not a plain scalar."); }
+                        }
                         // false = crew deliver only while OperationalToggle is on (hyperdrives: FtlDrive spool-up).
                         if (Has(root, path + "/AllowNonOperationalMinPriorityDelivery")) entry.Values["AllowNonOperationalMinPriorityDelivery"] = ReadRuleObject(root, path + "/AllowNonOperationalMinPriorityDelivery", typeof(bool));
                         if (Has(root, path + "/MaxResources")) {
@@ -208,8 +208,8 @@ sealed partial class NativeProbe
             mods.Sort((a, b) => StringComparer.Ordinal.Compare(a.Id, b.Id));
             var root = Open(Path.Combine(gameRoot, "Data", "cosmoteer.rules"));
             foreach (var mod in mods) foreach (object action in mod.Actions) {
-                    try { Call(action, "ApplyAction", root); } catch (Exception error) { throw new InvalidOperationException("Enabled-mod validation failed: " + mod.Id + "/" + action.GetType().Name, error); }
-                }
+                try { Call(action, "ApplyAction", root); } catch (Exception error) { throw new InvalidOperationException("Enabled-mod validation failed: " + mod.Id + "/" + action.GetType().Name, error); }
+            }
             return root;
         } finally { Environment.CurrentDirectory = originalDirectory; }
     }
@@ -240,10 +240,10 @@ sealed partial class NativeProbe
         var path = Game("Cosmoteer.Mods.ModInfo").GetMethod("GetModInfoPath", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, new[] { Activator.CreateInstance(Core("Halfling.IO.AbsolutePath"), directory) });
         return path?.ToString();
     }
-    static readonly JsonSerializerOptions CatalogJson = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    internal static readonly JsonSerializerOptions CatalogJson = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     // Current mod ID first; the legacy ID is the pre-0.3.3 package name.
     static readonly string[] SelfModIds = { "morgott.crewless_logistics", "morgott.powergrid" };
-    static bool IsSelfModId(string id) => Array.IndexOf(SelfModIds, id) >= 0;
+    internal static bool IsSelfModId(string id) => Array.IndexOf(SelfModIds, id) >= 0;
     // The profile's Settings.rules sits next to its Mods folder. Without an
     // explicit Mods folder, a single profile is used even before first install.
     string SettingsPath()
@@ -255,14 +255,14 @@ sealed partial class NativeProbe
         return candidates[0];
     }
     // Generated docs are public: replace the local profile root and Steam ID folder.
-    static string PortablePath(string path)
+    internal static string PortablePath(string path)
     {
         string profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         if (path.StartsWith(profile + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) path = string.Concat("%USERPROFILE%", path.AsSpan(profile.Length));
         return Regex.Replace(path, @"([\\/]Cosmoteer[\\/])\d{17}(?=[\\/]|$)", "$1<SteamID>");
     }
     sealed record CatalogMod(string Id, string Directory, string Manifest, string? Version, IList Actions, string[] DllFiles);
-    sealed class CatalogComponent
+    internal sealed class CatalogComponent
     {
         public string Id { get; set; } = "";
         public string Type { get; set; } = "";

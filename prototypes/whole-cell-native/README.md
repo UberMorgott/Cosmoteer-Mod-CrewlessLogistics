@@ -18,7 +18,7 @@ The following sections describe the original focused spike and earlier count sna
 & .\prototypes\whole-cell-native\Run-Probe.ps1
 ```
 
-- Requires the existing .NET 8 SDK and local Cosmoteer installation. The runner copies the game's runtime/assemblies into ignored `artifacts/whole-cell-native/runtime` and runs the fixture on the game's actual .NET 10 runtime.
+- Requires the .NET 10 SDK and local Cosmoteer installation. The runner copies the game's runtime/assemblies into ignored `artifacts/whole-cell-native/runtime` and runs the fixture on the game's actual .NET 10 runtime.
 - It does not install or enable a mod, install a loader, change the game folder, attach to the running game, or open saves.
 - `components.rules` is parsed by the native ObjectText serializer. The C# executable supplies synthetic ownership and manual pulses. Original whole-cell tests seed connected membership; the shared-port tests use native spatial discovery and topology without seeded membership. This executable is a test harness, not code intended to load into the game.
 - Detailed results are written to `artifacts/whole-cell-native/result.json`, including a verified match between loaded and installed game assembly hashes.
