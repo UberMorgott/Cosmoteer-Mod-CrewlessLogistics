@@ -1,0 +1,30 @@
+Crewless Logistics (BETA 0.4)
+[h1]Crewless Logistics - BETA 0.4[/h1]
+[b]これはテスト版です。[/b]バグが含まれる可能性があります。部品の仕様も今後変わる場合があります。通常のプレイには安定版の [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3827751334]Crewless Logistics[/url] を使ってください。
+
+[h2]安定版と同時にサブスクライブしないでください[/h2]
+両方とも同じ MOD ID を使います。このベータ版をサブスクライブする前に、安定版 Crewless Logistics のサブスクライブを解除してください。テストが終わったら、ベータ版を解除して安定版を再びサブスクライブしてください。
+
+[h2]Yet Another Mod Loader が必要です[/h2]
+ベルトコンベアは C# ライブラリで動作します。このライブラリには [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3577650065]Yet Another Mod Loader[/url] (3577650065) が必要です。
+[olist]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3577650065]Yet Another Mod Loader[/url] をサブスクライブし、ダウンロードの完了を待ちます。
+[*]ゲームを終了します。ローダーのワークショップフォルダー [b]<Steam>\steamapps\workshop\content\799600\3577650065[/b] を開き、[b]Installer.bat[/b] を実行します。
+[*]ゲームを起動します。MOD 一覧で Crewless Logistics を有効にし、確認が表示されたら[b]ライブラリ (DLL) を信頼する設定にします[/b]。ゲームを再起動します。
+[*]このベータ版を更新するたびに、ライブラリを再び信頼する設定にしてください。
+[/olist]
+
+[h2]0.4 の新機能[/h2]
+安定版の全機能（乗組員の運搬に頼らない電力網）に加え、[b]保管[/b]と[b]動力[/b]タブに資源輸送用の部品が追加されます：
+[list]
+[*][b]ベルトコンベア[/b]：2車線。乗組員が上を歩けます。自動で曲がり、側面からも資源を受け取れます。
+[*][b]ベルトコネクター[/b]：決まった方向に資源を移します。部屋とベルトの間や、部屋同士で使えます。選んだ資源1種類だけを通すフィルターも使えます（初期状態はオフ）。
+[*][b]ベルト分配器[/b] (1x2)：1本のベルトを2つの出口に分けます。
+[/list]
+
+[h2]マルチプレイ[/h2]
+全プレイヤーが同じベータ版、同じローダー、同じゲームバージョンを使う必要があります。
+
+[h2]バグを見つけたら？[/h2]
+コメント欄ではなく、GitHub でのみ報告してください。MOD のバージョン (0.4.0 beta) も記入してください：
+[url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]

@@ -1,0 +1,30 @@
+Crewless Logistics (BETA 0.4)
+[h1]Crewless Logistics - BETA 0.4[/h1]
+[b]Esta es una versión de prueba.[/b] Puede contener errores. Sus piezas aún pueden cambiar. Para jugar normalmente, usa la versión estable de [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3827751334]Crewless Logistics[/url].
+
+[h2]NO te suscribas junto con la versión estable[/h2]
+Ambas publicaciones tienen el mismo ID de mod. Cancela la suscripción a la versión estable de Crewless Logistics antes de suscribirte a esta beta. Al terminar las pruebas, cancela la suscripción a la beta y vuelve a suscribirte a la versión estable.
+
+[h2]Requiere Yet Another Mod Loader[/h2]
+Las cintas transportadoras funcionan mediante una biblioteca de C#. Necesita [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3577650065]Yet Another Mod Loader[/url] (3577650065).
+[olist]
+[*]Suscríbete a [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3577650065]Yet Another Mod Loader[/url] y espera a que termine la descarga.
+[*]Cierra el juego. Abre la carpeta del cargador en Workshop [b]<Steam>\steamapps\workshop\content\799600\3577650065[/b] y ejecuta [b]Installer.bat[/b].
+[*]Inicia el juego. Activa Crewless Logistics en la lista de mods y [b]confía en su biblioteca (DLL)[/b] cuando se te solicite. Reinicia el juego.
+[*]Vuelve a confiar en la biblioteca después de cada actualización de esta beta.
+[/olist]
+
+[h2]Novedades de 0.4[/h2]
+Todo lo de la versión estable (red eléctrica sin transporte por la tripulación), más logística de recursos en las pestañas [b]Almacenamiento[/b] y [b]Potencia[/b]:
+[list]
+[*][b]Cinta transportadora[/b]: dos carriles. La tripulación puede caminar sobre ella. Gira sola y acepta recursos por los lados.
+[*][b]Conector de cinta[/b]: funciona en una dirección. Mueve recursos entre una sala y una cinta, o entre dos salas. Filtro opcional para un recurso elegido (desactivado por defecto).
+[*][b]Divisor de cinta[/b] (1x2): divide una cinta en dos salidas.
+[/list]
+
+[h2]Multijugador[/h2]
+Todos los jugadores necesitan la misma versión beta, el mismo cargador y la misma versión del juego.
+
+[h2]¿Encontraste un error?[/h2]
+Informa solo en GitHub, no en los comentarios. Incluye la versión del mod (0.4.0 beta):
+[url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]

@@ -1,0 +1,30 @@
+Crewless Logistics (BETA 0.4)
+[h1]Crewless Logistics - BETA 0.4[/h1]
+[b]Dies ist eine Testversion.[/b] Sie kann Fehler enthalten. Ihre Teile können sich noch ändern. Nutze zum normalen Spielen die stabile [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3827751334]Crewless Logistics[/url]-Version.
+
+[h2]NICHT zusammen mit der stabilen Version abonnieren[/h2]
+Beide Workshop-Einträge haben dieselbe Mod-ID. Bestelle die stabile Crewless Logistics-Version ab, bevor du diese Beta abonnierst. Nach dem Testen bestelle die Beta ab und abonniere wieder die stabile Version.
+
+[h2]Benötigt Yet Another Mod Loader[/h2]
+Die Förderbänder laufen über eine C#-Bibliothek. Sie benötigt [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3577650065]Yet Another Mod Loader[/url] (3577650065).
+[olist]
+[*]Abonniere [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3577650065]Yet Another Mod Loader[/url] und warte auf den Download.
+[*]Schließe das Spiel. Öffne den Workshop-Ordner des Loaders [b]<Steam>\steamapps\workshop\content\799600\3577650065[/b] und führe [b]Installer.bat[/b] aus.
+[*]Starte das Spiel. Aktiviere Crewless Logistics in der Mod-Liste und [b]vertraue seiner Bibliothek (DLL)[/b], wenn du dazu aufgefordert wirst. Starte das Spiel neu.
+[*]Vertraue der Bibliothek nach jedem Update dieser Beta erneut.
+[/olist]
+
+[h2]Neu in 0.4[/h2]
+Alles aus der stabilen Version (Stromnetz ohne Crew) plus Ressourcenlogistik in den Kategorien [b]Lagerung[/b] und [b]Energie[/b]:
+[list]
+[*][b]Förderband[/b]: zwei Spuren, für die Crew begehbar. Biegt automatisch ab und nimmt Ressourcen von der Seite an.
+[*][b]Bandverbinder[/b]: arbeitet in einer festen Richtung. Bewegt Ressourcen zwischen einem Raum und einem Band oder zwischen zwei Räumen. Optionaler Filter für eine gewählte Ressource (standardmäßig aus).
+[*][b]Bandverteiler[/b] (1x2): teilt ein Band auf zwei Ausgänge auf.
+[/list]
+
+[h2]Mehrspieler[/h2]
+Alle Spieler brauchen dieselbe Beta-Version, denselben Loader und dieselbe Spielversion.
+
+[h2]Fehler gefunden?[/h2]
+Melde ihn nur auf GitHub, nicht in den Kommentaren. Gib die Mod-Version an (0.4.0 beta):
+[url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]
