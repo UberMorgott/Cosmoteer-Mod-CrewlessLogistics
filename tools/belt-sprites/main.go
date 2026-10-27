@@ -439,7 +439,7 @@ func animVariants(artDir string) []struct {
 	}
 }
 
-// bakeAnim writes <out>/belt_anim/<variant>_<k>.png (64 px) for k < animFrames; frame 0 of curve also replaces belt_curve.png.
+// bakeAnim writes <out>/belt_anim/<variant>_<k>.png (64 px) for k < animFrames.
 func bakeAnim(artDir, outDir string) {
 	belt := load(filepath.Join(artDir, "belt.png"))
 	dir := filepath.Join(outDir, "belt_anim")
@@ -455,9 +455,6 @@ func bakeAnim(artDir, outDir string) {
 				curveEdges(m, resize(f, 64, 64))
 			}
 			save(m, filepath.Join(dir, fmt.Sprintf("%s_%02d.png", v.name, k)))
-			if v.name == "curve" && k == 0 {
-				save(m, filepath.Join(outDir, "belt_curve.png"))
-			}
 		}
 	}
 }
