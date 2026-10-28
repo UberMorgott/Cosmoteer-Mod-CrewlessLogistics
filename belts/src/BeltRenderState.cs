@@ -21,6 +21,16 @@ public enum Variant : byte
     CableHeatCrossing,
 }
 
+/// <summary>§28 look of a box port edge (tools/belt-sprites edges.go, same order); Wall = plain housing, no quad.</summary>
+public enum EdgeLook : byte
+{
+    Cap,
+    Seal,
+    Belt,
+    Coupling,
+    Wall,
+}
+
 /// <summary>§25 what a belt crossing's network ports link to at one edge, through any chain of crossings.</summary>
 public enum CrossLink : byte
 {
@@ -156,6 +166,76 @@ public sealed class BeltRenderState
         _ when up == CrossLink.Cable || down == CrossLink.Cable => Variant.CableCrossing,
         _ => Variant.PlainCrossing,
     };
+
+    /// <summary>§28 port edges per box: connector front, right, back, left; splitter fronts 0/1, backs 0/1, short sides 0/1.</summary>
+    public static int EdgeCount(Node n) => n.Kind == NodeKind.Connector ? 4 : n.Kind == NodeKind.Splitter ? 6 : 0;
+
+    /// <summary>§28 ship cell of edge e of box n and its outward direction (right of travel = (-Dy, Dx), splitter half 1 = +S).</summary>
+    public static (int X, int Y, int Ox, int Oy) Edge(Node n, int e)
+    {
+        if (n.Kind == NodeKind.Connector)
+        {
+            return e switch
+            {
+                0 => (n.X, n.Y, n.Dx, n.Dy),
+                1 => (n.X, n.Y, -n.Dy, n.Dx),
+                2 => (n.X, n.Y, -n.Dx, -n.Dy),
+                _ => (n.X, n.Y, n.Dy, -n.Dx),
+            };
+        }
+        int h = e is 1 or 3 or 5 ? 1 : 0, x = n.X + h * n.Sx, y = n.Y + h * n.Sy;
+        return e switch
+        {
+            < 2 => (x, y, n.Dx, n.Dy),
+            < 4 => (x, y, -n.Dx, -n.Dy),
+            4 => (x, y, -n.Sx, -n.Sy),
+            _ => (x, y, n.Sx, n.Sy),
+        };
+    }
+
+    /// <summary>
+    /// §28 look of edge e of box n from the sim topology (after <see cref="BeltWorld"/> built it): an output shows its
+    /// resolved sink (belt stub, box coupling, room seal); an input is linked when the neighbour's output crosses exactly
+    /// this edge (a connector cut out of a closed loop outputs nothing). Unlinked: a part there = seal, else a closed cap;
+    /// unlinked splitter short sides stay plain housing wall. m = the node in the neighbour cell, occupied = any ship part there.
+    /// </summary>
+    public static EdgeLook Look(Node n, int e, Node? m, bool occupied)
+    {
+        var (_, _, ox, oy) = Edge(n, e);
+        if (n.Kind == NodeKind.Connector ? e == 0 : e < 2)
+        {
+            if ((n.Kind == NodeKind.Connector ? n.Front : n.Out[e]) is { } s)
+            {
+                return s.Node == null ? EdgeLook.Seal : s.Node.Kind == NodeKind.Belt ? EdgeLook.Belt : EdgeLook.Coupling;
+            }
+        }
+        else if (m != null && m.Dx == -ox && m.Dy == -oy && (m.Kind != NodeKind.Connector || m.Front != null))
+        {
+            return m.Kind == NodeKind.Belt ? EdgeLook.Belt : EdgeLook.Coupling;
+        }
+        return e >= 4 ? EdgeLook.Wall : m == null && occupied ? EdgeLook.Seal : EdgeLook.Cap;
+    }
+
+    /// <summary>§28 BeltEdgeSprites entries: connector edge x look (0..15), splitter port edge x look (16..31), splitter side x Belt/Coupling (32..35).</summary>
+    public const int EdgeSprites = 36;
+
+    /// <summary>
+    /// §28 BeltEdgeSprites index of an edge look, -1 = no quad. The quad is drawn unflipped with the part direction, so a
+    /// flipped splitter (half 1 left of travel) shows half 0 in the sprite's half 1 slot.
+    /// </summary>
+    public static int EdgeSprite(NodeKind kind, int e, EdgeLook look, bool flipX)
+    {
+        if (look == EdgeLook.Wall)
+        {
+            return -1;
+        }
+        if (kind == NodeKind.Connector)
+        {
+            return 4 * e + (int)look;
+        }
+        int d = flipX ? e ^ 1 : e;
+        return d < 4 ? 16 + 4 * d + (int)look : look is EdgeLook.Belt or EdgeLook.Coupling ? 32 + 2 * (d - 4) + (look == EdgeLook.Coupling ? 1 : 0) : -1;
+    }
 
     /// <summary>Surface sprite of a belt node and whether it is mirrored; crossings never curve nor show joins.</summary>
     public static (Variant V, bool FlipU) Select(Node n, Variant crossing = Variant.Straight)

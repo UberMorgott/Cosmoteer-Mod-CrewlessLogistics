@@ -42,6 +42,9 @@ public class WorldTests
     public void SplitterHalvesRender() => Probe.Run(WorldProbes.SplitterHalvesRender);
 
     [Fact]
+    public void EdgeSelect() => Probe.Run(WorldProbes.EdgeSelect);
+
+    [Fact]
     public void RenderClientOnly() => Probe.Run(WorldProbes.RenderClientOnly);
 
     [Fact]

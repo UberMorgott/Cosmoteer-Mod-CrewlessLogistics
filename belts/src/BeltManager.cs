@@ -37,12 +37,19 @@ internal sealed class BeltManager : ShipComponent
     private const string SurfaceSpritesComponent = "BeltSurfaceSprites";
     private const string LampLayer = "lights_add";
     private const string LampSpritesComponent = "BeltLampSprites";
+    /// <summary>§28 port edge looks of connectors / splitters, static quads on the surface layer (above floors, below items).</summary>
+    private const string EdgeSpritesComponent = "BeltEdgeSprites";
+    private const int MaxEdges = 6;
     private readonly BeltRenderState _render = new();
     private ManagedShipQuad?[] _surf = Array.Empty<ManagedShipQuad?>();
     private Variant[] _surfV = Array.Empty<Variant>();
     private int[] _surfL = Array.Empty<int>();
     private AtlasSprite[][]? _surfSprites;
     private ManagedShipQuad?[] _lamps = Array.Empty<ManagedShipQuad?>();
+    /// <summary>§28 per node <see cref="MaxEdges"/> slots: edge quad, its BeltEdgeSprites index and damage level.</summary>
+    private ManagedShipQuad?[] _edges = Array.Empty<ManagedShipQuad?>();
+    private int[] _edgeS = Array.Empty<int>(), _edgeL = Array.Empty<int>();
+    private AtlasSprite[][]? _edgeSprites;
     private bool _visualsDirty;
     /// <summary>§27 client view state: drawn in the last frame, coarse LOD, tick last rendered, item quads shown / resident.</summary>
     private bool _shown, _coarse;
@@ -397,6 +404,7 @@ internal sealed class BeltManager : ShipComponent
         _render.Reset(_nodes);
         AtlasSprite[][]? surf = _surfSprites = Sprites(ship, SurfaceSpritesComponent, (int)Variant.CableHeatCrossing + 1);
         AtlasSprite[][]? lamps = Sprites(ship, LampSpritesComponent, 3);
+        AtlasSprite[][]? edges = _edgeSprites = Sprites(ship, EdgeSpritesComponent, BeltRenderState.EdgeSprites);
         var surfLayer = new ID<ShipRenderLayerRules>(SurfaceLayer);
         var lampLayer = new ID<ShipRenderLayerRules>(LampLayer);
         for (int i = 0; i < _nodes.Count; i++)
@@ -413,7 +421,23 @@ internal sealed class BeltManager : ShipComponent
                 _surf[i] = new ManagedShipQuad(renderer.GetLayerQuads(surfLayer), surf[(int)v][_surfL[i]], 0, flip ^ p.FlipX, center, Vector2.Zero, p.Direction,
                     ship.WorldUniformScale, Color.White, ship.Rules.RenderLayers[surfLayer].Inflate, 0f, sim.Clock);
             }
-            else if (n.Kind != NodeKind.Belt && lamps != null)
+            for (int e = 0; edges != null && e < BeltRenderState.EdgeCount(n); e++)
+            {
+                // §28: the look follows the topology of this epoch (neighbours change only through a rebuild).
+                var (x, y, ox, oy) = BeltRenderState.Edge(n, e);
+                var cell = new IntVector2(x + ox, y + oy);
+                int j = NodeAt(ship, cell.X, cell.Y), s = BeltRenderState.EdgeSprite(n.Kind, e,
+                    BeltRenderState.Look(n, e, j >= 0 ? _nodes[j] : null, ship.Parts[cell] != null), p.FlipX);
+                if (s >= 0)
+                {
+                    int k = MaxEdges * i + e;
+                    _edgeS[k] = s;
+                    _edgeL[k] = BeltRenderState.DamageLevel(p.DamageFraction, edges[s].Length);
+                    _edges[k] = new ManagedShipQuad(renderer.GetLayerQuads(surfLayer), edges[s][_edgeL[k]], 0, false, center, Vector2.Zero, p.Direction,
+                        ship.WorldUniformScale, Color.White, ship.Rules.RenderLayers[surfLayer].Inflate, 0f, sim.Clock);
+                }
+            }
+            if (n.Kind != NodeKind.Belt && lamps != null)
             {
                 for (int k = 0; k < (n.Kind == NodeKind.Splitter ? 2 : 1); k++)
                 {
@@ -444,6 +468,16 @@ internal sealed class BeltManager : ShipComponent
         _surfV = new Variant[_nodes.Count];
         _surfL = new int[_nodes.Count];
         _lamps = new ManagedShipQuad?[2 * _nodes.Count];
+        for (int i = 0; i < _edges.Length; i++)
+        {
+            if (_edges[i] is { } q)
+            {
+                q.Sprite = null;
+            }
+        }
+        _edges = new ManagedShipQuad?[MaxEdges * _nodes.Count];
+        _edgeS = new int[_edges.Length];
+        _edgeL = new int[_edges.Length];
     }
 
     /// <summary>
@@ -496,6 +530,20 @@ internal sealed class BeltManager : ShipComponent
         {
             _visualsDirty = false;
             BuildVisuals(ship, renderer, sim); // surfaces created still, lamps unlit (item quads are not touched)
+        }
+        // §28 edge quads stay at every LOD (they shape the joint); only their damage level follows the part, as surfaces.
+        for (int k = 0; _edgeSprites != null && k < _edges.Length; k++)
+        {
+            if (_edges[k] is { } eq)
+            {
+                AtlasSprite[] levels = _edgeSprites[_edgeS[k]];
+                int level = BeltRenderState.DamageLevel(_nodeParts[k / MaxEdges].DamageFraction, levels.Length);
+                if (level != _edgeL[k])
+                {
+                    _edgeL[k] = level;
+                    eq.Sprite = levels[level];
+                }
+            }
         }
         if (coarse && rebase)
         {

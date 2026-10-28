@@ -678,3 +678,52 @@ Decisions (Claude / Codex `codex exec -s read-only`, agreed):
 - Tests: `ScaleTests.FleetBench` (budgets: sim 1000 us, render state 2000 us all in view, rebuild 20 ms, 0 B; Debug x4),
   `FleetGolden`, `RenderLod` (hysteresis, no view = coarse, rebase: no stale lamp / move, activity returns).
 - Not verified: in game (quad write cost per item, LOD threshold feel, miniview, pause + pan, frame time with 20 ships), MP.
+
+## 28. Connection-aware port edges, joint matrix (2026-10-28)
+
+Owner (`images/16.png`): two connectors outputting into a 1x2 splitter each show their own belt stub and hazard intake
+strip; the boxes do not visibly mate. Measured cause: connector stubs 28 px wide (x 18..46), splitter stubs 4 px off the
+cell centre (x 14..58 / 70..114) vs belt rails x 8..55, every port always drawn as an open stub with hazard strip.
+Owner then widened scope: every visual joint of every belt part and box must mate, checked automatically.
+
+Scheme (Factorio belt start / end caps chosen by neighbour): each box port edge picks one look from the topology.
+
+| Edge neighbour | Look |
+| --- | --- |
+| belt / crossing linked through this edge | `Belt`: stub = crop of the baked belt, so rails / surface continue exactly |
+| connector / splitter linked through this edge | `Coupling`: each box draws one half of one symmetric Codex coupling; both halves meet at the edge (no owner election, no double stub, no hazard strip) |
+| any other part (room, building, corridor, wall) | `Seal`: wall clamp |
+| empty, or a belt / box there but not linked | `Cap`: closed shutter |
+| splitter short side not linked | `Wall`: plain housing, no quad |
+
+Linked = the sim's own topology after `BeltWorld` built it: outputs read their resolved sink (`Front` / `Out[h]`;
+room -> Seal), inputs are linked when the neighbour's output crosses exactly this edge (a connector cut out of a closed
+loop links nothing).
+
+### §28 decisions (Claude / Codex `codex exec -s read-only`, agreed)
+
+| # | Claude | Codex | Agreed + why |
+| --- | --- | --- | --- |
+| E1 edges | connector 4 (front out, right / back / left in), splitter 4 ports | DISAGREE: sim accepts splitter short-side entry (`SinkAt`, §7a) | splitter 6 edges: fronts 0/1, backs 0/1, short sides 0/1 (Belt / Coupling when linked, else `Wall`) |
+| E2 linked | geometric neighbour rule | AGREE with fixes: from the finished topology, loop cut counts, belt->belt lives only in LaneSim | `BeltRenderState.Look`: outputs from sinks, inputs from neighbour direction + `Front != null`; unlinked belt / box -> Cap, not Seal |
+| E3 coupling | two halves, no owner | AGREE; split the master mechanically, fixed cross profile at the seam | `couplingHalf`: bottom half, left-right symmetric from its left half, so any rotated pair meets pixel for pixel |
+| E4 geometry | zones on the belt rail extent, cell-centred | AGREE on transform (part-size quads, part Direction), proposed x 10..54 | x 8..56 (measured belt row 0: rails 8..55), depth to the housing: connector 9 / 12 / 14 / 12, splitter front 11, back 19 (incl. hazard strip), sides 8 |
+| E5 fallback | rules floor = box + belt stub on every port | AGREE: erase old stubs and hazard strips first, also outside the new rect; quads opaque over the zone; icons / blueprints too | `oldStubs` erased to the level's floor, stubs pasted per level; icon + blueprint from the corrected 64 px art |
+| E6 runtime | quads per topology epoch, damage swap | AGREE; damage refresh must not sit behind the coarse early return | edge quads built in `BuildVisuals`, kept at every LOD; damage level checked before the coarse return |
+| E7 seam check | Go composition of baked assets | split: C# selects edges from real topology, Go composes; check rail / surface bands and the whole port depth with geometric masks, negative tests | `EdgeSelect` (C#) + `TestJointsMate` / `TestJointsNegative` / `TestEdgeQuads` (Go) |
+| E8 crossing | belt-like | AGREE; side load over its heat / cable port side has no art | known non-mating, kept as an expected failure in `TestJointsMate` |
+
+- Art: Codex image_gen via `cx -Img` -> `tools/belt-sprites/art/belt_edge_{cap,seal,coupling}.png` (magenta key bands,
+  `-import`); belt stubs mechanical. Bake: `edges.go` -> `mod/assets/belt_edge/<box>_<edge>_<look><damage>.png` (108 files,
+  damage decal faded 3 px at tile edges), rules `BeltEdgeSprites` (36 entries, order = `BeltRenderState.EdgeSprite`).
+- Code: `BeltRenderState.Edge / Look / EdgeSprite`, `BeltManager.BuildVisuals / Render / DisposeVisuals` (static
+  quads on `turrets`, flipU false; flipped splitter maps half 0 to sprite slot 1).
+- Tests: `EdgeSelect` (832 cases: connector 4 edges, splitter 6 edges x 2 half orders, 4 rotations, 13 neighbour kinds;
+  loop cut; sprite slots), Go `TestJointsMate` (378 ordered pairs, 36992 composed joints: 4 world directions, box
+  flips, 16 frames), `TestJointsNegative` (4 px shift, gap behind the edge must fail), `TestEdgeQuads` (zone opaque,
+  damage keeps the tile border). Belts / crossings / boxes are `IsFlippable = false`, so belt flips are not composed.
+- Previews: `go run . -ports <png> -before <dir>` (owner layout, connector->connector, connector->building,
+  splitter->splitter, unconnected; before / after), `go run . -joints <base>` (contact sheets per receiver group + legend).
+- Still not mating (reported): side load onto a crossing (5 arts x 14 sources = 70 pairs: no opening over the pipe side;
+  needs crossing side-entry art). Corner overlap of connector zones (4 x 6 px) where two port quads meet.
+- Not verified: in game (atlas load of 36 entries, overdraw of part-size quads, mipmapped seams when zoomed out), MP.
