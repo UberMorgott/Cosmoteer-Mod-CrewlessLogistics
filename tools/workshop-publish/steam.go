@@ -24,10 +24,14 @@ const (
 	kISteamUGCCallbacks                        = 3400
 	kCreateItemResult                          = kISteamUGCCallbacks + 3
 	kSubmitItemUpdateResult                    = kISteamUGCCallbacks + 4
+	kSteamUGCQueryCompleted                    = kISteamUGCCallbacks + 1
+	kAddUGCDependencyResult                    = kISteamUGCCallbacks + 12
+	kEItemPreviewTypeImage                     = 0
 	kCchPublishedDocumentTitleMax              = 128 + 1
 	kCchPublishedDocumentDescriptionMax        = 8000
 	kEWorkshopFileTypeCommunity                = 0
 	kEResultOK                                 = 1
+	kEResultDuplicateRequest                   = 29
 	kESteamAPIInitResultOK                     = 0
 	invalidUGCUpdateHandle              uint64 = 0xFFFFFFFFFFFFFFFF
 )
@@ -47,6 +51,25 @@ type submitItemUpdateResult struct {
 	NeedsAgreement bool
 	_              [3]byte
 	FileID         uint64
+}
+
+// AddUGCDependencyResult_t, Pack=8 (offsets 0/8/16 per Cosmoteer Bin\Steamworks.NET.dll).
+type addUGCDependencyResult struct {
+	Result  int32
+	_       [4]byte
+	FileID  uint64
+	ChildID uint64
+}
+
+// SteamUGCQueryCompleted_t, Pack=8: handle@0 result@8 num@12 total@16 cached@20 cursor[256]@21, size 280.
+type steamUGCQueryCompleted struct {
+	Handle     uint64
+	Result     int32
+	NumResults uint32
+	Total      uint32
+	Cached     bool
+	NextCursor [256]byte
+	_          [3]byte
 }
 
 type steam struct {
@@ -164,6 +187,23 @@ func (s *steam) createItem(appID uint32) (createItemResult, error) {
 	return res, err
 }
 
+func (s *steam) addDependency(parent, child uint64) error {
+	var res addUGCDependencyResult
+	call := uint64(s.call("SteamAPI_ISteamUGC_AddDependency", s.ugc, uintptr(parent), uintptr(child)))
+	if err := s.waitCall(call, unsafe.Pointer(&res), unsafe.Sizeof(res), kAddUGCDependencyResult, nil); err != nil {
+		return err
+	}
+	return dependencyResultErr(res.Result)
+}
+
+// dependencyResultErr treats EResult 29 ("already has a relationship") as success so reruns are idempotent.
+func dependencyResultErr(r int32) error {
+	if r != kEResultOK && r != kEResultDuplicateRequest {
+		return fmt.Errorf("EResult %d", r)
+	}
+	return nil
+}
+
 // itemUpdate wraps one StartItemUpdate..SubmitItemUpdate cycle.
 type itemUpdate struct {
 	s *steam
@@ -197,6 +237,51 @@ func (u *itemUpdate) lang(v string) error {
 }
 func (u *itemUpdate) content(v string) error { return u.setStr("SteamAPI_ISteamUGC_SetItemContent", v) }
 func (u *itemUpdate) preview(v string) error { return u.setStr("SteamAPI_ISteamUGC_SetItemPreview", v) }
+
+// addPreviewFile adds an additional image preview (k_EItemPreviewType_Image).
+func (u *itemUpdate) addPreviewFile(path string) error {
+	p := cstr(path)
+	ok := cbool(u.s.call("SteamAPI_ISteamUGC_AddItemPreviewFile", u.s.ugc, uintptr(u.h), uintptr(unsafe.Pointer(p)), kEItemPreviewTypeImage))
+	runtime.KeepAlive(p)
+	if !ok {
+		return fmt.Errorf("AddItemPreviewFile %s returned false", path)
+	}
+	return nil
+}
+
+// previewNames returns the original file names of the item's additional previews.
+func (s *steam) previewNames(fileID uint64) ([]string, error) {
+	id := fileID
+	q := uint64(s.call("SteamAPI_ISteamUGC_CreateQueryUGCDetailsRequest", s.ugc, uintptr(unsafe.Pointer(&id)), 1))
+	runtime.KeepAlive(&id)
+	if q == invalidUGCUpdateHandle { // k_UGCQueryHandleInvalid has the same value
+		return nil, fmt.Errorf("CreateQueryUGCDetailsRequest returned invalid handle")
+	}
+	defer s.call("SteamAPI_ISteamUGC_ReleaseQueryUGCRequest", s.ugc, uintptr(q))
+	if !cbool(s.call("SteamAPI_ISteamUGC_SetReturnAdditionalPreviews", s.ugc, uintptr(q), 1)) {
+		return nil, fmt.Errorf("SetReturnAdditionalPreviews returned false")
+	}
+	var res steamUGCQueryCompleted
+	call := uint64(s.call("SteamAPI_ISteamUGC_SendQueryUGCRequest", s.ugc, uintptr(q)))
+	if err := s.waitCall(call, unsafe.Pointer(&res), unsafe.Sizeof(res), kSteamUGCQueryCompleted, nil); err != nil {
+		return nil, err
+	}
+	if res.Result != kEResultOK || res.NumResults != 1 {
+		return nil, fmt.Errorf("query EResult %d, %d results", res.Result, res.NumResults)
+	}
+	n := uint32(s.call("SteamAPI_ISteamUGC_GetQueryUGCNumAdditionalPreviews", s.ugc, uintptr(q), 0))
+	names := make([]string, 0, n)
+	for i := range n {
+		var url, name [1024]byte
+		var typ int32
+		if !cbool(s.call("SteamAPI_ISteamUGC_GetQueryUGCAdditionalPreview", s.ugc, uintptr(q), 0, uintptr(i),
+			uintptr(unsafe.Pointer(&url[0])), uintptr(len(url)), uintptr(unsafe.Pointer(&name[0])), uintptr(len(name)), uintptr(unsafe.Pointer(&typ)))) {
+			return nil, fmt.Errorf("GetQueryUGCAdditionalPreview %d returned false", i)
+		}
+		names = append(names, gostr(uintptr(unsafe.Pointer(&name[0]))))
+	}
+	return names, nil
+}
 
 func (u *itemUpdate) visibility(v int) error {
 	if !cbool(u.s.call("SteamAPI_ISteamUGC_SetItemVisibility", u.s.ugc, uintptr(u.h), uintptr(v))) {

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"unsafe"
 )
 
 func TestVisibilityFor(t *testing.T) {
@@ -18,6 +19,7 @@ func TestVisibilityFor(t *testing.T) {
 		{"", true, 2},   // create without -visibility: private
 		{"public", false, 0},
 		{"hidden", true, 3},
+		{"unlisted", false, 3},
 	} {
 		if got, err := visibilityFor(c.flag, c.create); err != nil || got != c.want {
 			t.Errorf("visibilityFor(%q, %v) = %d, %v; want %d", c.flag, c.create, got, err, c.want)
@@ -28,10 +30,17 @@ func TestVisibilityFor(t *testing.T) {
 	}
 }
 
+// GetAPICallResult rejects a buffer whose size differs from the callback struct.
+func TestCallbackStructSizes(t *testing.T) {
+	if s := unsafe.Sizeof(steamUGCQueryCompleted{}); s != 280 {
+		t.Errorf("SteamUGCQueryCompleted_t size %d, want 280", s)
+	}
+}
+
 func TestStageContentSkipsRuntimeJunk(t *testing.T) {
 	src, dst := t.TempDir(), t.TempDir()
 	keep := []string{"Mod.dll", "mod.rules", "assets/a.png", "README.md"}
-	junk := []string{".workshop", "Mod.log", "SharedShip.LOG", "Autofleet.state.json", "Autofleet.saves/x.json"}
+	junk := []string{".workshop", "Mod.log", "SharedShip.LOG", "Autofleet.state.json", "Autofleet.saves/x.json", "Autofleet.profiles.json.bad", "MiningDrone.settings.json"}
 	for _, f := range append(keep, junk...) {
 		p := filepath.Join(src, f)
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
@@ -56,6 +65,14 @@ func TestStageContentSkipsRuntimeJunk(t *testing.T) {
 	for _, f := range junk {
 		if _, err := os.Stat(filepath.Join(dst, f)); err == nil {
 			t.Errorf("junk staged: %s", f)
+		}
+	}
+}
+
+func TestDependencyResultIdempotent(t *testing.T) {
+	for r, ok := range map[int32]bool{kEResultOK: true, kEResultDuplicateRequest: true, 2: false, 9: false} {
+		if got := dependencyResultErr(r) == nil; got != ok {
+			t.Errorf("EResult %d: success %v, want %v", r, got, ok)
 		}
 	}
 }

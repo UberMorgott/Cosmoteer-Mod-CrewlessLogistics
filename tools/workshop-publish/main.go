@@ -13,6 +13,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -32,7 +33,7 @@ var steamLangs = map[string]bool{
 }
 
 // ERemoteStoragePublishedFileVisibility.
-var visibilities = map[string]int{"public": 0, "friends": 1, "private": 2, "hidden": 3 /* Unlisted */}
+var visibilities = map[string]int{"public": 0, "friends": 1, "private": 2, "hidden": 3, "unlisted": 3}
 
 type text struct{ lang, title, desc string }
 
@@ -57,10 +58,17 @@ func run() error {
 	content := flag.String("content", "", "installed mod folder (uploaded as item content; holds .workshop)")
 	preview := flag.String("preview", "", "preview image (jpg/png/gif)")
 	textsDir := flag.String("texts", "", "dir with <steamlang>.txt: first line title, rest description; english.txt required")
-	visFlag := flag.String("visibility", "", "public|friends|private|hidden (omitted = private on create, left unchanged on update)")
+	visFlag := flag.String("visibility", "", "public|friends|private|unlisted (alias hidden); omitted = private on create, left unchanged on update")
 	changeNote := flag.String("changenote", "", "change note for the content update")
 	minVer := flag.String("min-version", "", "required min game branch version, e.g. 0.30.0 (SetRequiredGameVersions; set only if min or max given)")
 	maxVer := flag.String("max-version", "", "required max game branch version")
+	depFlag := flag.Uint64("dependency", 0, "required Workshop item id to add as dependency (AddDependency; idempotent)")
+	var addPreviews []string
+	flag.Func("add-preview", "additional image preview, < 1 MB (AddItemPreviewFile); repeatable; skipped if the item already has one with the same file name", func(s string) error {
+		addPreviews = append(addPreviews, s)
+		return nil
+	})
+	noContent := flag.Bool("no-content", false, "metadata-only update: skip SetItemContent (existing item only; keeps its published content)")
 	dryRun := flag.Bool("dry-run", false, "init Steam and validate only; never create or submit")
 	flag.Parse()
 
@@ -88,6 +96,18 @@ func run() error {
 			fmt.Printf("warning: preview is %d bytes; Steam recommends < 1 MB\n", st.Size())
 		}
 	}
+	for i, p := range addPreviews {
+		if addPreviews[i], err = filepath.Abs(p); err != nil {
+			return err
+		}
+		st, err := os.Stat(addPreviews[i])
+		if err != nil || st.IsDir() {
+			return fmt.Errorf("add-preview not found: %s", addPreviews[i])
+		}
+		if st.Size() >= 1<<20 { // ISteamUGC::AddItemPreviewFile: "must be under 1MB"
+			return fmt.Errorf("add-preview %s is %d bytes; Steam requires < 1 MB", addPreviews[i], st.Size())
+		}
+	}
 	texts, err := loadTexts(*textsDir)
 	if err != nil {
 		return err
@@ -95,6 +115,9 @@ func run() error {
 	fileID, err := readWorkshopID(absContent)
 	if err != nil {
 		return err
+	}
+	if *noContent && fileID == 0 {
+		return fmt.Errorf("-no-content needs an existing item (%s)", workshopFile)
 	}
 	vis, err := visibilityFor(*visFlag, fileID == 0)
 	if err != nil {
@@ -142,6 +165,26 @@ func run() error {
 		return fmt.Errorf("staging content: %w", err)
 	}
 	fmt.Printf("staged %d files (%s), skipped %v\n", n, stage, skipped)
+	if *noContent {
+		fmt.Println("content: not uploaded (-no-content; item keeps its published content)")
+	}
+	if fileID != 0 && len(addPreviews) > 0 {
+		have, err := s.previewNames(fileID)
+		if err != nil {
+			return fmt.Errorf("query additional previews of %d: %w", fileID, err)
+		}
+		fmt.Printf("existing additional previews: %q\n", have)
+		addPreviews = slices.DeleteFunc(addPreviews, func(p string) bool {
+			dup := slices.Contains(have, filepath.Base(p))
+			if dup {
+				fmt.Printf("add-preview %s: already on item, skipped\n", filepath.Base(p))
+			}
+			return dup
+		})
+	}
+	for _, p := range addPreviews {
+		fmt.Printf("add-preview: %s\n", p)
+	}
 	if *dryRun {
 		fmt.Println("dry-run: inputs valid; nothing created or submitted")
 		return nil
@@ -174,7 +217,12 @@ func run() error {
 		func() error { return u.title(en.title) },
 		func() error { return u.desc(en.desc) },
 		func() error { return u.tags([]string{"Mods"}) },
-		func() error { return u.content(stage) },
+	}
+	if !*noContent {
+		steps = append(steps, func() error { return u.content(stage) })
+	}
+	for _, p := range addPreviews {
+		steps = append(steps, func() error { return u.addPreviewFile(p) })
 	}
 	if vis >= 0 {
 		steps = append(steps, func() error { return u.visibility(vis) })
@@ -219,6 +267,12 @@ func run() error {
 		needsAgreement = needsAgreement || res.NeedsAgreement
 	}
 
+	if *depFlag != 0 {
+		if err := s.addDependency(fileID, *depFlag); err != nil {
+			return fmt.Errorf("AddDependency %d -> %d: %w", fileID, *depFlag, err)
+		}
+		fmt.Printf("dependency %d -> %d OK\n", fileID, *depFlag)
+	}
 	fmt.Printf("item %d\nhttps://steamcommunity.com/sharedfiles/filedetails/?id=%d\n", fileID, fileID)
 	fmt.Printf("userNeedsToAcceptWorkshopLegalAgreement=%v\n", needsAgreement)
 	if needsAgreement {
@@ -299,7 +353,7 @@ func loadTexts(dir string) ([]text, error) {
 // their installed folder and must never ship. Autofleet's names come from MiningDrone Store.cs.
 // .workshop is uploader-only (WorkshopUploaderDialog); subscribers' mods get their id from Steam (ModInfo GetItemInstallInfo).
 var runtimeJunk = []string{
-	workshopFile, "*.log", "*.tmp", "*.bak",
+	workshopFile, "*.log", "*.tmp", "*.bak", "*.bad",
 	"*.prefs.json", "*.state.json", "*.profiles.json", "*.settings.json", "*.saves",
 }
 
