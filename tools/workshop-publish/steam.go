@@ -31,6 +31,7 @@ const (
 	kCchPublishedDocumentDescriptionMax        = 8000
 	kEWorkshopFileTypeCommunity                = 0
 	kEResultOK                                 = 1
+	kEResultDuplicateRequest                   = 29
 	kESteamAPIInitResultOK                     = 0
 	invalidUGCUpdateHandle              uint64 = 0xFFFFFFFFFFFFFFFF
 )
@@ -192,8 +193,13 @@ func (s *steam) addDependency(parent, child uint64) error {
 	if err := s.waitCall(call, unsafe.Pointer(&res), unsafe.Sizeof(res), kAddUGCDependencyResult, nil); err != nil {
 		return err
 	}
-	if res.Result != kEResultOK {
-		return fmt.Errorf("EResult %d", res.Result)
+	return dependencyResultErr(res.Result)
+}
+
+// dependencyResultErr treats EResult 29 ("already has a relationship") as success so reruns are idempotent.
+func dependencyResultErr(r int32) error {
+	if r != kEResultOK && r != kEResultDuplicateRequest {
+		return fmt.Errorf("EResult %d", r)
 	}
 	return nil
 }

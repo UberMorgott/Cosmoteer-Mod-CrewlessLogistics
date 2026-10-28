@@ -68,3 +68,11 @@ func TestStageContentSkipsRuntimeJunk(t *testing.T) {
 		}
 	}
 }
+
+func TestDependencyResultIdempotent(t *testing.T) {
+	for r, ok := range map[int32]bool{kEResultOK: true, kEResultDuplicateRequest: true, 2: false, 9: false} {
+		if got := dependencyResultErr(r) == nil; got != ok {
+			t.Errorf("EResult %d: success %v, want %v", r, got, ok)
+		}
+	}
+}
