@@ -26,5 +26,5 @@ Crewless Logistics (BETA 0.4)
 У всех игроков должны совпадать версия беты, загрузчика и игры.
 
 [h2]Нашли ошибку?[/h2]
-Сообщайте только на GitHub, не в комментариях, и укажите версию мода (0.4.1 beta):
+Сообщайте только на GitHub, не в комментариях, и укажите версию мода (0.4.2 beta):
 [url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]

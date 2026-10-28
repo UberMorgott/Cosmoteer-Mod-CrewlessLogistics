@@ -26,5 +26,5 @@ Crewless Logistics (BETA 0.4)
 所有玩家都需要使用相同的测试版、相同的加载器和相同的游戏版本。
 
 [h2]发现错误？[/h2]
-请只在 GitHub 上反馈，不要在评论区报告。请注明模组版本 (0.4.1 beta)：
+请只在 GitHub 上反馈，不要在评论区报告。请注明模组版本 (0.4.2 beta)：
 [url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]

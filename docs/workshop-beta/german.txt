@@ -26,5 +26,5 @@ Alles aus der stabilen Version (Stromnetz ohne Crew) plus Ressourcenlogistik in 
 Alle Spieler brauchen dieselbe Beta-Version, denselben Loader und dieselbe Spielversion.
 
 [h2]Fehler gefunden?[/h2]
-Melde ihn nur auf GitHub, nicht in den Kommentaren. Gib die Mod-Version an (0.4.1 beta):
+Melde ihn nur auf GitHub, nicht in den Kommentaren. Gib die Mod-Version an (0.4.2 beta):
 [url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]

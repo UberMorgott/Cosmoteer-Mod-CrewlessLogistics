@@ -2,6 +2,14 @@
 
 All notable changes to Crewless Logistics (formerly Powergrid). Versions match `mod/mod.rules` `Version`.
 
+## 0.4.2-beta
+
+Update of the unlisted Steam Workshop beta item. Saves and multiplayer still use belt protocol 8: everyone in a game needs the same mod version.
+
+- Connector and splitter ports are connection-aware: each port edge shows a belt stub, a shared coupling to another box, a wall seal against a room, or a closed cap when nothing is attached (splitter short sides included).
+- Connector and splitter ports are centred on the box edge.
+- In-game description: the connector filter is Auto by default.
+
 ## 0.4.1-beta
 
 Update of the unlisted Steam Workshop beta item. Saves and multiplayer use belt protocol 8: everyone in a game needs the same mod version.

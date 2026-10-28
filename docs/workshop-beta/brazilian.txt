@@ -26,5 +26,5 @@ Tudo da versão estável (rede elétrica sem transporte pela tripulação), mais
 Todos os jogadores precisam da mesma versão beta, do mesmo carregador e da mesma versão do jogo.
 
 [h2]Achou um bug?[/h2]
-Relate somente no GitHub, não nos comentários. Informe a versão do mod (0.4.1 beta):
+Relate somente no GitHub, não nos comentários. Informe a versão do mod (0.4.2 beta):
 [url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]

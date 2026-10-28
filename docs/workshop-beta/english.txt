@@ -26,5 +26,5 @@ Everything from the stable version (crewless electrical network) plus resource l
 All players need the same beta version, the same loader and the same game version.
 
 [h2]Found a bug?[/h2]
-Report it only on GitHub, not in the comments, and include the mod version (0.4.1 beta):
+Report it only on GitHub, not in the comments, and include the mod version (0.4.2 beta):
 [url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]
