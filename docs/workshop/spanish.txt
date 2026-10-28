@@ -1,55 +1,52 @@
 Crewless Logistics
 [h1]Crewless Logistics[/h1]
-[i]Una red eléctrica que ahorra a la tripulación el transporte de baterías[/i]
+[i]Energía y suministros sin tener que transportarlo todo a mano.[/i]
 
-[h2]¿Encontraste un error? NO lo publiques en los comentarios[/h2]
-[b]Informa de los errores solo en GitHub, no en los comentarios del Workshop.[/b] Abre una incidencia con la plantilla [b]Bug report[/b]:
+Construye naves donde los cables llevan baterías y las cintas transportadoras mueven suministros. Así tu tripulación dedica menos tiempo a transportar recursos y abastecer dispositivos eléctricos.
+
+[b]¿Has encontrado un error? Repórtalo solo en GitHub, no en los comentarios:[/b]
 [url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]
-Incluye:
+Incluye las versiones del mod y del juego, otros mods, si juegas en solitario o en multijugador, los pasos para reproducirlo y el registro más reciente de [b]%USERPROFILE%\Saved Games\Cosmoteer\<SteamID>\Logs\[/b].
+
+[h2]Electricidad sin transporte manual[/h2]
+Los cables llevan baterías enteras desde reactores y Condensadores de Potencia directamente a los dispositivos eléctricos. La tripulación puede seguir abasteciéndolos a la vez.
 [list]
-[*]Versión del mod (en la lista de mods) y del juego (abajo a la izquierda del menú principal)
-[*]Origen de la instalación (Workshop o manual) y la lista completa de los demás mods activos
-[*]Un jugador o multijugador (anfitrión o cliente; ¿todos tienen la misma versión del mod?)
-[*]Pasos para reproducirlo, resultado esperado y real, capturas de pantalla
-[*]El archivo de la nave (.ship.png) si el problema depende de la nave, y una partida guardada si hace falta
-[*]El registro del juego: [b]%USERPROFILE%\Saved Games\Cosmoteer\<SteamID>\Logs\[/b] – el archivo [i]log YYYY-MM-DD HH_mm_ss.txt[/i] más reciente de la sesión en la que ocurrió el problema
+[*][b]Cable eléctrico:[/b] cuatro conexiones automáticas; bloquea el paso de la tripulación. Las luces verdes se encienden cuando una fuente conectada tiene una batería entera.
+[*][b]Paso de tripulación:[/b] la tripulación cruza en perpendicular al cable al 80% de su velocidad.
+[*][b]Cruce de calor/electricidad:[/b] calor por un eje y electricidad por el otro.
+[*]Cada reactor, condensador y dispositivo eléctrico tiene un interruptor de [b]Red eléctrica[/b]. Está apagado por defecto y su estado se guarda. Enciéndelo en cada dispositivo que quieras conectar.
+[*]Los reactores suministran primero. Los condensadores solo suministran cuando ningún reactor conectado tiene una batería entera; se cargan desde los reactores una vez abastecidos los dispositivos.
+[*]Las [b]Salas de Máquinas[/b] reciben energía de la red y pasan baterías a los motores y propulsores que potencian. Activa los interruptores de Red eléctrica y distribución de energía de la sala, además del de Red eléctrica de cada receptor.
+[/list]
+Compatible con todos los dispositivos eléctricos del juego base y, de forma opcional, con [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] y [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url].
+
+[h2]Logística con cintas transportadoras[/h2]
+Las piezas están en las pestañas [b]Almacenamiento[/b] y [b]Potencia[/b].
+[list]
+[*][b]Cinta transportadora:[/b] dos carriles para cualquier recurso apilable, incluida la munición: balas, piezas de misil, azufre y más. Velocidad: 2 casillas/s. Gira automáticamente y admite carga lateral. La tripulación puede caminar sobre ella al 70% de su velocidad.
+[*][b]Conector de cinta:[/b] una caja direccional que extrae de las salas o cintas situadas detrás y a sus lados y abastece la casilla de delante. Conecta sala con cinta, cinta con sala, sala con sala o cinta con cinta. Funciona con bodegas, fábricas y armas. No necesita energía.
+[*][b]Filtro de cinta:[/b] Automático por defecto: deja pasar el único recurso que ambos lados pueden usar; si no, nada. Elige Cualquiera, un recurso o Ninguno para detenerlo. Las fuentes se turnan por defecto; la prioridad Detrás/Izquierda/Derecha toma primero de ese lado.
+[*][b]Divisor de cinta (1x2):[/b] alterna los objetos entre dos salidas y también puede unir dos cintas. Configura las prioridades de entrada/salida o usa un filtro para enviar el recurso elegido a un lado.
+[*][b]Cruce de cinta:[/b] una cinta recta sobre un Tubo de Calor o un cable eléctrico. Los objetos avanzan por un eje y el calor o las baterías por el otro.
+[*]Las piezas de las cintas muestran los daños. Si una pieza se destruye o se retira, los objetos que llevaba caen al suelo.
 [/list]
 
-[h2]Qué hace[/h2]
-Los cables llevan [b]baterías enteras[/b] desde los reactores y condensadores de potencia directamente a los dispositivos, así la tripulación ya no tiene que cargar baterías. El transporte normal por la tripulación sigue funcionando junto a la red.
-[list]
-[*][b]Cable eléctrico[/b]: cuatro conexiones automáticas; bloquea el paso de la tripulación. Por fuera lo cubre un techo de casco liso.
-[*]Las tres piezas tienen las características de un tubo de calor del juego base: 1000 puntos de vida, densidad 1, sin categoría de blindaje ni absorción de EMP. Las placas oscuras son solo decorativas. Cada pieza cuesta 4 bobinas y 2 unidades de acero.
-[*][b]Paso de tripulación[/b]: un cable con dos conexiones opuestas bajo un suelo transitable. La tripulación pasa en perpendicular al cable al 80 % de su velocidad. Gira la pieza para elegir la dirección.
-[*][b]Cruce de calor/electricidad[/b]: lleva calor por un eje y electricidad por el otro en una sola casilla. Gíralo para intercambiar los ejes. La tripulación no puede pasar. Está en Potencia y en Administración de calor.
-[*][b]Interruptor de red eléctrica[/b] en cada reactor, condensador y dispositivo que use energía. Está [b]apagado por defecto[/b] y su estado se guarda. Un dispositivo solo se une a la red con su propio interruptor encendido.
-[*][b]Primero los reactores[/b]: los reactores abastecen primero; los condensadores solo cuando ningún reactor accesible tiene una batería entera. Los condensadores solo se cargan desde los reactores, después de abastecer a los dispositivos.
-[*][b]Las salas de máquinas[/b] reciben energía por la red y la pasan a los propulsores que potencian. Tanto la sala como cada propulsor receptor deben tener encendido el interruptor de red eléctrica. Activa también la opción Distribución de energía del propulsor de la sala.
-[*]Las luces verdes del cable y del paso de tripulación se encienden cuando una fuente conectada tiene una batería entera.
-[*]Funciona con todos los dispositivos que usan energía del juego base y con las piezas de estos mods opcionales del Workshop, solo si están instalados:
-[list]
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] (3 propulsores)
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url] (4 salas de control)
-[/list]
-[*]Mod solo de reglas: sin DLL ni cargador de mods. Los textos siguen el idioma del juego (EN, RU, DE, ES, FR, JA, PT-BR, ZH-CN).
-[/list]
+[h2]Requiere: Yet Another Mod Loader[/h2]
+Las cintas funcionan mediante una biblioteca de C# y necesitan [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3577650065]Yet Another Mod Loader[/url]. Sin ella, las cintas son suelo normal.
+[olist]
+[*]Suscríbete al cargador y espera a que se descargue.
+[*]Cierra el juego. Abre [b]<Steam>\steamapps\workshop\content\799600\3577650065[/b] y ejecuta [b]Installer.bat[/b].
+[*]Inicia el juego, activa Crewless Logistics en la lista de mods, autoriza su biblioteca (DLL) cuando se te pida y reinicia.
+[*]Vuelve a autorizar la biblioteca después de cada actualización de este mod.
+[/olist]
 
 [h2]Cómo usarlo[/h2]
 [olist]
-[*]Activa el mod en la lista de mods y reinicia el juego.
-[*]Construye cables de la categoría [b]Potencia[/b] entre reactores, condensadores y dispositivos. Usa el paso de tripulación donde la tripulación deba pasar y el cruce donde haya que cruzar un tubo de calor.
-[*]Enciende el interruptor de [b]red eléctrica[/b] en cada dispositivo que deba estar conectado.
+[*]Activa el mod después de instalar el cargador como se indica arriba.
+[*]Construye cables desde la pestaña [b]Potencia[/b] y activa el interruptor de [b]Red eléctrica[/b] de cada dispositivo.
+[*]Construye cintas y conectores desde la pestaña [b]Almacenamiento[/b] para mover suministros entre salas.
 [/olist]
 
-[h2]Multijugador[/h2]
-Todos los jugadores necesitan [b]la misma versión del mod[/b] y la misma versión del juego. Tras una actualización, reinicia el juego antes de unirte.
-
-[h2]Limitaciones conocidas[/h2]
-[list]
-[*]Solo se transfieren baterías enteras. Un dispositivo espera hasta que quepa una batería entera.
-[*]No se admiten dispositivos de mods con DLL o con tipos de energía propios.
-[*]Al actualizar desde Powergrid (el nombre anterior): los cables se cargan, pero todos los interruptores de red eléctrica vuelven a apagado. Borra la carpeta antigua de Powergrid.
-[/list]
-
-[h2]Planeado[/h2]
-Está previsto añadir el transporte de munición y recursos, sin promesas ni fechas.
+[h2]Multijugador y limitaciones[/h2]
+Todos los jugadores necesitan la misma versión del mod, el mismo cargador y la misma versión del juego.
+Solo se transportan baterías enteras. No se admiten dispositivos de mods que incluyan archivos DLL o usen sus propios tipos de energía.

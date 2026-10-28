@@ -1,55 +1,52 @@
 Crewless Logistics
 [h1]Crewless Logistics[/h1]
-[i]Uma rede elétrica que dispensa o transporte de baterias pela tripulação[/i]
+[i]Energia e suprimentos sem carregar tudo o tempo todo.[/i]
 
-[h2]Achou um bug? NÃO relate nos comentários[/h2]
-[b]Relate bugs somente no GitHub, não nos comentários do Workshop.[/b] Abra uma issue usando o modelo [b]Bug report[/b]:
+Construa naves onde os cabos levam baterias e as esteiras transportam suprimentos. Assim, sua tripulação passa menos tempo carregando recursos e abastecendo dispositivos elétricos.
+
+[b]Encontrou um bug? Relate apenas no GitHub, não nos comentários:[/b]
 [url=https://github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues]github.com/UberMorgott/Cosmoteer-Mod-CrewlessLogistics/issues[/url]
-Informe:
+Inclua as versões do mod e do jogo, outros mods, se está jogando solo ou no multijogador, os passos para reproduzir o problema e o log mais recente de [b]%USERPROFILE%\Saved Games\Cosmoteer\<SteamID>\Logs\[/b].
+
+[h2]Eletricidade sem transporte pela tripulação[/h2]
+Os cabos levam baterias inteiras dos reatores e capacitores de energia diretamente aos dispositivos elétricos. O transporte pela tripulação continua funcionando em paralelo.
 [list]
-[*]Versão do mod (na lista de mods) e do jogo (no canto inferior esquerdo do menu principal)
-[*]Origem da instalação (Workshop ou manual) e a lista completa dos outros mods ativos
-[*]Um jogador ou multijogador (anfitrião ou cliente; todos usam a mesma versão do mod?)
-[*]Passos para reproduzir, resultado esperado e resultado real, capturas de tela
-[*]O arquivo da nave (.ship.png) se o problema for específico da nave, e um jogo salvo se necessário
-[*]O log do jogo: [b]%USERPROFILE%\Saved Games\Cosmoteer\<SteamID>\Logs\[/b] – o arquivo [i]log YYYY-MM-DD HH_mm_ss.txt[/i] mais recente da sessão em que o problema ocorreu
+[*][b]Cabo elétrico:[/b] quatro conexões automáticas; bloqueia a passagem da tripulação. As luzes verdes acendem quando uma fonte conectada tem uma bateria inteira.
+[*][b]Passagem de tripulação:[/b] a tripulação cruza perpendicularmente ao cabo a 80% da velocidade.
+[*][b]Cruzamento de calor/eletricidade:[/b] calor por um eixo e eletricidade pelo outro.
+[*]Cada reator, capacitor e dispositivo elétrico tem um interruptor de [b]Rede elétrica[/b]. Ele vem desligado por padrão e seu estado é salvo. Ligue em cada dispositivo que quiser conectar.
+[*]Os reatores fornecem primeiro. Os capacitores só fornecem quando nenhum reator conectado tem uma bateria inteira; eles são recarregados pelos reatores depois que os dispositivos são abastecidos.
+[*]As [b]salas dos motores[/b] recebem energia da rede e passam baterias aos motores e propulsores que fortalecem. Ligue os interruptores de rede elétrica e distribuição de energia da sala, além do interruptor de rede elétrica de cada dispositivo que ela abastece.
+[/list]
+Compatível com todos os dispositivos elétricos do jogo base, com suporte opcional a [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] e [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url].
+
+[h2]Logística com esteiras[/h2]
+As peças ficam nas abas [b]Armazenamento[/b] e [b]Energia[/b].
+[list]
+[*][b]Esteira transportadora:[/b] duas faixas para qualquer recurso empilhável, incluindo munição: balas, peças de míssil, enxofre e mais. Velocidade: 2 casas/s. Faz curvas automaticamente e aceita carregamento lateral. A tripulação pode andar sobre ela a 70% da velocidade.
+[*][b]Conector de esteira:[/b] uma caixa direcional que retira de salas ou esteiras atrás e ao lado dela e abastece a casa à frente. Conecta sala a esteira, esteira a sala, sala a sala ou esteira a esteira. Funciona com porões de carga, fábricas e armas. Não precisa de energia.
+[*][b]Filtro da esteira:[/b] Automático por padrão: deixa passar o único recurso que os dois lados podem usar; caso contrário, nada passa. Escolha Qualquer, um recurso específico ou Nenhum para parar. As fontes se revezam por padrão; a prioridade Atrás/Esquerda/Direita retira primeiro daquele lado.
+[*][b]Divisor de esteira (1x2):[/b] alterna os itens entre duas saídas e também pode juntar duas esteiras. Defina prioridades de entrada/saída ou use um filtro para enviar o recurso escolhido a um lado.
+[*][b]Cruzamento de esteira:[/b] uma esteira reta sobre um termoduto ou cabo elétrico. Os itens seguem por um eixo e o calor ou as baterias pelo outro.
+[*]As peças das esteiras mostram os danos. Quando uma peça é destruída ou removida, os itens sobre ela caem no chão.
 [/list]
 
-[h2]O que o mod faz[/h2]
-Cabos levam [b]baterias inteiras[/b] dos reatores e capacitores de energia diretamente aos dispositivos, então a tripulação não precisa mais carregar baterias. O transporte normal pela tripulação continua funcionando junto com a rede.
-[list]
-[*][b]Cabo elétrico[/b]: quatro conexões automáticas; bloqueia a passagem da tripulação. Por fora, tem um teto de casco comum.
-[*]As três peças têm as características de um termoduto do jogo base: 1000 pontos de vida, densidade 1, sem categoria de blindagem nem absorção de P.E.M. As placas escuras são apenas decorativas. Cada peça custa 4 bobinas e 2 unidades de aço.
-[*][b]Passagem de tripulação[/b]: um cabo com duas conexões opostas sob um piso transitável. A tripulação passa perpendicularmente ao cabo a 80% da velocidade. Gire a peça para escolher a direção.
-[*][b]Cruzamento de calor/eletricidade[/b]: conduz calor por um eixo e eletricidade pelo outro em um único bloco. Gire para trocar os eixos. A tripulação não pode passar. Fica em Energia e em Gerenciamento de calor.
-[*][b]Interruptor de rede elétrica[/b] em cada reator, capacitor e dispositivo que usa energia. Fica [b]desligado por padrão[/b] e seu estado é salvo. Um dispositivo só entra na rede com o próprio interruptor ligado.
-[*][b]Reatores primeiro[/b]: os reatores abastecem os dispositivos primeiro; os capacitores só fornecem quando nenhum reator alcançável tem uma bateria inteira. Os capacitores só carregam a partir dos reatores, depois que os dispositivos são abastecidos.
-[*][b]Salas dos motores[/b] recebem energia pela rede e a repassam aos propulsores que recebem seu bônus. A sala e cada propulsor que vai receber energia precisam estar com o interruptor de rede elétrica ligado. Ative também a opção Distribuição de energia do propulsor na sala.
-[*]As luzes verdes do cabo e da passagem de tripulação acendem quando uma fonte conectada tem uma bateria inteira.
-[*]Funciona com todos os dispositivos que usam energia do jogo base e com as peças destes mods opcionais do Workshop, somente se estiverem instalados:
-[list]
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] (3 propulsores)
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url] (4 salas de controle)
-[/list]
-[*]Mod só de regras: sem DLL, sem carregador de mods. Os textos seguem o idioma do jogo (EN, RU, DE, ES, FR, JA, PT-BR, ZH-CN).
-[/list]
+[h2]Requer: Yet Another Mod Loader[/h2]
+As esteiras funcionam por meio de uma biblioteca C# e precisam de [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3577650065]Yet Another Mod Loader[/url]. Sem ela, as esteiras são apenas piso comum.
+[olist]
+[*]Inscreva-se no carregador e espere o download terminar.
+[*]Feche o jogo. Abra [b]<Steam>\steamapps\workshop\content\799600\3577650065[/b] e execute [b]Installer.bat[/b].
+[*]Inicie o jogo, ative Crewless Logistics na lista de mods, marque sua biblioteca (DLL) como confiável quando solicitado e reinicie.
+[*]Após cada atualização deste mod, marque a biblioteca como confiável novamente.
+[/olist]
 
 [h2]Como usar[/h2]
 [olist]
-[*]Ative o mod na lista de mods e reinicie o jogo.
-[*]Construa cabos da categoria [b]Energia[/b] entre reatores, capacitores e dispositivos. Use a passagem de tripulação onde a tripulação precisa passar e o cruzamento onde um termoduto precisa cruzar.
-[*]Ligue o interruptor de [b]rede elétrica[/b] em cada dispositivo que deve ficar conectado.
+[*]Ative o mod depois de instalar o carregador como explicado acima.
+[*]Construa cabos pela aba [b]Energia[/b] e ligue o interruptor de [b]Rede elétrica[/b] de cada dispositivo.
+[*]Construa esteiras e conectores pela aba [b]Armazenamento[/b] para mover suprimentos entre salas.
 [/olist]
 
-[h2]Multijogador[/h2]
-Todos os jogadores precisam da [b]mesma versão do mod[/b] e da mesma versão do jogo. Depois de uma atualização, reinicie o jogo antes de entrar.
-
-[h2]Limitações conhecidas[/h2]
-[list]
-[*]Só baterias inteiras são transferidas. Um dispositivo espera até caber uma bateria inteira.
-[*]Dispositivos de mods com DLL ou com tipos de energia próprios não são suportados.
-[*]Atualizando do Powergrid (nome antigo): os cabos carregam, mas todos os interruptores de rede elétrica voltam para desligado. Apague a pasta antiga do Powergrid.
-[/list]
-
-[h2]Planejado[/h2]
-O transporte de munição e recursos está nos planos, sem promessas nem datas.
+[h2]Multijogador e limitações[/h2]
+Todos os jogadores precisam da mesma versão do mod, do mesmo carregador e da mesma versão do jogo.
+Só são transportadas baterias inteiras. Dispositivos de mods que incluam DLL ou usem tipos próprios de energia não são compatíveis.
