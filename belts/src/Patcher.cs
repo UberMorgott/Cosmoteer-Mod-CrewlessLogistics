@@ -107,7 +107,13 @@ internal static class Patcher
         {
             r.Add((Harmony.GetPatchInfo(m)?.Owners.Contains(HarmonyId) == true, $"F5 filter UI patch on {m.DeclaringType?.Name}.{m.Name}"));
         }
-        r.Add((new BeltManager().ConfiguredBucket == Cosmoteer.FixedUpdateBuckets.Commands, "P1 BeltManager type loads on game runtime, FixedUpdateBucket = -11"));
+        var manager = new BeltManager();
+        r.Add((manager.ConfiguredBucket == Cosmoteer.FixedUpdateBuckets.Commands, "P1 BeltManager type loads on game runtime, FixedUpdateBucket = -11"));
+        r.Add((manager.Awake, "P1 new BeltManager starts awake (first tick rebuilds)"));
+        manager.Awake = false;
+        r.Add((!manager.Awake, "P1 BeltManager sleeps (FixedUpdate + Update off)"));
+        manager.Awake = true;
+        r.Add((manager.Awake, "P1 BeltManager wakes again"));
         new Harmony(HarmonyId).UnpatchAll(HarmonyId);
         r.Add((!Harmony.HasAnyPatches(HarmonyId), "P1 rollback leaves no patches"));
         return r;

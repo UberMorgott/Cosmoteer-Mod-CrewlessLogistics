@@ -76,6 +76,16 @@ internal sealed class BeltManager : ShipComponent
 
     public int ConfiguredBucket => FixedUpdateBucket;
 
+    /// <summary>
+    /// Both callbacks dispatched. A ship without belt parts sleeps after its rebuild and wakes on a belt part added
+    /// (vanilla pattern: ConstructionManager / ShipCrewManager toggle FixedUpdatingEnabled), so beltless ships cost nothing.
+    /// </summary>
+    public bool Awake
+    {
+        get => FixedUpdatingEnabled && UpdatingEnabled;
+        set => FixedUpdatingEnabled = UpdatingEnabled = value;
+    }
+
     // public: lib\ is publicized; runtime original is protected and CLR allows widening on override.
     public override void OnShipComponentAttaching(Ship ship)
     {
@@ -103,8 +113,15 @@ internal sealed class BeltManager : ShipComponent
         _watched.Clear();
     }
 
-    // Dirty flag only; topology is rebuilt inside FixedUpdate (§3).
-    private void OnPartAdded(Part _) => _dirty = true;
+    // Dirty flag only; topology is rebuilt inside FixedUpdate (§3). Belt parts (sites too) wake a sleeping manager.
+    private void OnPartAdded(Part part)
+    {
+        _dirty = true;
+        if (BeltState.KindOf(part) != null)
+        {
+            Awake = true;
+        }
+    }
 
     private void OnPartRemoved(Part part)
     {
@@ -186,6 +203,7 @@ internal sealed class BeltManager : ShipComponent
                 _dirty = false;
                 Rebuild(ship);
                 _dumpAtTick = tick + 90;
+                Awake = _world != null;
             }
             if (_world != null)
             {
