@@ -2,6 +2,13 @@
 
 All notable changes to Crewless Logistics (formerly Powergrid). Versions match `mod/mod.rules` `Version`.
 
+## 0.4.3
+
+Patch update. Saves and multiplayer still use belt protocol 8: everyone in a game needs the same mod version.
+
+- Ships without belt parts (asteroids, debris, most AI ships) no longer cost belt simulation time each tick.
+- Removed leftover debug probes from the simulation tick that could desync multiplayer games.
+
 ## 0.4.2-beta
 
 Update of the unlisted Steam Workshop beta item. Saves and multiplayer still use belt protocol 8: everyone in a game needs the same mod version.

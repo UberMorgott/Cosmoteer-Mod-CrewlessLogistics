@@ -1,6 +1,6 @@
 ID = morgott.crewless_logistics
 Name = "Crewless Logistics"
-Version = 0.4.2
+Version = 0.4.3
 CompatibleGameVersions = ["0.30.5"]
 ModifiesGameplay = true
 ModifiesMultiplayer = true
