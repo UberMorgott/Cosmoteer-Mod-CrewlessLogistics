@@ -669,7 +669,8 @@ Decisions (Claude / Codex `codex exec -s read-only`, agreed):
 
 - Codex extra risk, not changed: crossing art walks each crossing chain from every crossing per rendered tick (O(n^2) on
   long chains, bound 1024); only ships in view at fine LOD pay it now. Upgrade path: cache per chain, invalidate on port change.
-- Tests: `ScaleTests.FleetBench` (budgets: sim 1000 us, render state 2000 us all in view, rebuild 20 ms, 0 B; Debug x4),
+- Tests: `ScaleTests.FleetBench` (budgets: sim 1000 us, render state 2000 us all in view, rebuild 20 ms, 0 B; time budgets Release only, Debug checks 0 B: the Debug/Release
+  render ratio is ~4x, so a 4x Debug budget failed under machine load),
   `FleetGolden`, `RenderLod` (hysteresis, no view = coarse, rebase: no stale lamp / move, activity returns).
 - Not verified: in game (quad write cost per item, LOD threshold feel, miniview, pause + pan, frame time with 20 ships), MP.
 
