@@ -311,10 +311,10 @@ without the game). The mod DLL targets net10.0 like the game; P1 also passed on 
 | Probe | Result | Evidence |
 | --- | --- | --- |
 | P1 patch targets | headless PASS; in-game run pending | loader Harmony MVID dc2e7251 loads; 4 postfixes install + verify + roll back; 0 R2R inliners of the targets; `BeltManager` type loads, bucket -11. Loader already loads DLLs from Workshop folders (modloader log 2026-10-27 14:33: 3765559239, 3299057292, 3823252178) |
-| P2 endpoints | static done (§7 finding); in-game dump pending | log lines `P2 part=... src[...] sink[...]` per distinct part signature |
+| P2 endpoints | static done (§7 finding); runtime dump removed (local-player work in the sim tick, lockstep) | - |
 | P3 cost | headless PASS; in-game tick rate pending | loop 500 tiles/2000 items 3.9-7.5 us/tick; comb 400+100 sideload feeders/4000 items ~6 us/tick; 0 B alloc; packed line 800/800 per 100 s per lane (8/s) |
 | P4 MP | pending (owner, 2 peers) | probe saves a tick counter on every `cosmoteer.corridor` (`Components/morgott.belt`), hashes it + protocol version |
-| P5 direct insert | static PASS (§7 finding); in-game pending | opt-in `p5_parts.txt`: 1 unit / 60 ticks, logs anticipated before/after |
+| P5 direct insert | static PASS (§7 finding); never verified live, runtime probe removed (it inserted into local ships only: MP desync) | - |
 
 Attach point (not named before): Harmony postfix on the private `Ship(ShipRules,string,int,ulong?,bool,ObjectID)`
 ctor (`Ship.cs:1130`) that every ship ctor chains into (new, loaded, split) adds `BeltManager`; `ComponentsCreated` is
@@ -327,15 +327,9 @@ Owner steps (single player first):
 2. P1/P3: load a creative game. `<profile>\Logs\CrewlessLogistics.Belts.log` must show
    `P1 patched 4 targets`, then every ~10 s `P1 tick=... calls/tick=N simShips=N duplicates=0 ... P3 rate=30.0 ticks/s`.
    FAIL: `ERR patch`, `DISABLED`, `duplicates>0`, calls/tick != simShips (culled/stasis ships may lower calls).
-3. P2: build one ship with storage_2x2, factory_ammo, factory_he/emp/nuke/thermal, factory_mine, cannon_med,
-   cannon_large, cannon_deck, flak_cannon_large, railgun_loader, chaingun, missile_launcher (switch through all modes,
-   wait 3 s each). Log: one `P2 part=...` line per part and per launcher mode.
-4. P4 save: build corridors, wait 10 s, save, quit to menu, load: no errors; disable the probe, load the same save:
+3. P4 save: build corridors, wait 10 s, save, quit to menu, load: no errors; disable the probe, load the same save:
    loads (vanilla ignores `Components/morgott.belt`). MP: 2 peers with probe, host the save, play 2 min, client
    rejoins: no desync message; game log has no integrity mismatch.
-5. P5: `Install-BeltProbe.ps1 -P5Parts cosmoteer.cannon_med,cosmoteer.factory_ammo` (single player only), restart,
-   fire the cannon while crew resupply: `P5 ... got=1 anticipated=a->a` (unchanged, never negative); crew keep
-   delivering, no crew stuck carrying ammo. Reinstall without `-P5Parts` afterwards.
 
 ## 15. Implementation order
 

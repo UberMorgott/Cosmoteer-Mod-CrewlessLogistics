@@ -245,10 +245,8 @@ internal sealed class BeltManager : ShipComponent
         }
         if (tick == _dumpAtTick)
         {
-            Probes.DumpEndpoints(ship);
             Probes.DumpTopology(ship, _nodes, _nodeParts);
         }
-        Probes.PushP5(ship, tick);
         Probes.OnTick(sim, tick, duplicate, _nodes.Count, _world?.Sim.Tiles ?? 0, Stopwatch.GetTimestamp() - t0);
     }
 

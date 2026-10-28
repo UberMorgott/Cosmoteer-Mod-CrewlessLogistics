@@ -1,7 +1,5 @@
 param(
-    [string]$ModsDirectory,
-    # Part IDs that P5 pushes 1 unit into every 60 ticks (single-player test only). Empty = P5 off.
-    [string[]]$P5Parts = @()
+    [string]$ModsDirectory
 )
 # Installs the test-only belt probe as its own local mod (Mods\CrewlessLogisticsBeltProbe). Never touches the
 # Crewless Logistics package, settings.rules or the game folder. Enable + trust it in the in-game Mods list yourself.
@@ -27,11 +25,9 @@ if (Test-Path -LiteralPath $target) {
 }
 New-Item -ItemType Directory -Path $target -Force | Out-Null
 Copy-Item -LiteralPath $dll, (Join-Path $PSScriptRoot 'mod.rules') -Destination $target -Force
-$p5 = Join-Path $target 'p5_parts.txt'
-if ($P5Parts.Count -gt 0) { Set-Content -LiteralPath $p5 -Value $P5Parts } elseif (Test-Path -LiteralPath $p5) { Remove-Item -LiteralPath $p5 }
 foreach ($name in 'CrewlessLogistics.Belts.dll', 'mod.rules') {
     $src = if ($name -eq 'mod.rules') { Join-Path $PSScriptRoot $name } else { $dll }
     if ((Get-FileHash -LiteralPath $src).Hash -ne (Get-FileHash -LiteralPath (Join-Path $target $name)).Hash) { throw "Copy mismatch: $name" }
 }
-Write-Output "Installed $target (P5: $(if ($P5Parts.Count) { $P5Parts -join ', ' } else { 'off' }))"
+Write-Output "Installed $target"
 Write-Output 'Next: in-game Mods list -> enable "Crewless Logistics belt probe", trust its library (every rebuild changes the DLL MVID), restart.'
