@@ -8,6 +8,8 @@
 //	go run . -overhaul out.png                           // §21 cases in game layering + animated out.gif
 //	go run . -blueprints out.png                         // blueprint ghosts in 4 rotations over floor (vanilla arrow)
 //	go run . -damage out.png                             // §25 crossing arts + §26 damage levels of every part
+//	go run . -joints base.png                            // §28 joint matrix contact sheets + legend
+//	go run . -ports out.png -before <dir>                // §28 port joints before / after
 package main
 
 import (
@@ -847,7 +849,13 @@ func inAny(p image.Point, rs []image.Rectangle) bool {
 
 // floorKeep: housing areas painted in the same grey as the floor plate (64 px/tile frame), never floor.
 var floorKeep = map[string][]image.Rectangle{
-	"belt_splitter": {image.Rect(2, 12, 126, 46), image.Rect(48, 46, 80, 51), image.Rect(14, 0, 58, 12), image.Rect(70, 0, 114, 12), image.Rect(14, 46, 58, 64), image.Rect(70, 46, 114, 64)},
+	"belt_splitter": {image.Rect(2, 12, 126, 46), image.Rect(48, 46, 80, 51)},
+}
+
+// oldStubs: the Codex masters' own port stubs (64 px frame; splitter ones 4 px off the cell centre) erased to floor
+// before the §28 centred stubs go on; connector stubs lie inside its new zones.
+var oldStubs = map[string][]image.Rectangle{
+	"belt_splitter": {image.Rect(4, 0, 60, 11), image.Rect(68, 0, 124, 11), image.Rect(6, 48, 60, 64), image.Rect(68, 48, 122, 64)},
 }
 
 // curveFloor: the polar remap smears the straight margin (columns <8 and >=56) into dark seams the colour flood misses;
@@ -1006,6 +1014,9 @@ func main() {
 	crossingsPath := flag.String("crossings", "", "optional crossings preview PNG path (belts left/right, pipe or cable above/below)")
 	damagePath := flag.String("damage", "", "optional §25/§26 preview PNG path (crossing arts, damage levels of every part)")
 	blueprintsPath := flag.String("blueprints", "", "optional blueprint ghost preview PNG path (4 rotations over floor, 1x and 2x)")
+	jointsPath := flag.String("joints", "", "optional §28 joint matrix contact sheets base path (<base>_<group>.png + _legend.txt)")
+	portsPath := flag.String("ports", "", "optional §28 port joints before/after preview PNG path (needs -before)")
+	beforeDir := flag.String("before", "", "directory with the pre-§28 belt_connector.png / belt_splitter.png for -ports")
 	flag.Parse()
 
 	if *importDir != "" {
@@ -1014,6 +1025,12 @@ func main() {
 			// §26 Codex damage decals on the magenta key -> alpha, one 256 px tile.
 			if path := filepath.Join(*importDir, name+"_master.png"); exists(path) {
 				save(resize(keyMagenta(load(path)), masterTile, masterTile), filepath.Join(*artDir, name+".png"))
+			}
+		}
+		for _, em := range edgeMasters {
+			// §28 edge pieces on magenta key bands, drawn for the Up edge.
+			if path := filepath.Join(*importDir, em.name+"_master.png"); exists(path) {
+				save(resize(trimKeyRows(load(path)), em.w, em.h), filepath.Join(*artDir, em.name+".png"))
 			}
 		}
 		for _, sp := range append(sprites, layers...) {
@@ -1028,8 +1045,28 @@ func main() {
 	}
 	arrow := vanillaArrow(*game)
 	floors, decals := loadDamage(*game, *artDir)
+	var edges [][][][]*image.NRGBA
 	for _, sp := range sprites {
 		m := master(*artDir, sp.master)
+		bi := boxOf(sp.master)
+		if bi >= 0 && edges == nil {
+			edges = bakeEdges(*artDir, *outDir, decals) // needs the static belt, baked first (sprites[0])
+		}
+		// §28 boxes: old stubs and hazard strips erased to floor, centred belt stubs on every port (no-DLL fallback).
+		fix := func(im *image.NRGBA, lvl int) *image.NRGBA {
+			if bi >= 0 {
+				for _, r := range oldStubs[sp.master] {
+					fl := floors[lvl]
+					for y := r.Min.Y; y < r.Max.Y; y++ {
+						for x := r.Min.X; x < r.Max.X; x++ {
+							im.SetNRGBA(x, y, fl.NRGBAAt(x%fl.Rect.Dx(), y%fl.Rect.Dy()))
+						}
+					}
+				}
+				withStubs(im, lvl, edges[bi])
+			}
+			return im
+		}
 		if sp.master == "belt_connector" {
 			m = withChevron(m, load(filepath.Join(*artDir, "belt_splitter.png")))
 		}
@@ -1039,15 +1076,23 @@ func main() {
 		}
 		for lvl, sfx := range damageSuffix {
 			if sp.file != "" {
-				out := damageFrame(resize(m, sp.w*64, sp.h*64), floors, decals, lvl, nil, nil, nil, floorKeep[sp.master]...)
+				out := fix(damageFrame(resize(m, sp.w*64, sp.h*64), floors, decals, lvl, nil, nil, nil, floorKeep[sp.master]...), lvl)
 				save(out, filepath.Join(*outDir, strings.TrimSuffix(sp.file, ".png")+sfx+".png"))
 			}
 		}
+		m64 := resize(m, sp.w*64, sp.h*64)
+		if bi >= 0 {
+			m64 = fix(m64, 0) // icon and blueprint show the corrected port geometry too
+		}
 		if sp.blueprint != "" {
-			save(markBlueprint(blueprintOf(resize(m, sp.w*64, sp.h*64)), arrow, rot), filepath.Join(*outDir, sp.blueprint))
+			save(markBlueprint(blueprintOf(m64), arrow, rot), filepath.Join(*outDir, sp.blueprint))
 		}
 		if sp.icon != "" {
-			save(resize(m, sp.w*32, sp.h*32), filepath.Join(*outDir, sp.icon))
+			icon := resize(m, sp.w*32, sp.h*32)
+			if bi >= 0 {
+				icon = resize(m64, sp.w*32, sp.h*32)
+			}
+			save(icon, filepath.Join(*outDir, sp.icon))
 		}
 	}
 	bakeAnim(*artDir, *outDir, floors, decals)
@@ -1066,6 +1111,12 @@ func main() {
 	}
 	if *blueprintsPath != "" {
 		blueprints(*game, *outDir, *blueprintsPath)
+	}
+	if *jointsPath != "" {
+		jointsPreview(newJAssets(*game, *outDir), *jointsPath)
+	}
+	if *portsPath != "" {
+		portsPreview(newJAssets(*game, *outDir), *beforeDir, *portsPath)
 	}
 }
 
