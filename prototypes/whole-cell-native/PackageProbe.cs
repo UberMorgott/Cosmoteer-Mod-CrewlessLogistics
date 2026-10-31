@@ -21,7 +21,7 @@ sealed partial class NativeProbe
             var root = Open(Path.Combine(gameRoot, "Data", "cosmoteer.rules"));
             foreach (var action in actions) Call(action!, "ApplyAction", root);
             using var consumerMapping = JsonDocument.Parse(File.ReadAllText(Path.Combine(projectRoot, "docs", "consumer-coverage.json")));
-            Require(actions.Count == 55 + consumerMapping.RootElement.GetProperty("moddedGeneratedActions").GetInt32(), "Unexpected vanilla/enabled-mod compatibility action count");
+            Require(actions.Count == 60 + consumerMapping.RootElement.GetProperty("moddedGeneratedActions").GetInt32(), "Unexpected vanilla/enabled-mod compatibility action count");
             ValidateCableMaterialLayer(root);
             CableEditorMetadataProbe();
             var crossingFile = Open(Path.Combine(modDirectory, "cable_crossing.rules"));
@@ -70,14 +70,17 @@ sealed partial class NativeProbe
             Require((string)ReadRuleObject(root, "<ships/terran/terran.rules>/Terran/Parts/97/ID", typeof(string)) == "morgott.crewless_logistics.cable_crossing", "Crew crossing was not appended to the vanilla registry");
             Require((string)ReadRuleObject(root, "<ships/terran/terran.rules>/Terran/Parts/98/ID", typeof(string)) == "morgott.crewless_logistics.cable_heat_crossing", "Independent heat/electric crossover was not appended to the registry");
             Require(((string[])ReadRuleObject(Open(Path.Combine(modDirectory, "cable_heat_crossing.rules")), "Part/OtherIDs", typeof(string[]))).SequenceEqual(new[] { "morgott.powergrid.cable_heat_crossing" }), "Heat crossover lost its pre-0.3.3 part ID alias");
-            foreach (string cable in new[] { "cable.rules", "cable_crossing.rules" }) {
+            BeltPartsProbe(root);
+            foreach (string cable in new[] { "cable.rules", "cable_crossing.rules", "belt_crossing.rules" }) {
                 var cableFile = Open(Path.Combine(modDirectory, cable));
-                bool crossing = cable == "cable_crossing.rules";
+                bool crossing = cable != "cable.rules";
+                // §25 the belt crossing also carries the vanilla thermal Port_Up/Down, so its electric ports are ElectricPort_*.
+                string port = cable.StartsWith("belt_") ? "ElectricPort_" : "Port_";
                 var sides = crossing ? new[] { "Up", "Down" } : new[] { "Up", "Right", "Down", "Left" };
                 var id = (string)ReadRuleObject(cableFile, "Part/ID", typeof(string));
                 Require(id == "morgott.crewless_logistics." + Path.GetFileNameWithoutExtension(cable), "Wrong cable part ID");
-                Require(((string[])ReadRuleObject(cableFile, "Part/OtherIDs", typeof(string[]))).SequenceEqual(new[] { "morgott.powergrid." + Path.GetFileNameWithoutExtension(cable) }), "Cable lost its pre-0.3.3 part ID alias");
-                foreach (var name in new[] { "CrewlessLogisticsNode", "CrewlessLogisticsBlueprintNode" }.Concat(sides.Select(side => "Port_" + side))) {
+                Require(((string[])ReadRuleObject(cableFile, "Part/OtherIDs", typeof(string[]))).SequenceEqual(cable.StartsWith("belt_") ? new[] { "morgott.crewless_logistics.belt_heat_crossing", "morgott.crewless_logistics.belt_cable_crossing" } : new[] { "morgott.powergrid." + Path.GetFileNameWithoutExtension(cable) }), "Cable lost its pre-0.3.3 part ID alias");
+                foreach (var name in new[] { "CrewlessLogisticsNode", "CrewlessLogisticsBlueprintNode" }.Concat(sides.Select(side => port + side))) {
                     Rules("Part/Components/" + name, "Cosmoteer.Ships.Parts.PartComponentRules", cableFile);
                     added.Add(cable + ":" + name);
                 }
@@ -86,11 +89,11 @@ sealed partial class NativeProbe
                     Require((int)ReadRuleObject(cableFile, "Part/MaxHealth", typeof(int)) == (int)ReadRuleObject(root, "<ships/terran/heat_pipe_adaptive_structure/heat_pipe_adaptive_structure.rules>/Part/MaxHealth", typeof(int)), "Cable must have vanilla heat pipe durability");
                     Require((float)ReadRuleObject(cableFile, "Part/CrewSpeedFactor", typeof(float)) == 0, "Armored cable must block crew passage");
                 }
-                ValidateCableRuntimeLinks(cableFile, id, sides);
+                ValidateCableRuntimeLinks(cableFile, id, sides, port);
                 Require(Flag(physicalNode, "HasPhysicalComponent"), "CrewlessLogisticsNode is absent from native physical part construction: " + cable);
                 var thermalRules = Rules("PortProbeCableHeatLeft", "Cosmoteer.Ships.Networks.PartNetworkPortRules");
                 foreach (string side in sides) {
-                    var electricRules = Rules("Part/Components/Port_" + side, "Cosmoteer.Ships.Networks.PartNetworkPortRules", cableFile);
+                    var electricRules = Rules("Part/Components/" + port + side, "Cosmoteer.Ships.Networks.PartNetworkPortRules", cableFile);
                     CheckElectricOverlay(electricRules);
                     Require(Field(electricRules.GetType(), "OperationalToggle").GetValue(electricRules) == null && Field(electricRules.GetType(), "BlueprintOperationalToggle").GetValue(electricRules) == null, "Passive cables must not require a device switch");
                     var electricOverlay = Field(electricRules.GetType(), "Overlay").GetValue(electricRules)!;
@@ -102,7 +105,8 @@ sealed partial class NativeProbe
                 if (crossing) {
                     var doors = (int[][])ReadRuleObject(cableFile, "Part/AllowedDoorLocations", typeof(int[][]));
                     Require(doors.Length == 2 && doors[0].SequenceEqual(new[] { -1, 0 }) && doors[1].SequenceEqual(new[] { 1, 0 }), "Crew crossing must preserve perpendicular vanilla doors");
-                    Require(Math.Abs((float)ReadRuleObject(cableFile, "Part/CrewSpeedFactor", typeof(float)) - 0.8f) < 0.0001f, "Crew crossing changed vanilla speed");
+                    // Vanilla crossing speed .8; the belt/cable crossing is .7 like belts (owner Q6).
+                    Require(Math.Abs((float)ReadRuleObject(cableFile, "Part/CrewSpeedFactor", typeof(float)) - (cable.StartsWith("belt_") ? 0.7f : 0.8f)) < 0.0001f, "Crew crossing changed vanilla speed");
                 }
                 if (!crossing) Require(((string[])ReadRuleObject(cableFile, "Part/Components/CableBlueprints/SituationToggles", typeof(string[]))).SequenceEqual(new[] { "Port_Up", "Port_Right", "Port_Down", "Port_Left" }), "Adaptive electrical preview must follow its actual four native ports");
             }
@@ -136,7 +140,7 @@ sealed partial class NativeProbe
         Require(Field(overlay.GetType(), "IconDrawMode").GetValue(overlay)!.ToString() == (device ? "Primary" : "Never"), "Electrical icon mode does not match device/cable overlay policy");
     }
 
-    void ValidateCableRuntimeLinks(object cableFile, string partId, string[] sides)
+    void ValidateCableRuntimeLinks(object cableFile, string partId, string[] sides, string port)
     {
         // Match the native construction filter before linking actual package ports.
         // Synthetic inactive ownership avoids starting simulation or rendering.
@@ -146,7 +150,7 @@ sealed partial class NativeProbe
         var partRules = Property(part, "Rules");
         SetField(partRules, "ID", Id(Field(partRules.GetType(), "ID").FieldType, partId));
         var runtime = new List<object>();
-        foreach (string name in new[] { "CrewlessLogisticsNode", "CrewlessLogisticsBlueprintNode" }.Concat(sides.Select(side => "Port_" + side))) {
+        foreach (string name in new[] { "CrewlessLogisticsNode", "CrewlessLogisticsBlueprintNode" }.Concat(sides.Select(side => port + side))) {
             var rules = Rules("Part/Components/" + name, "Cosmoteer.Ships.Parts.PartComponentRules", cableFile);
             if (Flag(rules, "HasPhysicalComponent")) runtime.Add(Component(rules));
         }

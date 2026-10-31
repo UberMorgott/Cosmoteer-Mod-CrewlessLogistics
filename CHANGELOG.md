@@ -2,6 +2,50 @@
 
 All notable changes to Crewless Logistics (formerly Powergrid). Versions match `mod/mod.rules` `Version`.
 
+## 0.4.3
+
+Published on the stable Steam Workshop item 3827751334 (2026-10-31). The unlisted beta item 3828369530 is retired and deleted; subscribe to the stable item.
+
+Patch update. Saves and multiplayer still use belt protocol 8: everyone in a game needs the same mod version.
+
+- Ships without belt parts (asteroids, debris, most AI ships) no longer cost belt simulation time each tick.
+- Removed leftover debug probes from the simulation tick that could desync multiplayer games.
+
+## 0.4.2-beta
+
+Update of the unlisted Steam Workshop beta item. Saves and multiplayer still use belt protocol 8: everyone in a game needs the same mod version.
+
+- Connector and splitter ports are connection-aware: each port edge shows a belt stub, a shared coupling to another box, a wall seal against a room, or a closed cap when nothing is attached (splitter short sides included).
+- Connector and splitter ports are centred on the box edge.
+- In-game description: the connector filter is Auto by default.
+
+## 0.4.1-beta
+
+Update of the unlisted Steam Workshop beta item. Saves and multiplayer use belt protocol 8: everyone in a game needs the same mod version.
+
+- Belts are connection-aware and animated Factorio-style: they draw their real shape (straight, curves, side-loading joints) and move only while their items move.
+- Connector and splitter are closed machine boxes with a direction chevron and a lamp that blinks per item. The connector takes items from three sides (back, left, right).
+- Connector filter: Auto (default) passes the only resource both neighbours can use; None stops it and is never changed automatically. Connectors have a source priority.
+- Splitter: Factorio-style input and output priority and a resource filter.
+- One adaptive belt crossing replaces the two old ones: it follows the Heat Pipe or electrical cable under it. Ships with the old crossings still load.
+- Crew walk belts at 70% speed and cannot walk through connectors or splitters.
+- Belt parts show damage stages, and the surface damage scrolls with the belt. Items on a belt part drop whenever it is removed (destroyed, deconstructed or sold).
+- Vanilla floor around belt parts; flow direction shown on blueprint ghosts.
+- Performance: belts render only when on screen and at a readable zoom (lower detail when zoomed out); idle belts are skipped each tick.
+
+## 0.4.0-beta
+
+Published as a separate, unlisted Steam Workshop beta item (3828369530, retired after 0.4.3); the stable item stayed on 0.3.5 until 0.4.3.
+
+- Resource logistics (Storage and Power tabs): crew-walkable two-lane conveyor belts that curve automatically and accept side-loading.
+- Splitter (1x2) divides one belt into two outputs.
+- Directional connector moves resources between a room, a belt or another room. Filter: Auto (default: passes the only resource both neighbours can use, otherwise nothing), Any, one chosen resource, or None (stopped; never changed automatically).
+- Belt crossings: a straight belt over a Heat Pipe or over an electrical cable (one axis each, rotate to set the belt direction; crew walk along the belt at 80% speed).
+- Belts animate only while items on them move (still when empty or blocked) and draw their real shape: curves, and side-loading joints where a belt, splitter or connector enters from the side. Splitter and connector are closed machine boxes (contents hidden) with a small direction chevron and a lamp that blinks for every item passing. The connector now also pulls from rooms on its left and right (rooms take turns), and a connector feeding the side of a belt with no input behind it curves that belt.
+- Requires [Yet Another Mod Loader](https://steamcommunity.com/sharedfiles/filedetails/?id=3577650065) (Workshop 3577650065): the belt simulation ships as `CrewlessLogistics.Belts.dll`. Install: subscribe to the loader, run `Installer.bat` from its Workshop folder (`steamapps\workshop\content\799600\3577650065`), restart the game, enable Crewless Logistics in the Mods list and trust its library. Trust it again after every mod update.
+- Blueprint (ghost) sprites of the splitter, connector and belt crossings match their art.
+- Workshop publisher: `-visibility unlisted` (alias of `hidden`), `-dependency <id>` (AddDependency).
+
 ## 0.3.5
 
 - Fix: switching a hyperdrive onto the electrical network no longer drains the network into its battery. Like crew delivery in the base game, the network now charges a hyperdrive only while it spools for a jump (FtlDrive), also via engine rooms.

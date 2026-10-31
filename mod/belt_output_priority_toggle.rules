@@ -1,0 +1,14 @@
+// Splitter output priority (docs/BELTS_DESIGN.md §23): 0 none (default, alternate), 1 left, 2 right, relative to travel.
+Toggle
+{
+    ToggleID = "morgott.crewless_logistics.belt_output_priority"
+    Style = Popout
+    ShowInEditor = true
+    SortOrder = 3
+    Choices
+    [
+        { ChoiceID = "morgott.crewless_logistics.belt_output_priority.none"; ButtonToolTipKey = "CrewlessLogistics/OutputPriorityNone"; ButtonSprite { Texture { File = "./Data/gui/game/parts/toggle_alternating_on.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_output_priority.left"; ButtonToolTipKey = "CrewlessLogistics/OutputPriorityLeft"; ButtonSprite { Texture { File = "./Data/gui/game/designer/tool_rotate_left.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_output_priority.right"; ButtonToolTipKey = "CrewlessLogistics/OutputPriorityRight"; ButtonSprite { Texture { File = "./Data/gui/game/designer/tool_rotate_right.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+    ]
+}

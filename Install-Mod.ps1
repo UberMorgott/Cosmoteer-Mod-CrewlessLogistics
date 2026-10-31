@@ -12,14 +12,19 @@ $sourceDirectory = Join-Path $PSScriptRoot 'mod'
 $targetDirectory = Join-Path ([IO.Path]::GetFullPath($ModsDirectory)) 'CrewlessLogistics'
 $sourceFiles = @(Get-ChildItem -LiteralPath $sourceDirectory -File -Recurse)
 if (-not (Test-Path -LiteralPath (Join-Path $sourceDirectory 'mod.rules'))) { throw 'Source manifest not found' }
-if ($sourceFiles | Where-Object Extension -in @('.dll', '.exe', '.cs', '.ps1')) { throw 'Gameplay package must contain rules/assets/documentation only' }
+if ($sourceFiles | Where-Object Extension -in @('.dll', '.exe', '.cs', '.ps1')) { throw 'mod\ must contain rules/assets/documentation only; the belt DLL is built below' }
+# The C# belt sim (docs/BELTS_DESIGN.md) ships as one library next to mod.rules; Yet Another Mod Loader loads it.
+$beltDllName = 'CrewlessLogistics.Belts.dll'
+dotnet build (Join-Path $PSScriptRoot 'belts\CrewlessLogistics.Belts.csproj') --configuration Release --nologo | Out-Host
+if ($LASTEXITCODE -ne 0) { throw "Belt DLL build failed: $LASTEXITCODE" }
+$beltDll = Get-Item -LiteralPath (Join-Path $PSScriptRoot ('belts\bin\Release\' + $beltDllName))
 if (-not (Test-Path -LiteralPath $ModsDirectory -PathType Container)) { throw "Mods directory not found: $ModsDirectory" }
 if (Test-Path -LiteralPath $targetDirectory) {
     $manifest = Join-Path $targetDirectory 'mod.rules'
     if (-not (Test-Path -LiteralPath $manifest) -or (Get-Content -LiteralPath $manifest -Raw) -notmatch '(?m)^ID\s*=\s*morgott\.crewless_logistics\s*$') {
         throw "Refusing to overwrite an unrelated directory: $targetDirectory"
     }
-    if (Get-ChildItem -LiteralPath $targetDirectory -Filter '*.dll' -Recurse -File) { throw 'Unexpected DLL in existing target; inspect before updating' }
+    if (Get-ChildItem -LiteralPath $targetDirectory -Filter '*.dll' -Recurse -File | Where-Object { [IO.Path]::GetRelativePath($targetDirectory, $_.FullName) -ne $beltDllName }) { throw 'Unexpected DLL in existing target; inspect before updating' }
     $backupDirectory = Join-Path $PSScriptRoot ('artifacts\mod-backups\CrewlessLogistics-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
     New-Item -ItemType Directory -Path $backupDirectory -Force | Out-Null
     Copy-Item -LiteralPath $targetDirectory -Destination $backupDirectory -Recurse
@@ -54,11 +59,27 @@ foreach ($sourceFile in $sourceFiles) {
         throw "Installed file hash mismatch: $relativePath"
     }
 }
+$dllDestination = Join-Path $targetDirectory $beltDllName
+Copy-Item -LiteralPath $beltDll.FullName -Destination $dllDestination -Force
+if ((Get-FileHash -LiteralPath $beltDll.FullName -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $dllDestination -Algorithm SHA256).Hash) { throw "Installed file hash mismatch: $beltDllName" }
 # Mirror: files from older packages would otherwise still load (backup above).
-$packaged = $sourceFiles | ForEach-Object { [IO.Path]::GetRelativePath($sourceDirectory, $_.FullName) }
+$packaged = @($sourceFiles | ForEach-Object { [IO.Path]::GetRelativePath($sourceDirectory, $_.FullName) }) + $beltDllName
 # .workshop (written by the in-game uploader) holds the Workshop item ID; never remove it.
 $stale = @(Get-ChildItem -LiteralPath $targetDirectory -File -Recurse | Where-Object { $_.Name -ne '.workshop' -and [IO.Path]::GetRelativePath($targetDirectory, $_.FullName) -notin $packaged })
 $stale | Remove-Item -Force
 Get-ChildItem -LiteralPath $targetDirectory -Directory -Recurse | Sort-Object { $_.FullName.Length } -Descending | Where-Object { -not (Get-ChildItem -LiteralPath $_.FullName -Force) } | Remove-Item
-Write-Output "Installed $($sourceFiles.Count) verified files, removed $($stale.Count) stale: $targetDirectory"
-Write-Output 'Enable Crewless Logistics in the game Mods list. Game settings, running processes and saves were not changed.'
+# The test-only belt probe (belts\probe-mod) loads the same patches; never run both. Back up, then remove it.
+$probeDirectory = Join-Path ([IO.Path]::GetFullPath($ModsDirectory)) 'CrewlessLogisticsBeltProbe'
+if (Test-Path -LiteralPath $probeDirectory) {
+    $probeManifest = Join-Path $probeDirectory 'mod.rules'
+    if (-not (Test-Path -LiteralPath $probeManifest) -or (Get-Content -LiteralPath $probeManifest -Raw) -notmatch '(?m)^ID\s*=\s*morgott\.crewless_logistics\.belt_probe\s*$') {
+        throw "Refusing to remove an unrelated directory: $probeDirectory"
+    }
+    $probeBackup = Join-Path $PSScriptRoot ('artifacts\mod-backups\CrewlessLogisticsBeltProbe-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
+    New-Item -ItemType Directory -Path $probeBackup -Force | Out-Null
+    Copy-Item -LiteralPath $probeDirectory -Destination $probeBackup -Recurse
+    Remove-Item -LiteralPath $probeDirectory -Recurse -Force
+    Write-Output "Test-only Mods\CrewlessLogisticsBeltProbe backed up to $probeBackup and removed"
+}
+Write-Output "Installed $($sourceFiles.Count + 1) verified files, removed $($stale.Count) stale: $targetDirectory"
+Write-Output 'Enable Crewless Logistics in the game Mods list and trust its library (every rebuild changes the DLL). Needs Yet Another Mod Loader. Game settings, running processes and saves were not changed.'

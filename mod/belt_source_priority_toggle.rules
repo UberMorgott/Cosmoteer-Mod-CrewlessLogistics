@@ -1,0 +1,15 @@
+// Connector source priority (docs/BELTS_DESIGN.md §23): 0 round-robin (default, current behaviour), 1 back, 2 left, 3 right, relative to the arrow.
+Toggle
+{
+    ToggleID = "morgott.crewless_logistics.belt_source_priority"
+    Style = Popout
+    ShowInEditor = true
+    SortOrder = 3
+    Choices
+    [
+        { ChoiceID = "morgott.crewless_logistics.belt_source_priority.round_robin"; ButtonToolTipKey = "CrewlessLogistics/SourcePriorityRoundRobin"; ButtonSprite { Texture { File = "./Data/gui/game/parts/toggle_alternating_on.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_source_priority.back"; ButtonToolTipKey = "CrewlessLogistics/SourcePriorityBack"; ButtonSprite { Texture { File = "./Data/gui/game/minimap/north_arrow.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_source_priority.left"; ButtonToolTipKey = "CrewlessLogistics/SourcePriorityLeft"; ButtonSprite { Texture { File = "./Data/gui/game/designer/tool_rotate_left.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+        { ChoiceID = "morgott.crewless_logistics.belt_source_priority.right"; ButtonToolTipKey = "CrewlessLogistics/SourcePriorityRight"; ButtonSprite { Texture { File = "./Data/gui/game/designer/tool_rotate_right.png"; MipLevels = 2; SampleMode = Linear }; Size = [64, 64] } }
+    ]
+}

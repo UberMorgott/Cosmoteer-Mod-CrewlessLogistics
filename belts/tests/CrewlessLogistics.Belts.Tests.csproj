@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Belt tests (docs/BELTS_DESIGN.md §14). LaneSim/NodeState/BeltWorld/BeltRenderState are compiled in directly (no game
+    dependencies). The game-backed tests (P1 patches, part-flow classification, rules R1) load the mod DLL by path and
+    resolve the installed game's assemblies and the loader's Harmony at run time; they skip when the game is not installed.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="xunit.v3.mtp-off" Version="4.0.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\src\LaneSim.cs" Link="LaneSim.cs" />
+    <Compile Include="..\src\NodeState.cs" Link="NodeState.cs" />
+    <Compile Include="..\src\BeltWorld.cs" Link="BeltWorld.cs" />
+    <Compile Include="..\src\BeltRenderState.cs" Link="BeltRenderState.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Mod DLL copied next to the tests, never referenced: it holds the same belt types and is reached by reflection. -->
+    <ProjectReference Include="..\CrewlessLogistics.Belts.csproj" ReferenceOutputAssembly="false" OutputItemType="Content" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
