@@ -16,7 +16,7 @@
     <GenerateDependencyFile>false</GenerateDependencyFile>
     <GameBin>D:\Steam\steamapps\common\Cosmoteer\Bin</GameBin>
     <ModLoaderDir>D:\Steam\steamapps\workshop\content\799600\3577650065</ModLoaderDir>
-    <DefaultItemExcludes>$(DefaultItemExcludes);tests\**;probe-mod\**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);tests\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <Target Name="PublicizeGameAssemblies" BeforeTargets="ResolveAssemblyReferences"

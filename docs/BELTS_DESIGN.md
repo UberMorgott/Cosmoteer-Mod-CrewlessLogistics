@@ -305,8 +305,9 @@ after belts ship.
 
 Headless: `dotnet test` (xUnit project `belts\tests\CrewlessLogistics.Belts.Tests.csproj`, in `CrewlessLogistics.sln`;
 shared .NET 10 runtime + real 0.30.5 `Cosmoteer.dll` from the game folder + loader `0Harmony.dll`; game-backed tests skip
-without the game). The mod DLL targets net10.0 like the game; P1 also passed on the game's own 10.0.12 runtime. Live: test-only mod `belts\probe-mod` installed by `Install-BeltProbe.ps1` as
-`Mods\CrewlessLogisticsBeltProbe` (separate ID `morgott.crewless_logistics.belt_probe`; energy package untouched).
+without the game). The mod DLL targets net10.0 like the game; P1 also passed on the game's own 10.0.12 runtime. Live (historical): a test-only mod `belts\probe-mod`, installed as
+`Mods\CrewlessLogisticsBeltProbe` (separate ID `morgott.crewless_logistics.belt_probe`; energy package untouched). Removed
+from the repo after 0.4.3: the real package ships the belt DLL; `Install-Mod.ps1` still removes a stale probe install.
 
 | Probe | Result | Evidence |
 | --- | --- | --- |
@@ -320,10 +321,9 @@ Attach point (not named before): Harmony postfix on the private `Ship(ShipRules,
 ctor (`Ship.cs:1130`) that every ship ctor chains into (new, loaded, split) adds `BeltManager`; `ComponentsCreated` is
 an instance event (`Ship.cs:1103`), so no static hook exists. Patch set = this + the three §10 targets, all-or-nothing.
 
-Owner steps (single player first):
+Owner steps used with the retired probe mod (historical, single player first):
 
-1. `& E:\DEV\cosmoteer\Energy\belts\probe-mod\Install-BeltProbe.ps1` (already done once). In game: Mods list -> enable
-   "Crewless Logistics belt probe" -> trust its library -> restart.
+1. Install the probe mod. In game: Mods list -> enable "Crewless Logistics belt probe" -> trust its library -> restart.
 2. P1/P3: load a creative game. `<profile>\Logs\CrewlessLogistics.Belts.log` must show
    `P1 patched 4 targets`, then every ~10 s `P1 tick=... calls/tick=N simShips=N duplicates=0 ... P3 rate=30.0 ticks/s`.
    FAIL: `ERR patch`, `DISABLED`, `duplicates>0`, calls/tick != simShips (culled/stasis ships may lower calls).

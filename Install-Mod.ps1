@@ -68,7 +68,7 @@ $packaged = @($sourceFiles | ForEach-Object { [IO.Path]::GetRelativePath($source
 $stale = @(Get-ChildItem -LiteralPath $targetDirectory -File -Recurse | Where-Object { $_.Name -ne '.workshop' -and [IO.Path]::GetRelativePath($targetDirectory, $_.FullName) -notin $packaged })
 $stale | Remove-Item -Force
 Get-ChildItem -LiteralPath $targetDirectory -Directory -Recurse | Sort-Object { $_.FullName.Length } -Descending | Where-Object { -not (Get-ChildItem -LiteralPath $_.FullName -Force) } | Remove-Item
-# The test-only belt probe (belts\probe-mod) loads the same patches; never run both. Back up, then remove it.
+# A stale install of the retired test-only belt probe loads the same patches; never run both. Back up, then remove it.
 $probeDirectory = Join-Path ([IO.Path]::GetFullPath($ModsDirectory)) 'CrewlessLogisticsBeltProbe'
 if (Test-Path -LiteralPath $probeDirectory) {
     $probeManifest = Join-Path $probeDirectory 'mod.rules'
