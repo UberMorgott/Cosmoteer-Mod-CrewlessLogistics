@@ -18,6 +18,8 @@ Keep all eight in sync when features change. Each text keeps the "do not report 
 
 Keywords: power, energy, cables, automation, logistics, crewless.
 
+Extra Workshop previews (each < 1 MB, passed with `workshop-publish -add-preview`): `screenshot_ship.png`, `demo_belts.png`, `demo_belts.gif`, `demo_crossing_damage.png`.
+
 ## In-game uploader (Cosmoteer 0.30.5, decompiled)
 
 - Mods list, right-click a **User** mod (installed in `Saved Games\Cosmoteer\<SteamID>\Mods\<folder>`), then **Upload to Workshop**. Only shown for user-installed mods while Steam is running (`Cosmoteer.Gui/ModsDialog.cs:515`, `:568-572`).
