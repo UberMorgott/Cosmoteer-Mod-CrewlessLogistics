@@ -1,6 +1,6 @@
 # Translations are not English; typos would flag native words (e.g. German "unter").
 [files]
-extend-exclude = ["mod/strings/*.rules", "!mod/strings/en.rules", "docs/workshop/*.txt", "!docs/workshop/english.txt", "docs/workshop-beta/*.txt", "!docs/workshop-beta/english.txt"]
+extend-exclude = ["mod/strings/*.rules", "!mod/strings/en.rules", "docs/workshop/*.txt", "!docs/workshop/english.txt"]
 
 [default.extend-identifiers]
 # "PNGs" (plural of PNG) is split by case into "PN" + "Gs".

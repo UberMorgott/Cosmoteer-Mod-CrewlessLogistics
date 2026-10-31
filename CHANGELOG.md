@@ -4,6 +4,8 @@ All notable changes to Crewless Logistics (formerly Powergrid). Versions match `
 
 ## 0.4.3
 
+Published on the stable Steam Workshop item 3827751334 (2026-10-31). The unlisted beta item 3828369530 is retired and deleted; subscribe to the stable item.
+
 Patch update. Saves and multiplayer still use belt protocol 8: everyone in a game needs the same mod version.
 
 - Ships without belt parts (asteroids, debris, most AI ships) no longer cost belt simulation time each tick.
@@ -33,7 +35,7 @@ Update of the unlisted Steam Workshop beta item. Saves and multiplayer use belt 
 
 ## 0.4.0-beta
 
-Published as a separate, unlisted Steam Workshop beta item (id in `docs/workshop-beta/beta.workshop`); the stable item keeps 0.3.5.
+Published as a separate, unlisted Steam Workshop beta item (3828369530, retired after 0.4.3); the stable item stayed on 0.3.5 until 0.4.3.
 
 - Resource logistics (Storage and Power tabs): crew-walkable two-lane conveyor belts that curve automatically and accept side-loading.
 - Splitter (1x2) divides one belt into two outputs.
