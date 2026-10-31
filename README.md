@@ -1,8 +1,10 @@
 # Crewless Logistics
 
-A Cosmoteer mod for game version 0.30.5. Cables carry whole batteries from reactors and Power Capacitors straight to powered devices, freeing crew from battery runs. Normal crew delivery still works alongside the electrical network.
+A Cosmoteer mod for game version 0.30.5 (current version 0.4.3). Cables carry whole batteries from reactors and Power Capacitors straight to powered devices, freeing crew from battery runs, and conveyor belts move resources between rooms. Normal crew delivery still works alongside both.
 
 **Steam Workshop:** <https://steamcommunity.com/sharedfiles/filedetails/?id=3827751334>
+
+**Requires** [Yet Another Mod Loader](https://steamcommunity.com/sharedfiles/filedetails/?id=3577650065) (Workshop 3577650065), installed with its `Installer.bat`. Trust the Crewless Logistics library in the in-game Mods list.
 
 ## Reporting issues
 
@@ -22,16 +24,17 @@ Include the mod version from the Mods list, the game version from the bottom-lef
 - **Engine Rooms** receive network power and pass batteries to the engines and thrusters they buff. The room's Electrical Network and power distribution switches must be on, as must each recipient's Electrical Network switch.
 - Supports all vanilla powered devices, plus parts from the optional Workshop mods **Diagonal Thruster Plus** (3 thrusters) and **Diagonal Cockpits** (4 control rooms). Compatibility patches apply only if those mods are installed.
 - Green lamps on electrical cables and crew crossings light up when a connected source has a whole battery.
-- Rules-only: no DLL, no mod loader. UI text in all eight game languages.
+- **Resource logistics** (Storage and Power tabs): crew-walkable two-lane conveyor belts that curve automatically and accept side-loading, a 1x2 splitter with input/output priority and a filter, a directional connector that moves one chosen resource between a room, a belt or another room (filter Auto by default), and a straight belt crossing that adapts to a Heat Pipe or electrical cable under it (crew walk along the belt at 70% speed).
+- The energy network is rules-only; belts run in a small C# library (`CrewlessLogistics.Belts.dll`) loaded by Yet Another Mod Loader. UI text in all eight game languages.
 
 Mod ID `morgott.crewless_logistics`, package folder [`mod/`](mod).
 
 ## Install
 
-- **Steam Workshop:** subscribe, enable *Crewless Logistics* in the in-game Mods list, restart the game.
-- **Manual:** copy the `mod` folder to `%USERPROFILE%\Saved Games\Cosmoteer\<SteamID>\Mods\CrewlessLogistics`, enable it in the Mods list, restart. Or run `.\Install-Mod.ps1` (auto-detects the single profile; pass `-ModsDirectory` otherwise).
+- **Steam Workshop:** install Yet Another Mod Loader, subscribe, enable *Crewless Logistics* in the in-game Mods list, trust its library, restart the game.
+- **From source:** run `.\Install-Mod.ps1`. It builds `CrewlessLogistics.Belts.dll` and installs it next to `mod.rules` with the `mod` folder in `%USERPROFILE%\Saved Games\Cosmoteer\<SteamID>\Mods\CrewlessLogistics` (auto-detects the single profile; pass `-ModsDirectory` otherwise). Enable it, trust the library (every rebuild changes it), restart.
 
-Multiplayer: every player needs the same mod version and game version.
+Multiplayer: every player needs the same mod, mod loader and game version.
 After an update, restart the game before joining.
 
 ## Use
@@ -41,9 +44,10 @@ After an update, restart the game before joining.
 
 ## Build and verify
 
-Requires Windows, PowerShell 7, the .NET SDK and an installed Cosmoteer.
+Requires Windows, PowerShell 7, the .NET 10 SDK, an installed Cosmoteer, Yet Another Mod Loader (its `0Harmony.dll` is referenced from the Workshop folder) and the publicizer tool `dotnet tool install -g BepInEx.AssemblyPublicizer.Cli` (see `belts/CrewlessLogistics.Belts.csproj`).
 
 ```powershell
+dotnet build; dotnet test                            # belt sim + native probe tests (CrewlessLogistics.sln)
 & .\tools\Update-DeviceCompatibility.ps1            # regenerate compatibility + run native checks
 & .\tools\Update-DeviceCompatibility.ps1 -Install   # ...then install into the game profile
 ```
@@ -55,6 +59,6 @@ Parameters: `-GameRoot` (default `D:\Steam\steamapps\common\Cosmoteer`), `-ModsD
 - Only whole batteries move. A device waits until a whole battery fits.
 - Devices from mods that ship DLLs or use their own energy types are not supported.
 - Upgrading from Powergrid (the old name): cables load, but Electrical Network switches reset to off. Remove the old Powergrid folder.
-- Ammo and resource logistics are planned, with no promises or dates.
+- Belt design and implementation notes: [`docs/BELTS_DESIGN.md`](docs/BELTS_DESIGN.md).
 - History: [`CHANGELOG.md`](CHANGELOG.md). Workshop texts: [`docs/workshop/`](docs/workshop).
 - The cable sprites in `mod/assets` are derived from Cosmoteer game art (recoloured vanilla heat pipe sprites, see `tools/Bake-CableSprites.ps1`) for modding purposes. Cosmoteer and its assets belong to Walternate Realities.

@@ -1,6 +1,11 @@
-# Crewless Logistics 0.3.5
+# Crewless Logistics 0.4.3
 
-Ordinary Cosmoteer `.rules` mod for game 0.30.5. No gameplay DLL or mod loader required.
+Cosmoteer mod for game 0.30.5. The electrical network is ordinary `.rules`; conveyor belts run in `CrewlessLogistics.Belts.dll`, which requires Yet Another Mod Loader (Workshop 3577650065). Trust the library in the Mods list.
+
+## Belts
+
+- Two-lane conveyor belts (crew-walkable, auto-curve, side-loading), a 1x2 splitter, a directional connector with a resource filter (Auto by default) and a belt crossing over a Heat Pipe or electrical cable. Found in the Storage and Power tabs.
+- Multiplayer: everyone needs the same mod, mod loader and game version.
 
 ## Devices
 

@@ -2,7 +2,7 @@
 
 How Crewless Logistics works internally and how it is verified. User-facing overview: `README.md`; history: `CHANGELOG.md`.
 
-Native electrical networks for Cosmoteer 0.30.5. The build is an ordinary `.rules` mod with no gameplay DLL or loader dependency.
+Native electrical networks for Cosmoteer 0.30.5. The energy network is ordinary `.rules`; the only DLL is the belt sim `CrewlessLogistics.Belts.dll` ([`BELTS_DESIGN.md`](BELTS_DESIGN.md)), loaded by Yet Another Mod Loader (Workshop 3577650065).
 
 ## Behavior
 
@@ -23,7 +23,7 @@ Installation-time discovery reads the native part registry after the enabled mod
 
 The current catalog contains the 96 vanilla parts plus 10 modded parts. It finds all 47 vanilla consumers, three reactors, the capacitor, and seven added standard-battery consumers: four diagonal control rooms and three diagonal thrusters. The other three added parts are ammunition magazines.
 
-Discovery runs outside the game. The resulting installed mod contains rules/assets only. Regenerate after changing enabled mods, their versions or installation paths. Custom DLL-created parts, custom resources and unknown storage transformations require separate compatibility work; reading declarative rules cannot establish their runtime behavior.
+Discovery runs outside the game. The generated compatibility is rules only; no discovery code is installed. Regenerate after changing enabled mods, their versions or installation paths. Custom DLL-created parts, custom resources and unknown storage transformations require separate compatibility work; reading declarative rules cannot establish their runtime behavior.
 
 ## Build, verify and install
 

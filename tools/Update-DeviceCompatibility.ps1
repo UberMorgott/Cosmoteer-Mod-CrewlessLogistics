@@ -11,8 +11,8 @@ if (-not $ModsDirectory) {
     $ModsDirectory = Join-Path $profiles[0].FullName 'Mods'
 }
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-# Discovery and generation run outside the game. The installed package remains
-# ordinary native rules/assets; no discovery DLL is installed or loaded by it.
+# Discovery and generation run outside the game; no discovery code is installed. The energy network stays
+# rules-only; the package's only DLL is the belt sim (belts\), loaded by Yet Another Mod Loader.
 & (Join-Path $projectRoot 'prototypes\whole-cell-native\Run-Probe.ps1') -GameRoot $GameRoot -Catalog -ModsDirectory $ModsDirectory
 & (Join-Path $PSScriptRoot 'Generate-PerimeterPorts.ps1') -SelfTest
 & (Join-Path $PSScriptRoot 'Generate-ConsumerCoverage.ps1') -GameRoot $GameRoot
