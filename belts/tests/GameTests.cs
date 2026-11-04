@@ -16,6 +16,10 @@ public class GameTests
     [Fact]
     public void P1PatchesApplyVerifyAndRollBack() => Report(Env.SelfTest("Patcher"));
 
+    /// <summary>C1 inheriting-part fixture; C2 hook output vs coverage-baseline.tsv (former generated rules) on vanilla + installed optional mods.</summary>
+    [Fact]
+    public void NetworkCoverageMatchesBaseline() => Report(Env.SelfTest("NetworkCoverage", Env.GameRoot, Env.ProjectRoot));
+
     [Fact]
     public void PartFlowClassifiesVanillaParts() => Report(Env.SelfTest("PartFlowProbe", Env.GameRoot));
 

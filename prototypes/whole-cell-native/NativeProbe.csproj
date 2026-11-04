@@ -9,5 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="CrewlessLogistics.NativeProbe.Tests" />
+    <!-- Device sockets are added by the belts DLL (NetworkCoverage); copied next to the probe, reached by reflection. -->
+    <ProjectReference Include="..\..\belts\CrewlessLogistics.Belts.csproj" ReferenceOutputAssembly="false" OutputItemType="Content" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -23,7 +23,7 @@ Extra Workshop previews (each < 1 MB, passed with `workshop-publish -add-preview
 ## In-game uploader (Cosmoteer 0.30.5, decompiled)
 
 - Mods list, right-click a **User** mod (installed in `Saved Games\Cosmoteer\<SteamID>\Mods\<folder>`), then **Upload to Workshop**. Only shown for user-installed mods while Steam is running (`Cosmoteer.Gui/ModsDialog.cs:515`, `:568-572`).
-- Uploads the whole installed folder `Mods\CrewlessLogistics` as item content (`WorkshopUploaderDialog.cs:535`), not the repo `mod\` folder. Install first with `tools\Update-DeviceCompatibility.ps1 -Install`.
+- Uploads the whole installed folder `Mods\CrewlessLogistics` as item content (`WorkshopUploaderDialog.cs:535`), not the repo `mod\` folder. Install first with `Install-Mod.ps1`.
 - Title, description and preview default to `mod.rules` `Name`, `Description` and `Logo` (`WorkshopUploaderDialog.cs:283-284`); all three can be edited before upload. The uploader sets only one language; the other languages are set on the Steam item page or by a publisher tool.
 - Tags: always exactly `Mods` (`:530`).
 - Visibility: dropdown, default Public (`:211-226`). Min/max game branch version: dropdowns (`:227-231`, `:542`).

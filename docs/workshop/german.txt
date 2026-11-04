@@ -18,7 +18,7 @@ Kabel bringen ganze Batterien von Reaktoren und Energiekondensatoren direkt zu e
 [*]Reaktoren liefern zuerst. Kondensatoren liefern nur, wenn kein verbundener Reaktor eine ganze Batterie hat. Sie werden von Reaktoren geladen, nachdem die Geräte versorgt sind.
 [*][b]Maschinenräume[/b] beziehen Strom aus dem Netz und geben Batterien an die Motoren und Schubdüsen weiter, die sie verstärken. Aktiviere im Raum die Schalter für Stromnetz und Energieverteilung sowie den Stromnetz-Schalter jedes Empfängers.
 [/list]
-Unterstützt alle elektrischen Geräte des Grundspiels, optional auch [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] und [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url].
+Unterstützt alle elektrischen Geräte des Grundspiels und automatisch auch elektrische Bauteile anderer Mods mit Standard-Batteriespeicher (zum Beispiel [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] und [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url]).
 
 [h2]Logistik mit Förderbändern[/h2]
 Die Teile findest du in den Reitern [b]Lagerung[/b] und [b]Energie[/b].

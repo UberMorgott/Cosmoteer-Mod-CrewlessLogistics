@@ -2,6 +2,12 @@
 
 All notable changes to Crewless Logistics (formerly Powergrid). Versions match `mod/mod.rules` `Version`.
 
+## Unreleased
+
+- Electrical network sockets are now added at game load by the mod library, so powered parts from other mods (standard battery storage) connect to cables automatically, not only Diagonal Thruster Plus and Diagonal Cockpits. Unsupported parts are listed with a reason in `Logs\CrewlessLogistics.Belts.log`.
+- The network now requires Yet Another Mod Loader like the belts: without the library, devices get no sockets.
+- Vanilla coverage is unchanged (verified identical to the previous generated rules).
+
 ## 0.4.3
 
 Published on the stable Steam Workshop item 3827751334 (2026-10-31). The unlisted beta item 3828369530 is retired and deleted; subscribe to the stable item.

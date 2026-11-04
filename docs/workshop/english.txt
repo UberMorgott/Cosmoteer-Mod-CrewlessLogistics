@@ -18,7 +18,7 @@ Cables carry whole batteries from reactors and Power Capacitors straight to powe
 [*]Reactors supply first. Capacitors supply only when no connected reactor has a whole battery; they charge from reactors after devices are supplied.
 [*][b]Engine Rooms[/b] receive network power and pass batteries to the engines and thrusters they buff. Enable the room's Electrical Network and power distribution switches, plus each recipient's Electrical Network switch.
 [/list]
-Supports all vanilla powered devices, with optional compatibility for [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] and [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url].
+Supports all vanilla powered devices and, automatically, powered parts from other mods that use standard battery storage (for example [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] and [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url]).
 
 [h2]Conveyor logistics[/h2]
 Parts are in the [b]Storage[/b] and [b]Power[/b] tabs.

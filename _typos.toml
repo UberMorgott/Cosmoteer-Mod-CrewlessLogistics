@@ -1,6 +1,7 @@
 # Translations are not English; typos would flag native words (e.g. German "unter").
+# coverage-baseline.tsv holds hex hashes, not words.
 [files]
-extend-exclude = ["mod/strings/*.rules", "!mod/strings/en.rules", "docs/workshop/*.txt", "!docs/workshop/english.txt"]
+extend-exclude = ["mod/strings/*.rules", "!mod/strings/en.rules", "docs/workshop/*.txt", "!docs/workshop/english.txt", "belts/tests/coverage-baseline.tsv"]
 
 [default.extend-identifiers]
 # "PNGs" (plural of PNG) is split by case into "PN" + "Gs".

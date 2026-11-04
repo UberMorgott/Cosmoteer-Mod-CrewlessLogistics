@@ -14,6 +14,6 @@ public static class Main
         _initialized = true;
         Log.Init();
         Patcher.Apply();
-        Log.Info(Patcher.Enabled ? "belt sim enabled" : "belt sim DISABLED (patches rolled back), game runs vanilla");
+        Log.Info(Patcher.Enabled ? "belt sim and automatic network coverage enabled" : "belt sim and automatic network coverage DISABLED (patches rolled back): devices get no cable sockets, game runs vanilla");
     }
 }

@@ -38,7 +38,7 @@ After updating, save your session and reload the game. Enable Electrical Network
 
 Test a reactor and several consumers, then place one or two capacitors inline. Check continued consumer supply, capacitor recharge, reactor disconnection, cable cut/reconnect, rotated crossings, both floor/roof views, and an independent thermal branch.
 
-The developer build command `tools/Update-DeviceCompatibility.ps1 -Install` reads enabled mod rules, regenerates compatibility, verifies it, and backs up/replaces only Crewless Logistics. Repeat it when enabled mods, versions or paths change. The installed package performs no runtime discovery. DLL-created parts, custom energy resources and unknown storage behavior require separate compatibility work.
+Device sockets are added at game load by `CrewlessLogistics.Belts.dll` to every registered part with a recognized battery schema, vanilla or modded; the developer install command is `Install-Mod.ps1`. DLL-created parts, custom energy resources and unknown storage behavior are skipped with a reason in `Logs\CrewlessLogistics.Belts.log`.
 
 Native regression checks exercise real parser, storage, IO, topology and CPU preview helpers using synthetic ownership and manually stepped scheduling. They do not establish full game rendering, scheduling, persistence, destruction or multiplayer behavior.
 

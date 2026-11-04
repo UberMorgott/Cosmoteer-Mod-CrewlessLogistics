@@ -24,7 +24,7 @@ Factorio used for mechanics only (circuit network, requester/provider/buffer che
   `ToggleTrigger` -> `TriggeredToggle`. `ValueOperation` re-evaluates on change, no implicit tick delay -> feedback loops
   need explicit delay. Empty reductions: Add 0, Multiply 1, Min +inf, Max -inf, Average NaN. Cargo holds
   (`FlexResourceGrid`) expose no value -> mixed-cargo sensing needs C# (`FlexResourceGrid.GetTotalQuantity(type)`, C: `:1259`).
-- Injection into vanilla parts is a proven mod pattern: `R/mod/generated.actions.rules` (AddBase on 60 parts). For gates
+- Injection into vanilla parts is a proven mod pattern: `belts/src/NetworkCoverage.cs` (adds a base to each covered part's own Components at load, ModAddBaseAction-style). For gates
   also targeted `Add`/`Replace` actions are needed, AND-ing into the part's existing `OperationalToggle`/`MultiToggle Mode = All`
   (C: `ModAddAction.cs:75`, `ModReplaceAction.cs:39`); keep vanilla conditions (C: `V/.../factory_ammo.rules:54-58`).
 
@@ -84,7 +84,7 @@ Material-paid auto-repair from storage: not rejected, deferred (separate job/rec
 
 | # | Idea | Value | Fit | Rules / C# | MP risk | Effort | UI | Vanilla overlap | Main hook |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Signal kit + Governor | high | strong | rules (+generated gates) | L | M | UIToggle presets, lamp | primitives only | `PartNetworkValueReceiver.cs:87`, `R/mod/generated.actions.rules` |
+| 1 | Signal kit + Governor | high | strong | rules (+generated gates) | L | M | UIToggle presets, lamp | primitives only | `PartNetworkValueReceiver.cs:87`, `belts/src/NetworkCoverage.cs` |
 | 2 | Demand ports | high | strong | C# | M | M | band, reserve, priority | crew supply chains | `R/belts/src/PartRoom.cs`, `IResourceSink.cs:175,192` |
 | 3 | Dashboard | high (debug) | strong | C# client | L | M | overlay, labels | transfer lines | C: `SimOverlayRenderer.cs:1561` |
 | 4 | Reserve floors | med-high | strong | rules / C# | M | M | reserve amount | limits (max only) | `ResourceManager.cs:32` |

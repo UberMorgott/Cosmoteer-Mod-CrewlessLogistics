@@ -18,7 +18,7 @@ Los cables llevan baterías enteras desde reactores y Condensadores de Potencia 
 [*]Los reactores suministran primero. Los condensadores solo suministran cuando ningún reactor conectado tiene una batería entera; se cargan desde los reactores una vez abastecidos los dispositivos.
 [*]Las [b]Salas de Máquinas[/b] reciben energía de la red y pasan baterías a los motores y propulsores que potencian. Activa los interruptores de Red eléctrica y distribución de energía de la sala, además del de Red eléctrica de cada receptor.
 [/list]
-Compatible con todos los dispositivos eléctricos del juego base y, de forma opcional, con [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] y [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url].
+Compatible con todos los dispositivos eléctricos del juego base y, automáticamente, con las piezas eléctricas de otros mods que usan el almacenamiento de baterías estándar (por ejemplo, [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] y [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url]).
 
 [h2]Logística con cintas transportadoras[/h2]
 Las piezas están en las pestañas [b]Almacenamiento[/b] y [b]Potencia[/b].

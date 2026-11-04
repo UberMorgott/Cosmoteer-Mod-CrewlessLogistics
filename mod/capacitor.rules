@@ -1,4 +1,4 @@
-// Shared source bus plus a reserve charged from reactors only. Sockets are generated in sources.rules.
+// Shared source bus plus a reserve charged from reactors only. Sockets are added by NetworkCoverage (belts DLL).
 Components : <source-components.rules>/Components
 {
     CrewlessLogisticsCanTransfer : ^/0/CrewlessLogisticsCanTransfer { Toggles = [ConsumptionToggle, CrewlessLogisticsToggle] }

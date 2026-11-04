@@ -15,13 +15,15 @@ sealed partial class NativeProbe
             foreach (var path in Directory.GetFiles(modDirectory, "*.rules", SearchOption.AllDirectories)) Open(path);
             Require((string)ReadRuleObject(modFile, "ID", typeof(string)) == "morgott.crewless_logistics", "Wrong package ID");
             LocalizationProbe(modFile, modDirectory);
-            MultiplayerPortabilityProbe();
             var actionsType = typeof(List<>).MakeGenericType(Game("Cosmoteer.Mods.ModAction"));
             var actions = (IList)ReadRuleObject(modFile, "Actions", actionsType);
             var root = Open(Path.Combine(gameRoot, "Data", "cosmoteer.rules"));
             foreach (var action in actions) Call(action!, "ApplyAction", root);
-            using var consumerMapping = JsonDocument.Parse(File.ReadAllText(Path.Combine(projectRoot, "docs", "consumer-coverage.json")));
-            Require(actions.Count == 60 + consumerMapping.RootElement.GetProperty("moddedGeneratedActions").GetInt32(), "Unexpected vanilla/enabled-mod compatibility action count");
+            // Device sockets come from the belts DLL at game load (after all mod actions): apply the same code here.
+            // Its exact output is pinned by belts/tests (coverage-baseline.tsv equivalence + inheriting-part fixture).
+            var coverage = Assembly.LoadFrom(Path.Combine(AppContext.BaseDirectory, "CrewlessLogistics.Belts.dll")).GetType("CrewlessLogistics.Belts.NetworkCoverage", true)!;
+            var coverageReport = coverage.GetMethod("Apply", BindingFlags.Public | BindingFlags.Static)!.Invoke(null, new[] { root })!;
+            Require(Field(coverageReport.GetType(), "NotApplied").GetValue(coverageReport) == null && ((IDictionary)Field(coverageReport.GetType(), "Covered").GetValue(coverageReport)!).Count == 4, "NetworkCoverage did not cover consumers, the engine room, reactors and the capacitor");
             ValidateCableMaterialLayer(root);
             CableEditorMetadataProbe();
             var crossingFile = Open(Path.Combine(modDirectory, "cable_crossing.rules"));
@@ -118,8 +120,6 @@ sealed partial class NativeProbe
             CableAvailabilityAndGraphics(root, reactor);
             SourceStoragePackageProbe(root);
             EngineRoomPowerProbe(root);
-            ValidateConsumerCoverage(root);
-            ValidateModdedDevices();
             OverlayPlacementProbe(root);
             scenarioResults.Add(new { name = "installable rules-only package", nativeActions = actions.Count, parsedComponents = added.Count });
             var report = Path.Combine(projectRoot, "artifacts", "whole-cell-native", "package-validation.json");

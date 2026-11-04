@@ -3,17 +3,19 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using Cosmoteer.Data;
 using Cosmoteer.Game;
 using Cosmoteer.Game.Multiplayer;
 using Cosmoteer.Ships;
 using Cosmoteer.Ships.Parts;
+using Halfling.ObjectText;
 using Halfling.Serialization.Generic;
 using HarmonyLib;
 
 namespace CrewlessLogistics.Belts;
 
 /// <summary>
-/// Installs the four belt patches all-or-nothing (SharedShip pattern, docs/BELTS_DESIGN.md §10 version guard).
+/// Installs the four belt patches and the network-coverage hook all-or-nothing (SharedShip pattern, docs/BELTS_DESIGN.md §10 version guard).
 /// Any failure, including a ReadyToRun-inlined copy of a target that a detour would miss, rolls back and leaves
 /// the game vanilla (<see cref="Enabled"/> = false).
 /// </summary>
@@ -38,6 +40,9 @@ internal static class Patcher
         // Ship.GetIntegrityHash (Ship.cs:1294): hash payload + protocol version.
         AccessTools.Method(typeof(Ship), nameof(Ship.GetIntegrityHash), new[] { typeof(IntegrityHash) })
             ?? throw new MissingMethodException("Ship.GetIntegrityHash(IntegrityHash)"),
+        // Private Assets.ApplyPreLoadMods(OTFile) (Assets.cs:426): after every mod action, before Read<Rules>.
+        AccessTools.Method(typeof(Assets), "ApplyPreLoadMods", new[] { typeof(OTFile) })
+            ?? throw new MissingMethodException("Assets.ApplyPreLoadMods(OTFile)"),
     };
 
     private static MethodInfo ExplicitWriteTo()
@@ -65,6 +70,7 @@ internal static class Patcher
             harmony.Patch(t[1], postfix: Hook(nameof(Hooks.PartLoadPostfix)));
             harmony.Patch(t[2], postfix: Hook(nameof(Hooks.PartWritePostfix)));
             harmony.Patch(t[3], postfix: Hook(nameof(Hooks.ShipHashPostfix)));
+            harmony.Patch(t[4], postfix: new HarmonyMethod(AccessTools.Method(typeof(NetworkCoverage), nameof(NetworkCoverage.Postfix))));
             foreach (MethodBase m in t)
             {
                 if (Harmony.GetPatchInfo(m)?.Postfixes.Any(p => p.owner == HarmonyId) != true)
@@ -98,7 +104,7 @@ internal static class Patcher
         RefuseInlinedTargets(t);
         r.Add((true, "P1 no R2R-inlined copies of: " + string.Join("; ", t.Select(m => m.FullDescription()))));
         Apply();
-        r.Add((Enabled, "P1 Apply enabled (4 postfixes installed and verified)"));
+        r.Add((Enabled, $"P1 Apply enabled ({t.Length} postfixes installed and verified)"));
         foreach (MethodBase m in t)
         {
             r.Add((Harmony.GetPatchInfo(m)?.Postfixes.Count(p => p.owner == HarmonyId) == 1, $"P1 one postfix on {m.DeclaringType?.Name}.{m.Name}"));

@@ -18,7 +18,7 @@ Crewless Logistics
 [*]优先由反应堆供电。只有所有相连反应堆都没有整块电池时，电容器才会供电；设备供电完成后，反应堆再为电容器充电。
 [*][b]引擎室[/b]从电网取电，再把电池送给它所强化的引擎和推进器。请开启引擎室的电网和电力分配开关，以及各接收设备的电网开关。
 [/list]
-支持原版全部用电设备，也可选配兼容[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url]和[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url]。
+支持原版全部用电设备，并自动兼容其他模组中使用标准电池存储的用电部件（例如[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url]）。
 
 [h2]传送带物流[/h2]
 部件位于[b]储存[/b]和[b]能源[/b]标签页。

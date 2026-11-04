@@ -22,7 +22,7 @@ Include the mod version from the Mods list, the game version from the bottom-lef
 - **Electrical Network** switch on every reactor, capacitor and powered device: **off by default**, with its setting saved. Each participant needs its own switch on.
 - **Reactors supply first.** Capacitors supply only while no reachable reactor has a whole battery. Capacitors charge through the network only from reactors, after devices have been supplied.
 - **Engine Rooms** receive network power and pass batteries to the engines and thrusters they buff. The room's Electrical Network and power distribution switches must be on, as must each recipient's Electrical Network switch.
-- Supports all vanilla powered devices, plus parts from the optional Workshop mods **Diagonal Thruster Plus** (3 thrusters) and **Diagonal Cockpits** (4 control rooms). Compatibility patches apply only if those mods are installed.
+- Supports all vanilla powered devices and powered parts from other mods that use standard battery storage (for example **Diagonal Thruster Plus** and **Diagonal Cockpits**). Sockets are added at game load; unsupported parts are listed in `Logs\CrewlessLogistics.Belts.log`.
 - Green lamps on electrical cables and crew crossings light up when a connected source has a whole battery.
 - **Resource logistics** (Storage and Power tabs): crew-walkable two-lane conveyor belts that curve automatically and accept side-loading, a 1x2 splitter with input/output priority and a filter, a directional connector that moves one chosen resource between a room, a belt or another room (filter Auto by default), and a straight belt crossing that adapts to a Heat Pipe or electrical cable under it (crew walk along the belt at 70% speed).
 - The energy network is rules-only; belts run in a small C# library (`CrewlessLogistics.Belts.dll`) loaded by Yet Another Mod Loader. UI text in all eight game languages.
@@ -47,12 +47,11 @@ After an update, restart the game before joining.
 Requires Windows, PowerShell 7, the .NET 10 SDK, an installed Cosmoteer, Yet Another Mod Loader (its `0Harmony.dll` is referenced from the Workshop folder) and the publicizer tool `dotnet tool install -g BepInEx.AssemblyPublicizer.Cli` (see `belts/CrewlessLogistics.Belts.csproj`).
 
 ```powershell
-dotnet build; dotnet test                            # belt sim + native probe tests (CrewlessLogistics.sln)
-& .\tools\Update-DeviceCompatibility.ps1            # regenerate compatibility + run native checks
-& .\tools\Update-DeviceCompatibility.ps1 -Install   # ...then install into the game profile
+dotnet build; dotnet test                            # belt sim, network coverage + native probe tests (CrewlessLogistics.sln)
+& .\Install-Mod.ps1                                 # build Release DLL, install into the game profile
 ```
 
-Parameters: `-GameRoot` (default `D:\Steam\steamapps\common\Cosmoteer`), `-ModsDirectory` (default: the single profile under `%USERPROFILE%\Saved Games\Cosmoteer\`). The script reads the enabled-mod list, regenerates `mod/generated.actions.rules` and `docs/*.json`, and runs the isolated native probe in `prototypes/whole-cell-native` against the game's own assemblies (copied to `artifacts/`, never committed). Details: [`docs/TECHNICAL.md`](docs/TECHNICAL.md), [`docs/PORT_COVERAGE.md`](docs/PORT_COVERAGE.md).
+`Install-Mod.ps1 -ModsDirectory <path>` overrides the default single profile under `%USERPROFILE%\Saved Games\Cosmoteer\`. Device network sockets are added at game load by the DLL (`belts/src/NetworkCoverage.cs`), for vanilla and modded parts alike; nothing is regenerated per enabled-mod set. Details: [`docs/TECHNICAL.md`](docs/TECHNICAL.md), [`docs/PORT_COVERAGE.md`](docs/PORT_COVERAGE.md).
 
 ## Notes
 

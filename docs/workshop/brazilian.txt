@@ -18,7 +18,7 @@ Os cabos levam baterias inteiras dos reatores e capacitores de energia diretamen
 [*]Os reatores fornecem primeiro. Os capacitores só fornecem quando nenhum reator conectado tem uma bateria inteira; eles são recarregados pelos reatores depois que os dispositivos são abastecidos.
 [*]As [b]salas dos motores[/b] recebem energia da rede e passam baterias aos motores e propulsores que fortalecem. Ligue os interruptores de rede elétrica e distribuição de energia da sala, além do interruptor de rede elétrica de cada dispositivo que ela abastece.
 [/list]
-Compatível com todos os dispositivos elétricos do jogo base, com suporte opcional a [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] e [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url].
+Compatível com todos os dispositivos elétricos do jogo base e, automaticamente, com peças elétricas de outros mods que usam o armazenamento de baterias padrão (por exemplo, [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] e [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url]).
 
 [h2]Logística com esteiras[/h2]
 As peças ficam nas abas [b]Armazenamento[/b] e [b]Energia[/b].

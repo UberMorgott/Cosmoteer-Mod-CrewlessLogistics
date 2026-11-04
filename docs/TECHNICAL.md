@@ -23,24 +23,22 @@ Installation-time discovery reads the native part registry after the enabled mod
 
 The current catalog contains the 96 vanilla parts plus 10 modded parts. It finds all 47 vanilla consumers, three reactors, the capacitor, and seven added standard-battery consumers: four diagonal control rooms and three diagonal thrusters. The other three added parts are ammunition magazines.
 
-Discovery runs outside the game. The generated compatibility is rules only; no discovery code is installed. Regenerate after changing enabled mods, their versions or installation paths. Custom DLL-created parts, custom resources and unknown storage transformations require separate compatibility work; reading declarative rules cannot establish their runtime behavior.
+Discovery runs in the game, once per load: `CrewlessLogistics.Belts.dll` postfixes the private `Assets.ApplyPreLoadMods(OTFile)`, which runs after every enabled mod's native actions and before the rules are read, and adds the adapters to each registered part's own Components overlay (`belts/src/NetworkCoverage.cs`, see `docs/PORT_COVERAGE.md`). Without the DLL (loader missing, game update breaking a patch target) devices get no sockets; the log says so. Custom DLL-created parts, custom resources and unknown storage transformations are skipped with a logged reason.
 
 ## Build, verify and install
 
 ```powershell
-& .\tools\Update-DeviceCompatibility.ps1 -Install
+dotnet test; & .\Install-Mod.ps1
 ```
 
-This rebuilds the native metadata catalog, generates adapters/ports, runs the isolated native checks, then installs the verified package. It reads the active profile's enabled-mod list without changing it. The installer backs up the previous Crewless Logistics directory and checks copied files by SHA-256. Running processes, saves and unrelated mods are preserved. Save your session and reload the game yourself to load the update.
-
-To regenerate and verify without installing, omit `-Install`. To copy an already generated and verified package, run `Install-Mod.ps1`.
+`dotnet test` includes the coverage fixture and the equivalence check against `belts/tests/coverage-baseline.tsv`. The installer builds the Release DLL, backs up the previous Crewless Logistics directory and checks copied files by SHA-256 (the `.workshop` item link is kept). Running processes, saves and unrelated mods are preserved. Save your session and reload the game yourself to load the update.
 
 ## Verification boundaries
 
-The isolated host invokes the installed game's parser, mod actions, storage, queries, converters, integer distributor and topology code. Regression cases cover whole-cell conservation, consumer/source priorities, inline capacitors, source indication, independent heat/electric networks, preview quads, perimeter geometry and native overlay placement helpers. Evidence is written under `artifacts/whole-cell-native/` and `artifacts/perimeter-edge-validation.json`.
+The isolated host invokes the installed game's parser, mod actions, storage, queries, converters, integer distributor and topology code. Regression cases cover whole-cell conservation, consumer/source priorities, inline capacitors, source indication, independent heat/electric networks, preview quads, perimeter geometry and native overlay placement helpers. Evidence is written under `artifacts/whole-cell-native/`; perimeter geometry and device coverage are tested in `belts/tests` (`CoverageTests`, `GameTests.NetworkCoverageMatchesBaseline`).
 
 Ownership and lifecycle are synthetic and converter scheduling is stepped manually. Media factories are omitted from storage fixtures. Full GPU rendering, live scheduling, save/load, destruction, ship splitting, multiplayer and other mods' DLL behavior still need in-game testing.
 
 The vanilla editor shifts independent network diagrams inside the same device by one-sixth of a tile. Device electrical overlays therefore retain exact primary placement markers and suppress the shifted compatible-device icons/internal spokes. Physical sockets and cable artwork remain; diagnostic cable routes are hidden. This is not a replacement renderer for a complete aligned dual-network diagram.
 
-See `mod/README.md`, `docs/PORT_COVERAGE.md` and the generated `docs/device-catalog.json` for details. Native research and regression hosts are development tools and are not installed in the gameplay package.
+See `mod/README.md`, `docs/PORT_COVERAGE.md` and the catalog snapshot `docs/device-catalog.json` (from `prototypes/whole-cell-native/Run-Probe.ps1 -Catalog`) for details. Native research and regression hosts are development tools and are not installed in the gameplay package.

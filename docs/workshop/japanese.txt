@@ -18,7 +18,7 @@ Modとゲームのバージョン、他のMod、シングル／マルチプレ�
 [*]リアクターから優先供給。接続中のどのリアクターにも丸ごとのバッテリーがない場合のみ、コンデンサーが供給します。コンデンサーの充電は装置への供給後、リアクターから行われます。
 [*][b]機関室[/b]は電力網から給電を受け、強化対象のエンジンやスラスターへバッテリーを渡します。機関室の電力網・電力分配スイッチと、各供給先の電力網スイッチをオンにしてください。
 [/list]
-標準ゲームの電力を使う全装置に対応。[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] と [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url] にも任意で対応できます。
+標準ゲームの電力を使う全装置に対応。標準のバッテリー貯蔵を使う他のMODの電力パーツにも自動で対応します（例：[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url]、[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url]）。
 
 [h2]コンベアで物資輸送[/h2]
 パーツは[b]保管[/b]・[b]動力[/b]タブにあります。

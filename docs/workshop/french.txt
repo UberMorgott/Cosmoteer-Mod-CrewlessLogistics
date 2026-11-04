@@ -18,7 +18,7 @@ Les câbles acheminent des batteries entières des réacteurs et des condensateu
 [*]Les réacteurs fournissent les batteries en priorité. Les condensateurs ne le font que si aucun réacteur raccordé ne possède de batterie entière ; ils se rechargent auprès des réacteurs une fois les appareils alimentés.
 [*]Les [b]salles des machines[/b] reçoivent l'énergie du réseau et transmettent des batteries aux moteurs et propulseurs qu'elles renforcent. Activez les interrupteurs de réseau électrique et de distribution d'énergie de la salle, ainsi que celui de réseau électrique de chaque appareil desservi.
 [/list]
-Compatible avec tous les appareils électriques du jeu de base, et en option avec [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] et [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url].
+Compatible avec tous les appareils électriques du jeu de base et, automatiquement, avec les pièces électriques d'autres mods qui utilisent le stockage de batteries standard (par exemple [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] et [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url]).
 
 [h2]Logistique par tapis roulants[/h2]
 Les pièces se trouvent dans les onglets [b]Soutes[/b] et [b]Alimentation[/b].

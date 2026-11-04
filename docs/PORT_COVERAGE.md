@@ -2,17 +2,22 @@
 
 ## Current attachment policy
 
-Electrical cables may connect to every eligible physical perimeter edge of participating equipment. The generator excludes adjacent cells reserved inside the normal part size and cells covered by native prohibited-build rectangles for the cable's prohibition category. Directional restrictions are expanded from `Size` exactly as the native `PartRules` constructor does. Rotations and mirroring remain native.
+Electrical cables may connect to every eligible physical perimeter edge of participating equipment. Coverage excludes adjacent cells reserved inside the normal part size and cells covered by native prohibited-build rectangles for the cable's prohibition category. Directional restrictions are expanded from `Size` exactly as the native `PartRules` constructor does. Rotations and mirroring remain native.
 
-`tools/Generate-PerimeterPorts.ps1` contains the shared geometry function and regression cases. Existing thermal ports can occupy the same physical edge: electrical and thermal port types remain independent. Port geometry is never shifted to compensate for the editor's diagram layout.
+`belts/src/PortGeometry.cs` contains the geometry (regression cases in `belts/tests/CoverageTests.cs`); the prohibition categories are the cable part's `ProhibitedBy` (native default `default`). Existing thermal ports can occupy the same physical edge: electrical and thermal port types remain independent. Port geometry is never shifted to compensate for the editor's diagram layout.
 
 ## Discovery
 
-`prototypes/whole-cell-native/Run-Probe.ps1 -Catalog` uses the installed game's ObjectText parser and native mod actions to inspect the final registered parts after enabled declarative mods. It does not load mod DLLs or start the game. `docs/device-catalog.json` records source/mod ownership, geometry, storage graph, classification and unsupported reasons.
+`CrewlessLogistics.Belts.dll` (`belts/src/NetworkCoverage.cs`) postfixes the private `Cosmoteer.Data.Assets.ApplyPreLoadMods(OTFile)`: it runs once per game load after every enabled mod's native actions and before `Read<Rules>`. It reads each registered part through native ObjectText resolution (inheritance context kept), classifies it structurally (`belts/src/DeviceClassifier.cs`, no part IDs) and adds the adapter template as an inheritance base of the part's own Components group, the same edit `ModAddBaseAction` makes, plus local override and socket nodes. Every plan is built and its text parsed before the first edit; parts are processed in registry order, so all multiplayer clients with the same mods produce identical rules.
 
-The inspected registry contains 106 parts: 96 vanilla and 10 added by enabled mods. Electrical scope includes 47 vanilla consumers, three reactors, one capacitor and seven added consumers. The latter are four `evans.diagonal_cockpits` control rooms and three `Diagonalworks.DiagonalThrusterPlus` thrusters. Three `rustydios.chainguncornermag` parts are ammunition magazines and receive no electrical adapter.
+- Consumer: one battery `ResourceConsumer` resolving to one local physical battery store (whole cells). Rocket-style aggregates collapse to their one direct reserve.
+- Engine room: a `GridBuffProvider` with `BuffType = EnginePowerDistribution` and a battery aggregate reaching it through `ViaBuffs`.
+- Reactor: `reactor` category with a battery-producing converter into a verified local store.
+- Capacitor: the vanilla Power Capacitor contract only (`ConsumptionToggle`, `BatteryReceiverStorage`, `IsOverclocked`, `Overclock_DeliveryHeatProducer`); other `provides_power` parts are skipped.
 
-The compatibility generator creates ordinary native rules. Rebuild with `tools/Update-DeviceCompatibility.ps1 -Install` after enabled mods, versions or paths change. Declarative discovery cannot cover arbitrary future DLL-created devices or unknown custom resource/storage semantics automatically.
+Anything else with battery components is skipped with its reason in `Logs\CrewlessLogistics.Belts.log`. A registered part inheriting another covered part gets its own complete adapter locally, and inherited adapter children it must not have are voided (native `Name;` nodes, skipped by `PartRules`). Parts already holding `CrewlessLogistics*` components are left alone, which makes the hook idempotent.
+
+`belts/tests/coverage-baseline.tsv` is the resolved-component fingerprint of the former generated rules (vanilla plus Diagonal Thruster Plus and Diagonal Cockpits); the hook reproduces it with zero differences. `prototypes/whole-cell-native/Run-Probe.ps1 -Catalog` still writes the declarative `docs/device-catalog.json` snapshot.
 
 ## Storage constraints
 
