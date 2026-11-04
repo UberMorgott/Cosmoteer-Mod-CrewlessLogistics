@@ -1,6 +1,6 @@
 # Crewless Logistics
 
-A Cosmoteer mod for game version 0.30.5 (current version 0.4.3). Cables carry whole batteries from reactors and Power Capacitors straight to powered devices, freeing crew from battery runs, and conveyor belts move resources between rooms. Normal crew delivery still works alongside both.
+A Cosmoteer mod for game version 0.30.5 (current version 0.5.0). Cables carry whole batteries from reactors and Power Capacitors straight to powered devices, freeing crew from battery runs, and conveyor belts move resources between rooms. Normal crew delivery still works alongside both.
 
 **Steam Workshop:** <https://steamcommunity.com/sharedfiles/filedetails/?id=3827751334>
 
