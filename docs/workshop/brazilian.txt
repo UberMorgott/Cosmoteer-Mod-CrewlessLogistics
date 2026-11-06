@@ -19,6 +19,7 @@ Os cabos levam baterias inteiras dos reatores e capacitores de energia diretamen
 [*]As [b]salas dos motores[/b] recebem energia da rede e passam baterias aos motores e propulsores que fortalecem. Ligue os interruptores de rede elétrica e distribuição de energia da sala, além do interruptor de rede elétrica de cada dispositivo que ela abastece.
 [/list]
 Compatível com todos os dispositivos elétricos do jogo base e, automaticamente, com peças elétricas de outros mods que usam o armazenamento de baterias padrão (por exemplo, [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] e [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url]).
+Reatores e armazenamentos de energia de outros mods também entram na rede automaticamente e obedecem aos próprios interruptores. Peças que funcionam com outros recursos (por exemplo, hyperium) não são compatíveis.
 
 [h2]Logística com esteiras[/h2]
 As peças ficam nas abas [b]Armazenamento[/b] e [b]Energia[/b].
@@ -26,6 +27,7 @@ As peças ficam nas abas [b]Armazenamento[/b] e [b]Energia[/b].
 [*][b]Esteira transportadora:[/b] duas faixas para qualquer recurso empilhável, incluindo munição: balas, peças de míssil, enxofre e mais. Velocidade: 2 casas/s. Faz curvas automaticamente e aceita carregamento lateral. A tripulação pode andar sobre ela a 70% da velocidade.
 [*][b]Conector de esteira:[/b] uma caixa direcional que retira de salas ou esteiras atrás e ao lado dela e abastece a casa à frente. Conecta sala a esteira, esteira a sala, sala a sala ou esteira a esteira. Funciona com porões de carga, fábricas e armas. Não precisa de energia.
 [*][b]Filtro da esteira:[/b] Automático por padrão: deixa passar o único recurso que os dois lados podem usar; caso contrário, nada passa. Escolha Qualquer, um recurso específico ou Nenhum para parar. As fontes se revezam por padrão; a prioridade Atrás/Esquerda/Direita retira primeiro daquele lado.
+[*]As esteiras também transportam e filtram recursos de outros mods, como os do Extended Tech Tree (prata, letálio…). A lista do filtro quebra em várias linhas para caber na tela.
 [*][b]Divisor de esteira (1x2):[/b] alterna os itens entre duas saídas e também pode juntar duas esteiras. Defina prioridades de entrada/saída ou use um filtro para enviar o recurso escolhido a um lado.
 [*][b]Cruzamento de esteira:[/b] uma esteira reta sobre um termoduto ou cabo elétrico. Os itens seguem por um eixo e o calor ou as baterias pelo outro.
 [*]As peças das esteiras mostram os danos. Quando uma peça é destruída ou removida, os itens sobre ela caem no chão.
@@ -49,5 +51,5 @@ As esteiras funcionam por meio de uma biblioteca C# e precisam de [url=https://s
 
 [h2]Multijogador e limitações[/h2]
 Todos os jogadores precisam da mesma versão do mod, do mesmo carregador e da mesma versão do jogo.
-Jogos salvos na 0.6.0 não podem ser carregados na 0.5.0 ou anteriores.
+Jogos salvos na 0.6.0 não podem ser carregados na 0.5.0 nem em versões anteriores.
 Só são transportadas baterias inteiras. Dispositivos de mods que incluam DLL ou usem tipos próprios de energia não são compatíveis.

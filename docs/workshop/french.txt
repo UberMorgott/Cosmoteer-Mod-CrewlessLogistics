@@ -19,6 +19,7 @@ Les câbles acheminent des batteries entières des réacteurs et des condensateu
 [*]Les [b]salles des machines[/b] reçoivent l'énergie du réseau et transmettent des batteries aux moteurs et propulseurs qu'elles renforcent. Activez les interrupteurs de réseau électrique et de distribution d'énergie de la salle, ainsi que celui de réseau électrique de chaque appareil desservi.
 [/list]
 Compatible avec tous les appareils électriques du jeu de base et, automatiquement, avec les pièces électriques d'autres mods qui utilisent le stockage de batteries standard (par exemple [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] et [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url]).
+Les réacteurs et stockages d'énergie d'autres mods rejoignent aussi automatiquement le réseau, commandés par leurs propres interrupteurs. Les pièces qui fonctionnent avec d'autres ressources (par exemple l'hyperium) ne sont pas prises en charge.
 
 [h2]Logistique par tapis roulants[/h2]
 Les pièces se trouvent dans les onglets [b]Soutes[/b] et [b]Alimentation[/b].
@@ -26,6 +27,7 @@ Les pièces se trouvent dans les onglets [b]Soutes[/b] et [b]Alimentation[/b].
 [*][b]Tapis roulant :[/b] deux voies pour toute ressource empilable, y compris les munitions : balles, pièces de missiles, soufre et autres. Vitesse : 2 cases/s. Tourne automatiquement et accepte le chargement latéral. L'équipage peut marcher dessus à 70% de sa vitesse.
 [*][b]Connecteur de tapis :[/b] un boîtier orienté qui prélève dans les salles ou tapis derrière lui et sur ses côtés pour alimenter la case devant lui. Relie salle à tapis, tapis à salle, salle à salle ou tapis à tapis. Fonctionne avec les soutes, les usines et les armes. Aucune énergie requise.
 [*][b]Filtre du tapis :[/b] Auto par défaut : laisse passer la seule ressource utilisable des deux côtés, sinon rien. Choisissez N'importe laquelle, une ressource précise ou Aucun pour l'arrêter. Les sources alternent par défaut ; la priorité Arrière/Gauche/Droite prélève d'abord de ce côté.
+[*]Les tapis transportent et filtrent aussi les ressources d'autres mods, par exemple Extended Tech Tree (argent, létalium…). La liste du filtre passe à la ligne pour tenir à l'écran.
 [*][b]Répartiteur de tapis (1x2) :[/b] répartit les objets en alternance entre deux sorties et peut fusionner deux tapis. Réglez les priorités d'entrée/sortie ou utilisez un filtre pour envoyer la ressource choisie d'un côté.
 [*][b]Croisement de tapis :[/b] un tapis droit au-dessus d'un conduit thermique ou d'un câble électrique. Les objets circulent sur un axe, la chaleur ou les batteries sur l'autre.
 [*]Les pièces des tapis affichent les dégâts. Les objets qu'elles portent tombent au sol si elles sont détruites ou retirées.
@@ -49,5 +51,5 @@ Les tapis fonctionnent grâce à une bibliothèque C# et nécessitent [url=https
 
 [h2]Multijoueur et limites[/h2]
 Tous les joueurs doivent avoir la même version du mod, le même chargeur et la même version du jeu.
-Les sauvegardes créées avec la 0.6.0 ne peuvent pas être chargées par la 0.5.0 ou antérieure.
+Les sauvegardes créées avec la 0.6.0 ne peuvent pas être chargées dans la 0.5.0 ni dans les versions antérieures.
 Seules les batteries entières sont transportées. Les appareils des mods qui incluent des DLL ou utilisent leurs propres types d'énergie ne sont pas pris en charge.

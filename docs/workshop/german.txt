@@ -19,6 +19,7 @@ Kabel bringen ganze Batterien von Reaktoren und Energiekondensatoren direkt zu e
 [*][b]Maschinenräume[/b] beziehen Strom aus dem Netz und geben Batterien an die Motoren und Schubdüsen weiter, die sie verstärken. Aktiviere im Raum die Schalter für Stromnetz und Energieverteilung sowie den Stromnetz-Schalter jedes Empfängers.
 [/list]
 Unterstützt alle elektrischen Geräte des Grundspiels und automatisch auch elektrische Bauteile anderer Mods mit Standard-Batteriespeicher (zum Beispiel [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] und [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url]).
+Reaktoren und Energiespeicher anderer Mods werden ebenfalls automatisch ins Netz eingebunden und über ihre eigenen Schalter gesteuert. Teile, die mit anderen Ressourcen laufen (zum Beispiel Hyperium), werden nicht unterstützt.
 
 [h2]Logistik mit Förderbändern[/h2]
 Die Teile findest du in den Reitern [b]Lagerung[/b] und [b]Energie[/b].
@@ -26,6 +27,7 @@ Die Teile findest du in den Reitern [b]Lagerung[/b] und [b]Energie[/b].
 [*][b]Förderband:[/b] zwei Spuren für alle stapelbaren Ressourcen, auch Munition: Kugeln, Raketenteile, Schwefel und mehr. Geschwindigkeit: 2 Felder/s. Biegt automatisch ab und nimmt Gegenstände von der Seite auf. Die Crew kann mit 70% Geschwindigkeit darauf laufen.
 [*][b]Bandverbinder:[/b] eine gerichtete Box, die aus Räumen oder Bändern hinter und neben sich zieht und das Feld vor sich versorgt. Verbindet Raum mit Band, Band mit Raum, Raum mit Raum oder Band mit Band. Funktioniert mit Frachträumen, Fabriken und Waffen. Braucht keine Energie.
 [*][b]Bandfilter:[/b] Standardmäßig Automatisch: Lässt die einzige Ressource durch, die beide Seiten nutzen können, sonst nichts. Wähle Beliebig, eine Ressource oder Keine zum Anhalten. Quellen wechseln sich standardmäßig ab; mit der Priorität Hinten/Links/Rechts wird zuerst von dieser Seite genommen.
+[*]Bänder transportieren und filtern auch Ressourcen aus anderen Mods, zum Beispiel aus Extended Tech Tree (Silber, Letalium …). Die Filterliste bricht um, damit sie auf den Bildschirm passt.
 [*][b]Bandverteiler (1x2):[/b] verteilt Gegenstände abwechselnd auf zwei Ausgänge und kann zwei Bänder zusammenführen. Lege Eingangs-/Ausgangsprioritäten fest oder leite eine gewählte Ressource per Filter auf eine Seite.
 [*][b]Bandkreuzung:[/b] ein gerades Förderband über einem Wärmerohr oder Stromkabel. Gegenstände bewegen sich entlang einer Achse, Wärme oder Batterien entlang der anderen.
 [*]Bandteile zeigen Schäden an. Wird ein Teil zerstört oder entfernt, fallen die Gegenstände darauf herunter.
@@ -49,5 +51,5 @@ Förderbänder laufen über eine C#-Bibliothek und benötigen [url=https://steam
 
 [h2]Mehrspieler und Grenzen[/h2]
 Alle Spieler brauchen dieselbe Mod-Version, denselben Loader und dieselbe Spielversion.
-Mit 0.6.0 erstellte Spielstände können von 0.5.0 oder älter nicht geladen werden.
+Mit 0.6.0 erstellte Spielstände lassen sich in 0.5.0 und älteren Versionen nicht laden.
 Es werden nur ganze Batterien transportiert. Geräte aus Mods, die DLL-Dateien mitbringen oder eigene Energiearten nutzen, werden nicht unterstützt.

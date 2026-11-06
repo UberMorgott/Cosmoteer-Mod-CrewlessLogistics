@@ -19,6 +19,7 @@ Cables carry whole batteries from reactors and Power Capacitors straight to powe
 [*][b]Engine Rooms[/b] receive network power and pass batteries to the engines and thrusters they buff. Enable the room's Electrical Network and power distribution switches, plus each recipient's Electrical Network switch.
 [/list]
 Supports all vanilla powered devices and, automatically, powered parts from other mods that use standard battery storage (for example [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] and [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url]).
+Reactors and power storages from other mods also join the network automatically, controlled by their own switches. Parts that run on other resources (for example hyperium) are not covered.
 
 [h2]Conveyor logistics[/h2]
 Parts are in the [b]Storage[/b] and [b]Power[/b] tabs.
@@ -26,6 +27,7 @@ Parts are in the [b]Storage[/b] and [b]Power[/b] tabs.
 [*][b]Conveyor belt:[/b] two lanes carrying any stackable resource, including ammo: bullets, missile parts, sulfur and more. Speed: 2 tiles/s. Curves automatically and accepts side-loading. Crew can walk on belts at 70% speed.
 [*][b]Belt connector:[/b] a directional box pulling from rooms or belts behind and beside it, feeding the cell in front. Connect room to belt, belt to room, room to room or belt to belt. Works with cargo holds, factories and weapons. Needs no power.
 [*][b]Connector filter:[/b] Auto by default: passes the only resource both sides can use, otherwise nothing. Choose Any, one resource, or None to stop it. Sources take turns by default; Back/Left/Right priority takes from that side first.
+[*]Belts also carry and filter resources added by other mods, for example Extended Tech Tree (silver, letalium...). The filter list wraps to fit the screen.
 [*][b]Belt splitter (1x2):[/b] alternates items between two outputs and can merge two belts. Set input/output priorities or use a resource filter to send the chosen resource to one side.
 [*][b]Belt crossing:[/b] a straight belt over a Heat Pipe or electrical cable. Items travel along one axis, heat or batteries along the other.
 [*]Belt parts show damage. Items on a part drop when it is destroyed or removed.

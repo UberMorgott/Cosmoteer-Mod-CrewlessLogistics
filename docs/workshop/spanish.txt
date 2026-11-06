@@ -19,6 +19,7 @@ Los cables llevan baterías enteras desde reactores y Condensadores de Potencia 
 [*]Las [b]Salas de Máquinas[/b] reciben energía de la red y pasan baterías a los motores y propulsores que potencian. Activa los interruptores de Red eléctrica y distribución de energía de la sala, además del de Red eléctrica de cada receptor.
 [/list]
 Compatible con todos los dispositivos eléctricos del juego base y, automáticamente, con las piezas eléctricas de otros mods que usan el almacenamiento de baterías estándar (por ejemplo, [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3602446152]Diagonal Thruster Plus[/url] y [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3541853292]Diagonal Cockpits[/url]).
+Los reactores y almacenes de energía de otros mods también se conectan a la red automáticamente y se controlan con sus propios interruptores. Las piezas que funcionan con otros recursos (por ejemplo, el hyperium) no son compatibles.
 
 [h2]Logística con cintas transportadoras[/h2]
 Las piezas están en las pestañas [b]Almacenamiento[/b] y [b]Potencia[/b].
@@ -26,6 +27,7 @@ Las piezas están en las pestañas [b]Almacenamiento[/b] y [b]Potencia[/b].
 [*][b]Cinta transportadora:[/b] dos carriles para cualquier recurso apilable, incluida la munición: balas, piezas de misil, azufre y más. Velocidad: 2 casillas/s. Gira automáticamente y admite carga lateral. La tripulación puede caminar sobre ella al 70% de su velocidad.
 [*][b]Conector de cinta:[/b] una caja direccional que extrae de las salas o cintas situadas detrás y a sus lados y abastece la casilla de delante. Conecta sala con cinta, cinta con sala, sala con sala o cinta con cinta. Funciona con bodegas, fábricas y armas. No necesita energía.
 [*][b]Filtro de cinta:[/b] Automático por defecto: deja pasar el único recurso que ambos lados pueden usar; si no, nada. Elige Cualquiera, un recurso o Ninguno para detenerlo. Las fuentes se turnan por defecto; la prioridad Detrás/Izquierda/Derecha toma primero de ese lado.
+[*]Las cintas también transportan y filtran recursos de otros mods, por ejemplo de Extended Tech Tree (plata, letalio…). La lista del filtro se reparte en varias filas para caber en pantalla.
 [*][b]Divisor de cinta (1x2):[/b] alterna los objetos entre dos salidas y también puede unir dos cintas. Configura las prioridades de entrada/salida o usa un filtro para enviar el recurso elegido a un lado.
 [*][b]Cruce de cinta:[/b] una cinta recta sobre un Tubo de Calor o un cable eléctrico. Los objetos avanzan por un eje y el calor o las baterías por el otro.
 [*]Las piezas de las cintas muestran los daños. Si una pieza se destruye o se retira, los objetos que llevaba caen al suelo.
@@ -49,5 +51,5 @@ Las cintas funcionan mediante una biblioteca de C# y necesitan [url=https://stea
 
 [h2]Multijugador y limitaciones[/h2]
 Todos los jugadores necesitan la misma versión del mod, el mismo cargador y la misma versión del juego.
-Las partidas guardadas con la 0.6.0 no se pueden cargar con la 0.5.0 o anteriores.
+Las partidas guardadas con la 0.6.0 no se pueden cargar en la 0.5.0 ni en versiones anteriores.
 Solo se transportan baterías enteras. No se admiten dispositivos de mods que incluyan archivos DLL o usen sus propios tipos de energía.
