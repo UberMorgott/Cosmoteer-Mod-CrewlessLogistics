@@ -49,4 +49,5 @@ Las cintas funcionan mediante una biblioteca de C# y necesitan [url=https://stea
 
 [h2]Multijugador y limitaciones[/h2]
 Todos los jugadores necesitan la misma versión del mod, el mismo cargador y la misma versión del juego.
+Las partidas guardadas con la 0.6.0 no se pueden cargar con la 0.5.0 o anteriores.
 Solo se transportan baterías enteras. No se admiten dispositivos de mods que incluyan archivos DLL o usen sus propios tipos de energía.

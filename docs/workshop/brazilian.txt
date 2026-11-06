@@ -49,4 +49,5 @@ As esteiras funcionam por meio de uma biblioteca C# e precisam de [url=https://s
 
 [h2]Multijogador e limitações[/h2]
 Todos os jogadores precisam da mesma versão do mod, do mesmo carregador e da mesma versão do jogo.
+Jogos salvos na 0.6.0 não podem ser carregados na 0.5.0 ou anteriores.
 Só são transportadas baterias inteiras. Dispositivos de mods que incluam DLL ou usem tipos próprios de energia não são compatíveis.

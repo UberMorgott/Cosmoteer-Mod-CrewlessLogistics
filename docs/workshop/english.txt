@@ -49,4 +49,5 @@ Conveyors run in a C# library and need [url=https://steamcommunity.com/sharedfil
 
 [h2]Multiplayer and limits[/h2]
 All players need the same mod version, the same loader and the same game version.
+Saves made with 0.6.0 cannot be loaded by 0.5.0 or older.
 Only whole batteries move. Devices from mods that ship DLLs or use their own energy types are not supported.

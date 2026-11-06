@@ -15,7 +15,7 @@ body:
     attributes:
       label: Mod version
       description: Shown next to Crewless Logistics in the in-game Mods list.
-      placeholder: "0.5.0"
+      placeholder: "0.6.0"
     validations:
       required: true
   - type: input

@@ -49,4 +49,5 @@ Förderbänder laufen über eine C#-Bibliothek und benötigen [url=https://steam
 
 [h2]Mehrspieler und Grenzen[/h2]
 Alle Spieler brauchen dieselbe Mod-Version, denselben Loader und dieselbe Spielversion.
+Mit 0.6.0 erstellte Spielstände können von 0.5.0 oder älter nicht geladen werden.
 Es werden nur ganze Batterien transportiert. Geräte aus Mods, die DLL-Dateien mitbringen oder eigene Energiearten nutzen, werden nicht unterstützt.

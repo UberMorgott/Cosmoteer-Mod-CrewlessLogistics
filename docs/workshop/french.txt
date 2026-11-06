@@ -49,4 +49,5 @@ Les tapis fonctionnent grâce à une bibliothèque C# et nécessitent [url=https
 
 [h2]Multijoueur et limites[/h2]
 Tous les joueurs doivent avoir la même version du mod, le même chargeur et la même version du jeu.
+Les sauvegardes créées avec la 0.6.0 ne peuvent pas être chargées par la 0.5.0 ou antérieure.
 Seules les batteries entières sont transportées. Les appareils des mods qui incluent des DLL ou utilisent leurs propres types d'énergie ne sont pas pris en charge.

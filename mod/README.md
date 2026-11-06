@@ -1,4 +1,4 @@
-# Crewless Logistics 0.5.0
+# Crewless Logistics 0.6.0
 
 Cosmoteer mod for game 0.30.5. The electrical network is ordinary `.rules`; conveyor belts run in `CrewlessLogistics.Belts.dll`, which requires Yet Another Mod Loader (Workshop 3577650065). Trust the library in the Mods list.
 

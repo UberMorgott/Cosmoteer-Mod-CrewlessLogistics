@@ -2,13 +2,17 @@
 
 All notable changes to Crewless Logistics (formerly Powergrid). Versions match `mod/mod.rules` `Version`.
 
-## Unreleased
+## 0.6.0
 
-Saves and multiplayer use belt protocol 9: everyone in a game needs the same mod version and the same resource mods.
+Published on the stable Steam Workshop item 3827751334 (2026-11-06).
+
+Saves and multiplayer use belt protocol 9: everyone in a game needs the same mod version and the same resource mods. Saves made with 0.6.0 cannot be loaded by 0.5.0 or older.
 
 - Belts, splitters and connectors carry, deliver and filter stackable resources added by other mods (for example Extended Tech Tree), not only the 21 vanilla ones. The connector and splitter filters list them after the vanilla choices, with the resource's own icon and name. The log `Logs\CrewlessLogistics.Belts.log` lists the resource types found at game load.
 - Removing a resource mod: its items vanish from belts (everything else stays), and a connector filter set to it becomes None (a splitter filter becomes no filter), never another resource.
 - Older saves and ship files load unchanged.
+- Reactors and power storages from other mods (for example Extended Tech Tree) join the electrical network and are gated by their own on/off toggles, like vanilla ones. Only parts with their own energy types (hyperium) stay unsupported.
+- Fixed: overclockable power storages produced heat through the inherited vanilla producer instead of their own.
 
 ## 0.5.0
 
