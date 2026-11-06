@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Cosmoteer.Data;
 using Cosmoteer.Game.Multiplayer;
 using Cosmoteer.Resources;
@@ -15,7 +16,10 @@ namespace CrewlessLogistics.Belts;
 /// </summary>
 internal sealed class PartRoom : IRoom
 {
-    private static ID<ResourceRules>[]? _ids;
+    /// <summary>Engine IDs of <see cref="BeltTypes.Ids"/>, rebuilt when a rules load replaces the table.</summary>
+    private sealed record Table(string[] Src, ID<ResourceRules>[] Ids, Dictionary<ID<ResourceRules>, int> Index);
+
+    private static Table? _cache;
 
     private readonly Part _part;
     private readonly Ship _ship;
@@ -26,20 +30,25 @@ internal sealed class PartRoom : IRoom
         _ship = ship;
     }
 
-    public static ID<ResourceRules>[] Ids => _ids ??= System.Array.ConvertAll(BeltTypes.Ids, s => new ID<ResourceRules>(s));
-
-    public static int IndexOf(ID<ResourceRules> id)
+    private static Table Cache()
     {
-        ID<ResourceRules>[] ids = Ids;
-        for (int i = 0; i < ids.Length; i++)
+        Table? c = _cache;
+        if (c == null || c.Src != BeltTypes.Ids)
         {
-            if (ids[i] == id)
+            ID<ResourceRules>[] ids = System.Array.ConvertAll(BeltTypes.Ids, s => new ID<ResourceRules>(s));
+            var index = new Dictionary<ID<ResourceRules>, int>();
+            for (int i = 0; i < ids.Length; i++)
             {
-                return i;
+                index[ids[i]] = i;
             }
+            _cache = c = new Table(BeltTypes.Ids, ids, index);
         }
-        return -1;
+        return c;
     }
+
+    public static ID<ResourceRules>[] Ids => Cache().Ids;
+
+    public static int IndexOf(ID<ResourceRules> id) => Cache().Index.TryGetValue(id, out int i) ? i : -1;
 
     /// <summary>P2 gate: storages and grid tiles only; never construction/repair/status sinks, airlocks or energy-network storages.</summary>
     private static bool IsEndpoint(object o) =>

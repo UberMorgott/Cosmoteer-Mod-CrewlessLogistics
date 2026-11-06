@@ -36,7 +36,8 @@ Part : <./Data/ships/terran/conveyor/conveyor.rules>/Part
             Roof = &<./Data/ships/terran/corridor/corridor.rules>/Part/Components/Graphics/Roof
         }
         // Never instantiated (both Include* false); only puts the vanilla single-nugget textures into the doodads_low
-        // atlas so the C# sim can draw belt items. Order = BeltTypes.Ids (belts/src/NodeState.cs).
+        // atlas so the C# sim can draw belt items. Order = BeltTypes.Vanilla (belts/src/NodeState.cs); other resources draw their
+        // first StackSprites entry, already in that atlas (stack sprites sit off-centre, so vanilla keeps its nuggets).
         BeltItemSprites
         {
             Type = Sprite

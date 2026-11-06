@@ -1,13 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using Cosmoteer.Data;
 using Cosmoteer.Game;
 using Cosmoteer.Game.Multiplayer;
 using Cosmoteer.Ships;
+using Cosmoteer.Ships.Blueprints;
 using Cosmoteer.Ships.Parts;
+using Halfling;
+using Halfling.ObjectBits;
 using Halfling.ObjectText;
 using Halfling.Serialization.Generic;
 using HarmonyLib;
@@ -43,6 +47,17 @@ internal static class Patcher
         // Private Assets.ApplyPreLoadMods(OTFile) (Assets.cs:426): after every mod action, before Read<Rules>.
         AccessTools.Method(typeof(Assets), "ApplyPreLoadMods", new[] { typeof(OTFile) })
             ?? throw new MissingMethodException("Assets.ApplyPreLoadMods(OTFile)"),
+        // Filter toggle modes are ints in ship metadata (ShipMetadata.cs:311): saves and design files carry the type
+        // table they were written under; loads remap modded modes before any part reads them (§7).
+        AccessTools.Method(typeof(ShipMetadata), nameof(ShipMetadata.ReadFrom), new[] { typeof(GenericSerialReader) })
+            ?? throw new MissingMethodException("ShipMetadata.ReadFrom(GenericSerialReader)"),
+        AccessTools.Method(typeof(ShipMetadata), nameof(ShipMetadata.WriteTo), new[] { typeof(GenericSerialWriter) })
+            ?? throw new MissingMethodException("ShipMetadata.WriteTo(GenericSerialWriter)"),
+        AccessTools.Method(typeof(Ship), nameof(Ship.SaveDesign), new[] { typeof(OBNode) })
+            ?? throw new MissingMethodException("Ship.SaveDesign(OBNode)"),
+        // Every design load (bytes, stream, PNG, file, base64) ends here; toggle states are read before the parts (Ship.cs:3198, 3484).
+        AccessTools.Method(typeof(Ship), nameof(Ship.Load), new[] { typeof(OBNode), typeof(string), typeof(int), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(ulong?), typeof(ObjectID) })
+            ?? throw new MissingMethodException("Ship.Load(OBNode, ...)"),
     };
 
     private static MethodInfo ExplicitWriteTo()
@@ -71,11 +86,15 @@ internal static class Patcher
             harmony.Patch(t[2], postfix: Hook(nameof(Hooks.PartWritePostfix)));
             harmony.Patch(t[3], postfix: Hook(nameof(Hooks.ShipHashPostfix)));
             harmony.Patch(t[4], postfix: new HarmonyMethod(AccessTools.Method(typeof(NetworkCoverage), nameof(NetworkCoverage.Postfix))));
+            harmony.Patch(t[5], postfix: Hook(nameof(Hooks.MetadataReadPostfix)));
+            harmony.Patch(t[6], postfix: Hook(nameof(Hooks.MetadataWritePostfix)));
+            harmony.Patch(t[7], postfix: Hook(nameof(Hooks.SaveDesignPostfix)));
+            harmony.Patch(t[8], prefix: Hook(nameof(Hooks.LoadDesignPrefix)));
             foreach (MethodBase m in t)
             {
-                if (Harmony.GetPatchInfo(m)?.Postfixes.Any(p => p.owner == HarmonyId) != true)
+                if (Harmony.GetPatchInfo(m) is not { } info || info.Postfixes.Concat(info.Prefixes).Count(p => p.owner == HarmonyId) != 1)
                 {
-                    throw new InvalidOperationException("postfix missing after Patch: " + m.FullDescription());
+                    throw new InvalidOperationException("patch missing after Patch: " + m.FullDescription());
                 }
             }
             Enabled = true;
@@ -107,7 +126,7 @@ internal static class Patcher
         r.Add((Enabled, $"P1 Apply enabled ({t.Length} postfixes installed and verified)"));
         foreach (MethodBase m in t)
         {
-            r.Add((Harmony.GetPatchInfo(m)?.Postfixes.Count(p => p.owner == HarmonyId) == 1, $"P1 one postfix on {m.DeclaringType?.Name}.{m.Name}"));
+            r.Add((Harmony.GetPatchInfo(m) is { } info && info.Postfixes.Concat(info.Prefixes).Count(p => p.owner == HarmonyId) == 1, $"P1 one patch on {m.DeclaringType?.Name}.{m.Name}"));
         }
         foreach (MethodBase m in FilterUi.Targets())
         {
@@ -172,12 +191,97 @@ internal static class Hooks
     public static void ShipHashPostfix(Ship __instance, IntegrityHash iHash)
     {
         iHash.AddHash(BeltState.ProtocolVersion);
+        iHash.AddHash(BeltTypes.Fingerprint);
         foreach (Part part in __instance.Parts)
         {
             if (BeltState.TryGet(part, out NodeState? s))
             {
                 BeltState.Hash(s, iHash);
             }
+        }
+    }
+
+    /// <summary>The table to persist: none while only vanilla types exist (their modes never move, old saves stay byte-identical).</summary>
+    private static string[]? Table => BeltTypes.Ids.Length > BeltTypes.Vanilla.Length ? BeltTypes.Ids : null;
+
+    private static bool NeedsRemap([NotNullWhen(true)] string[]? saved) => saved != null && !saved.SequenceEqual(BeltTypes.Ids);
+
+    /// <summary>Save games / MP joins: metadata is read before the parts (Ship.cs:1206-1211), which take their toggle modes from it.</summary>
+    public static void MetadataReadPostfix(ShipMetadata __instance, GenericSerialReader reader)
+    {
+        try
+        {
+            string[]? saved = reader.ReadOptionalFromPath<string[]?>(BeltState.TypesPath, null);
+            if (!NeedsRemap(saved))
+            {
+                return;
+            }
+            var changes = new List<((PartSaveData, ID<PartToggleGuiRules>) Key, int? State, int? Blueprint)>();
+            foreach (var (key, (state, blueprint)) in __instance.PartUIToggleStates)
+            {
+                if (BeltState.IsFilter(key.ComponentID, out bool splitter))
+                {
+                    changes.Add((key, state is int a ? BeltTypes.Remap(a, splitter, saved) : null, blueprint is int b ? BeltTypes.Remap(b, splitter, saved) : null));
+                }
+            }
+            foreach (var (key, state, blueprint) in changes)
+            {
+                __instance.PartUIToggleStates.Set(key, state);
+                __instance.PartUIToggleStates.Set(key, blueprint, blueprintMode: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error("metadata filter remap (modes kept as saved)", ex);
+        }
+    }
+
+    public static void MetadataWritePostfix(GenericSerialWriter writer)
+    {
+        if (Table is { } t)
+        {
+            writer.WriteToPath(BeltState.TypesPath, t);
+        }
+    }
+
+    public static void SaveDesignPostfix(OBNode node)
+    {
+        if (Table is { } t)
+        {
+            App.ObjectBitsSerializer.Write(node.GetOrMakeChild(BeltState.TypesPath), t);
+        }
+    }
+
+    /// <summary>Design files: rewrites the (in-memory) toggle states to the current table, and the table with them, so a reload is a no-op.</summary>
+    public static void LoadDesignPrefix(OBNode node)
+    {
+        try
+        {
+            if (!node.ContainsChild(BeltState.TypesPath) || !node.ContainsChild("PartUIToggleStates"))
+            {
+                return;
+            }
+            string[] saved = App.ObjectBitsSerializer.Read<string[]>(node[BeltState.TypesPath]);
+            if (!NeedsRemap(saved))
+            {
+                return;
+            }
+            var states = App.ObjectBitsSerializer.Read<Dictionary<(PartSaveData, ID<PartToggleGuiRules>), int>>(node["PartUIToggleStates"]);
+            foreach (var key in states.Keys.ToList())
+            {
+                if (BeltState.IsFilter(key.Item2, out bool splitter))
+                {
+                    states[key] = BeltTypes.Remap(states[key], splitter, saved);
+                }
+            }
+            node.RemoveChild("PartUIToggleStates");
+            App.ObjectBitsSerializer.Write(node.GetOrMakeChild("PartUIToggleStates"), states);
+            node.RemoveChild(BeltState.TypesPath);
+            App.ObjectBitsSerializer.Write(node.GetOrMakeChild(BeltState.TypesPath), BeltTypes.Ids);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("design filter remap (modes kept as saved)", ex);
         }
     }
 }

@@ -38,9 +38,18 @@ internal static partial class NetworkCoverage
             : $"automatic network coverage: {Covered.Values.Sum()} parts ({string.Join(", ", Covered.Select(k => k.Key + " " + k.Value))}), {Ports} sockets, {Derived} inheriting overlays, {Skipped.Count} skipped";
     }
 
-    /// <summary>Harmony postfix; the parameter name matches the original's.</summary>
+    /// <summary>Harmony postfix (belt resource table, then coverage); the parameter name matches the original's.</summary>
     public static void Postfix(OTFile rulesFile)
     {
+        try
+        {
+            Log.Info(ResourceTable.Apply(rulesFile));
+        }
+        catch (Exception ex)
+        {
+            BeltTypes.Set(BeltTypes.Vanilla);
+            Log.Error("belt resource types (vanilla table used)", ex);
+        }
         try
         {
             Report r = Apply(rulesFile);
@@ -464,7 +473,7 @@ internal static partial class NetworkCoverage
     }
 
     /// <summary>Native read with the node's inheritance context, as PartRules reads its fields.</summary>
-    private static bool Try<T>(IOTNode node, OTContext? ctx, string path, out T? value)
+    internal static bool Try<T>(IOTNode node, OTContext? ctx, string path, out T? value)
     {
         using SerialState state = SerialState.BeginOperation();
         state.SetOTContext(ctx);

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Cosmoteer.Data;
@@ -24,9 +25,9 @@ internal static class PartFlowProbe
     {
         var r = new List<(bool, string)>();
         var loader = new Loader(gameRoot);
-        string Set(uint m) => m == PartFlow.All ? "ALL" : m == 0 ? "-" : string.Join(",", Enumerable.Range(0, BeltTypes.Ids.Length).Where(i => (m >> i & 1) != 0).Select(i => BeltTypes.Ids[i]));
-        uint M(params string[] ids) => ids.Aggregate(0u, (m, s) => m | 1u << Array.IndexOf(BeltTypes.Ids, s));
-        void Expect(string part, uint inSet, uint outSet, int? missileType = null)
+        string Set(BigInteger m) => m == BeltTypes.AllMask ? "ALL" : m.IsZero ? "-" : string.Join(",", Enumerable.Range(0, BeltTypes.Ids.Length).Where(i => !(m >> i).IsEven).Select(i => BeltTypes.Ids[i]));
+        BigInteger M(params string[] ids) => ids.Aggregate(BigInteger.Zero, (m, s) => m | BigInteger.One << Array.IndexOf(BeltTypes.Ids, s));
+        void Expect(string part, BigInteger inSet, BigInteger outSet, int? missileType = null)
         {
             PartRules rules;
             try
@@ -63,32 +64,32 @@ internal static class PartFlowProbe
         Expect("factory_coil2", M("coil", "copper"), M("coil2"));
         Expect("factory_steel", M("iron"), M("steel"));
         Expect("reactor_small", 0, 0); // battery only: no belt types -> does not narrow
-        Expect("storage_2x2", PartFlow.All, PartFlow.All);
-        Expect("storage_4x4", PartFlow.All, PartFlow.All);
+        Expect("storage_2x2", BeltTypes.AllMask, BeltTypes.AllMask);
+        Expect("storage_4x4", BeltTypes.AllMask, BeltTypes.AllMask);
 
-        uint bullet = M("bullet"), sulfur = M("sulfur"), coilCopper = M("coil", "copper");
+        BigInteger bullet = M("bullet"), sulfur = M("sulfur"), coilCopper = M("coil", "copper");
         // Connector sets (D2): cargo -> cannon, factory_ammo -> cannon, belt -> factory_coil2, factory_he -> cannon, armor.
-        r.Add((PartFlow.Allowed(PartFlow.All, bullet) == bullet && PartFlow.Allowed(bullet, bullet) == bullet
-            && PartFlow.Allowed(PartFlow.All, coilCopper) == coilCopper && PartFlow.Allowed(M("missile_part_he"), bullet) == 0
-            && PartFlow.Allowed(0, 0) == PartFlow.All && PartFlow.Allowed(M("steel"), 0) == M("steel"),
+        r.Add((BeltTypes.Allowed(BeltTypes.AllMask, bullet) == bullet && BeltTypes.Allowed(bullet, bullet) == bullet
+            && BeltTypes.Allowed(BeltTypes.AllMask, coilCopper) == coilCopper && BeltTypes.Allowed(M("missile_part_he"), bullet) == 0
+            && BeltTypes.Allowed(0, 0) == BeltTypes.AllMask && BeltTypes.Allowed(M("steel"), 0) == M("steel"),
             "F2 allowed = Out(back) & In(front); no-flow side does not narrow; disjoint buildings -> empty"));
         // §22: a ruled-out choice -> Auto; Auto and explicit None (23) never rewritten; generic untouched.
         const int auto = BeltTypes.ModeAuto, none = BeltTypes.ModeNone;
-        r.Add((PartFlow.Normalize(bullet, auto) == auto && PartFlow.Normalize(bullet, none) == none && PartFlow.Normalize(bullet, 1) == auto
-            && PartFlow.Normalize(bullet, 2 + 5) == auto && PartFlow.Normalize(bullet, 17) == 17
-            && PartFlow.Normalize(coilCopper, 2 + 5) == auto && PartFlow.Normalize(coilCopper, 2 + 9) == 11 && PartFlow.Normalize(coilCopper, 1) == 1
-            && PartFlow.Normalize(coilCopper, none) == none && PartFlow.Normalize(PartFlow.All, 7) == 7 && PartFlow.Normalize(0, 2) == auto
-            && PartFlow.Normalize(0, 1) == auto && PartFlow.Normalize(0, none) == none && PartFlow.Normalize(coilCopper, 99) == auto,
+        r.Add((BeltTypes.Normalize(bullet, auto) == auto && BeltTypes.Normalize(bullet, none) == none && BeltTypes.Normalize(bullet, 1) == auto
+            && BeltTypes.Normalize(bullet, 2 + 5) == auto && BeltTypes.Normalize(bullet, 17) == 17
+            && BeltTypes.Normalize(coilCopper, 2 + 5) == auto && BeltTypes.Normalize(coilCopper, 2 + 9) == 11 && BeltTypes.Normalize(coilCopper, 1) == 1
+            && BeltTypes.Normalize(coilCopper, none) == none && BeltTypes.Normalize(BeltTypes.AllMask, 7) == 7 && BeltTypes.Normalize(0, 2) == auto
+            && BeltTypes.Normalize(0, 1) == auto && BeltTypes.Normalize(0, none) == none && BeltTypes.Normalize(coilCopper, 99) == auto,
             "F3 normalize: ruled-out choice -> auto; auto, explicit none, any/types inside kept; ALL unchanged"));
         // Effective filter: Auto = the single allowed type, else nothing; explicit None always nothing (owner: respect None).
-        r.Add((PartFlow.Filter(bullet, auto) == 15 && PartFlow.Filter(bullet, none) == BeltTypes.FilterNone && PartFlow.Filter(bullet, 17) == 15
-            && PartFlow.Filter(coilCopper, auto) == BeltTypes.FilterNone && PartFlow.Filter(PartFlow.All, auto) == BeltTypes.FilterNone
-            && PartFlow.Filter(0, auto) == BeltTypes.FilterNone && PartFlow.Filter(coilCopper, 1) == BeltTypes.FilterAny,
+        r.Add((BeltTypes.Filter(bullet, auto) == 15 && BeltTypes.Filter(bullet, none) == BeltTypes.FilterNone && BeltTypes.Filter(bullet, 17) == 15
+            && BeltTypes.Filter(coilCopper, auto) == BeltTypes.FilterNone && BeltTypes.Filter(BeltTypes.AllMask, auto) == BeltTypes.FilterNone
+            && BeltTypes.Filter(0, auto) == BeltTypes.FilterNone && BeltTypes.Filter(coilCopper, 1) == BeltTypes.FilterAny,
             "F3b filter: auto + single (gun) -> bullet; explicit none with single -> nothing; auto with a set / ALL / disjoint -> nothing"));
         // UI choices (D5): modes offered per set (0..23).
-        int[] Offered(uint a) => Enumerable.Range(0, none + 1).Where(m => PartFlow.ChoiceAllowed(a, m)).ToArray();
+        int[] Offered(BigInteger a) => Enumerable.Range(0, none + 1).Where(m => BeltTypes.ChoiceAllowed(a, m)).ToArray();
         r.Add((Offered(bullet).SequenceEqual(new[] { auto, 17, none }) && Offered(coilCopper).SequenceEqual(new[] { auto, 1, 4, 11, none })
-            && Offered(PartFlow.All).Length == 24 && Offered(0).SequenceEqual(new[] { auto, none }) && Offered(sulfur).SequenceEqual(new[] { auto, 2, none }),
+            && Offered(BeltTypes.AllMask).Length == 24 && Offered(0).SequenceEqual(new[] { auto, none }) && Offered(sulfur).SequenceEqual(new[] { auto, 2, none }),
             "F4 UI choices: gun {auto, bullet, none}; factory_coil2 input {auto, any, copper, coil, none}; generic all 24; disjoint {auto, none}"));
         return r;
     }

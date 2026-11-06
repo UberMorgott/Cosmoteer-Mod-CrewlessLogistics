@@ -219,13 +219,13 @@ internal sealed class BeltManager : ShipComponent
                         // §22: reset a choice the neighbours rule out to Auto (Auto/None never rewritten); Auto resolves to
                         // the single allowed type. Sim state on every peer.
                         PartUIToggle? toggle = PartUIToggle.GetOnPart(_nodeParts[i], _filterToggle);
-                        uint allowed = _nodes[i].State.Allowed;
-                        int mode = toggle?.Mode ?? BeltTypes.ModeAuto, normal = PartFlow.Normalize(allowed, mode);
+                        System.Numerics.BigInteger allowed = _nodes[i].State.Allowed;
+                        int mode = toggle?.Mode ?? BeltTypes.ModeAuto, normal = BeltTypes.Normalize(allowed, mode);
                         if (toggle != null && normal != mode)
                         {
                             toggle.Mode = normal;
                         }
-                        _nodes[i].Filter = PartFlow.Filter(allowed, normal);
+                        _nodes[i].Filter = BeltTypes.Filter(allowed, normal);
                         _nodes[i].State.SourcePriority = Setting(i, _sourcePriority, 4);
                     }
                     else if (_nodes[i].Kind == NodeKind.Splitter)
@@ -401,6 +401,55 @@ internal sealed class BeltManager : ShipComponent
             _rooms[p] = room = new PartRoom(p, ship);
         }
         return room;
+    }
+
+    private static (string[]? Ids, AtlasSprite[][]? Vanilla, AtlasSprite?[] Sprites, (Vector2 Quad, Vector2 Offset)[] Shift) _items;
+
+    /// <summary>
+    /// Item sprite per type: vanilla = centred single nuggets (BeltItemSprites); other types = their first stack sprite,
+    /// which every stackable resource has in the doodads_low atlas already (FlexResourceGridRules.GetAtlasSprites).
+    /// Stack sprites draw one item in a corner of the cell, so <c>Shift</c> (UV units) moves the centre of their opaque
+    /// pixels onto the item point (<see cref="BeltRenderState.ContentCentre"/>).
+    /// </summary>
+    private static (AtlasSprite?[] Sprites, (Vector2 Quad, Vector2 Offset)[] Shift)? ItemSprites(Ship ship)
+    {
+        if (Sprites(ship, ItemSpritesComponent, BeltTypes.Vanilla.Length) is not { } vanilla)
+        {
+            return null;
+        }
+        if (_items.Ids != BeltTypes.Ids || _items.Vanilla != vanilla)
+        {
+            var s = new AtlasSprite?[BeltTypes.Ids.Length];
+            var shift = new (Vector2 Quad, Vector2 Offset)[s.Length];
+            for (int i = 0; i < s.Length; i++)
+            {
+                s[i] = i < BeltTypes.Vanilla.Length ? vanilla[i][0]
+                    : GameApp.Rules.TryGetResourceRules(PartRoom.Ids[i], out ResourceRules? r) && r.StackSprites is { Length: > 0 } stack ? stack[0] : null;
+                if (i >= BeltTypes.Vanilla.Length && s[i] is { Files: { Length: > 0 } files } sprite)
+                {
+                    // Undo what MakeQuad applies after our location: the sprite Offset, its mirror and UV rotation.
+                    var (x, y) = BeltRenderState.QuadPoint(ContentShift(files[0]), sprite.MirrorU, sprite.MirrorV, sprite.UVRotation);
+                    shift[i] = (new Vector2(x, y), sprite.Offset);
+                }
+            }
+            _items = (BeltTypes.Ids, vanilla, s, shift);
+        }
+        return (_items.Sprites, _items.Shift);
+    }
+
+    /// <summary>Client-only, once per type and rules load; an unreadable texture keeps the sprite centre.</summary>
+    private static (float X, float Y) ContentShift(string? file)
+    {
+        try
+        {
+            using TextureData t = TextureData.LoadFrom(file!);
+            return BeltRenderState.ContentCentre(t.PixelSize.X, t.PixelSize.Y, (px, py) => t[px, py].A);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("item sprite " + file, ex);
+            return (0f, 0f);
+        }
     }
 
     private static AtlasSprite[][]? Sprites(Ship ship, string component, int count)
@@ -623,11 +672,12 @@ internal sealed class BeltManager : ShipComponent
                 q.Color = _render.Lamp[j] ? Color.White : Color.TransparentWhite;
             }
         }
-        if (Sprites(ship, ItemSpritesComponent, BeltTypes.Ids.Length) is not { } sprites)
+        if (ItemSprites(ship) is not ({ } sprites, { } shifts))
         {
             return;
         }
         var layer = new ID<ShipRenderLayerRules>(ItemLayer);
+        float inflate = ship.Rules.RenderLayers[layer].Inflate + ItemShrink;
         int used = 0;
         foreach (Node n in _nodes)
         {
@@ -640,13 +690,17 @@ internal sealed class BeltManager : ShipComponent
                     for (int i = 0; i < t.Count[lane]; i++)
                     {
                         int type = t.Type[lane * LaneSim.K + i];
-                        AtlasSprite? sprite = sprites[type][0];
+                        if (sprites[type] is not { } sprite)
+                        {
+                            continue; // a modded type without StackSprites: carried, not drawn
+                        }
                         var (x, y) = BeltWorld.ItemPoint(n, half, lane, t.Pos[lane * LaneSim.K + i]);
-                        var loc = new Vector2(x, y);
+                        // Quad = sprite size inflated on each side (ManagedShipQuad.cs:285): its content centre lands on the point.
+                        var loc = new Vector2(x, y) - shifts[type].Offset - shifts[type].Quad * (sprite.Size + new Vector2(2 * inflate, 2 * inflate));
                         if (used == _quads.Count)
                         {
                             _quads.Add(new ManagedShipQuad(renderer.GetLayerQuads(layer), sprite, 0, flipU: false, loc, Vector2.Zero, Direction.Zero,
-                                ship.WorldUniformScale, Color.White, ship.Rules.RenderLayers[layer].Inflate + ItemShrink, 1f, sim.Clock));
+                                ship.WorldUniformScale, Color.White, inflate, 1f, sim.Clock));
                         }
                         else
                         {

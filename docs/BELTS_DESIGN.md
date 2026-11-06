@@ -722,3 +722,30 @@ loop links nothing).
 - Still not mating (reported): side load onto a crossing (5 arts x 14 sources = 70 pairs: no opening over the pipe side;
   needs crossing side-entry art). Corner overlap of connector zones (4 x 6 px) where two port quads meet.
 - Not verified: in game (atlas load of 36 entries, overdraw of part-size quads, mipmapped seams when zoomed out), MP.
+
+## 29. Modded resource types (2026-11-06)
+
+Agreed with Codex: belts carry every registered stackable resource, not only the 21 vanilla ones (`BeltTypes.Ids` was a fixed list).
+
+- Table (`BeltTypes.Order/Set`, `ResourceTable.Apply`): every `/Resources` entry with `MaxStackSize > 0` (`ResourceRules.IsStackable`;
+  `__stackable` is a set marker), read from OT nodes with their inheritance context in the existing `Assets.ApplyPreLoadMods`
+  postfix (`GameApp.Rules.Resources` exists only after `Read<Rules>`). Vanilla 21 keep indices 0..20, the rest follow by lower-case
+  ID, ordinal (engine `ID<T>` is case-insensitive); never the engine index. Rebuilt on every rules load; `PartRoom` caches follow.
+- Masks: `BigInteger` (`BeltTypes.AllMask`, `Allowed`, `ChoiceAllowed`, `Normalize`, `Filter` moved from `PartFlow`, pure, tested past 32/64).
+- Filters: vanilla UIToggles; the same hook appends one choice per non-vanilla type (its `Icon`, `NameKey`, explicit `Mode`) to
+  `belt_filter` (modes 0 Auto, 1 Any, 2..22 vanilla, 23 None, 24+ others) and `belt_splitter_filter` (0 none, 1..21 vanilla, 22+),
+  all texts parsed before the first edit, rollback on failure.
+- Persistence: `ShipMetadata.PartUIToggleStates` stores ints, so `ShipMetadata.WriteTo` / `Ship.SaveDesign` also write the table
+  (`morgott.crewless_logistics.belt_types`, only when non-vanilla types exist) and `ShipMetadata.ReadFrom` (postfix: parts read
+  later, `Ship.cs:1206-1211`) / `Ship.Load(OBNode)` (prefix: states are read before the parts, `Ship.cs:3198, 3484`) remap physical
+  and blueprint modes (`BeltTypes.Remap`); a vanished type -> connector None / splitter none. No table = vanilla modes, unchanged.
+- Payload v3: `N` = names of the types present (Drain included), `D` indexes it; an unknown name drops only that item / held item.
+  v2 is read against the fixed vanilla table. `ProtocolVersion` 9 + `BeltTypes.Fingerprint` in the ship integrity hash.
+- Sprites: vanilla keep the centred nugget sprites (`BeltItemSprites`); other types draw `StackSprites[0]` (already in `doodads_low`
+  via `FlexResourceGridRules.GetAtlasSprites`; deviation from the agreed "stack sprites for all": vanilla stack-1 sprites sit in
+  the cell corner, so items would leave the lane); each modded sprite is shifted so the centre of its opaque pixels (alpha >= 64,
+  `BeltRenderState.ContentCentre`, read once from its texture file) sits on the item point; no stack sprite = carried, not drawn.
+- Icons: choices reference `/Resources/<i>/Icon` from the rules root, so an Icon inherited from a base resolves in the
+  registered resource's inheritance context (Codex review; `ResourceTable.SelfTest`).
+- Tests: `TypesTests` (order, fingerprint, masks at 20/21/31/32/63/64, insert / removal remap, payload v3 drop, v2 vs 21, None 23).
+  Mixed mod sets in MP are unsupported (fingerprint mismatch = desync report).

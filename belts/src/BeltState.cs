@@ -1,5 +1,9 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using Cosmoteer.Data;
+using Cosmoteer.Game;
 using Cosmoteer.Game.Multiplayer;
 using Cosmoteer.Ships.Parts;
 using Halfling.Serialization.Generic;
@@ -14,7 +18,7 @@ internal static class BeltState
 {
     public const string PayloadPath = "Components/morgott.belt";
     /// <summary>Integrity-hash protocol (§10); bump with any sim/payload change.</summary>
-    public const int ProtocolVersion = 8;
+    public const int ProtocolVersion = 9;
 
     public const string BeltId = "morgott.crewless_logistics.belt";
     public const string SplitterId = "morgott.crewless_logistics.belt_splitter";
@@ -59,7 +63,10 @@ internal static class BeltState
             return;
         }
         int version = r.ReadOptionalFromPath("V", 0);
-        NodeState? s = version == NodeState.PayloadVersion ? NodeState.Decode(kind, r.ReadOptionalFromPath<int[]?>("D", null)) : null;
+        int[]? d = r.ReadOptionalFromPath<int[]?>("D", null);
+        NodeState? s = version == 2 ? NodeState.Decode(kind, d)
+            : version == NodeState.PayloadVersion ? NodeState.Decode(kind, d, r.ReadOptionalFromPath<string[]?>("N", null) ?? Array.Empty<string>())
+            : null;
         if (s == null)
         {
             Log.Info($"payload v{version} on {part.Rules.ID} invalid or unsupported, contents dropped");
@@ -70,9 +77,25 @@ internal static class BeltState
 
     public static void Write(NodeState s, GenericSerialWriter w)
     {
+        var names = new List<string>();
+        int[] d = s.Encode(names);
         w.WriteToPath("V", NodeState.PayloadVersion);
-        w.WriteToPath("D", s.Encode());
+        w.WriteToPath("N", names.ToArray());
+        w.WriteToPath("D", d);
     }
 
     public static void Hash(NodeState s, IntegrityHash h) => h.AddHash(s.Digest());
+
+    /// <summary>
+    /// Ship metadata / design files: the type table their filter toggle modes were written under (absent = vanilla
+    /// only), so a load remaps modded modes to the current table (<see cref="BeltTypes.Remap"/>).
+    /// </summary>
+    public const string TypesPath = "morgott.crewless_logistics.belt_types";
+
+    public static bool IsFilter(ID<PartToggleGuiRules> id, out bool splitter)
+    {
+        string s = id.ToString();
+        splitter = s == SplitterFilterToggleId;
+        return splitter || s == FilterToggleId;
+    }
 }

@@ -20,6 +20,10 @@ public class GameTests
     [Fact]
     public void NetworkCoverageMatchesBaseline() => Report(Env.SelfTest("NetworkCoverage", Env.GameRoot, Env.ProjectRoot));
 
+    /// <summary>T1 modded resource table + filter choices on a synthetic tree (Codex P1: icon inherited in the derived context).</summary>
+    [Fact]
+    public void ResourceTableBuildsTypesAndChoices() => Report(Env.SelfTest("ResourceTable", Env.ProjectRoot));
+
     [Fact]
     public void PartFlowClassifiesVanillaParts() => Report(Env.SelfTest("PartFlowProbe", Env.GameRoot));
 

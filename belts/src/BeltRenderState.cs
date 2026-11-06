@@ -154,6 +154,64 @@ public sealed class BeltRenderState
     /// <summary>Items drawn per node: belts only; splitter contents sit inside its closed housing, connectors hold none.</summary>
     public static bool DrawsItems(Node n) => n.Kind == NodeKind.Belt;
 
+    /// <summary>
+    /// Centre of a texture's opaque pixels (alpha &gt;= 64) minus the texture centre, in UV units (y down): how far to move a
+    /// stack sprite so its item, not its cell, sits on the item point. No opaque pixel -> (0, 0).
+    /// </summary>
+    public static (float X, float Y) ContentCentre(int width, int height, Func<int, int, byte> alpha)
+    {
+        int minX = width, minY = height, maxX = -1, maxY = -1;
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                if (alpha(x, y) >= 64)
+                {
+                    minX = Math.Min(minX, x);
+                    maxX = Math.Max(maxX, x);
+                    minY = Math.Min(minY, y);
+                    maxY = Math.Max(maxY, y);
+                }
+            }
+        }
+        return maxX < 0 ? (0f, 0f) : ((minX + maxX + 1) / 2f / width - 0.5f, (minY + maxY + 1) / 2f / height - 0.5f);
+    }
+
+    /// <summary>
+    /// Where a texture point (UV relative to the centre) lands on the quad (same units, y down) after the native UV
+    /// transform: mirror U, mirror V, then rotation 1..3 (AtlasSprite.RotateQuadUVsAndTangents; other values rotate nothing).
+    /// </summary>
+    public static (float X, float Y) QuadPoint((float X, float Y) uv, bool mirrorU, bool mirrorV, int rot)
+    {
+        float x = mirrorU ? -uv.X : uv.X, y = mirrorV ? -uv.Y : uv.Y;
+        return rot switch
+        {
+            1 => (-y, x),
+            2 => (-x, -y),
+            3 => (y, -x),
+            _ => (x, y),
+        };
+    }
+
+    /// <summary>
+    /// Popout width that fits beside its button (Codex): the wider side of the screen, the side the vanilla anchor
+    /// (WidgetRelativeRectController.RefreshRect) opens toward once the popout no longer fits on its default side.
+    /// </summary>
+    public static float PopoutWidth(float screenLeft, float screenRight, float buttonLeft, float buttonRight) =>
+        Math.Max(screenRight - buttonLeft, buttonRight - screenLeft);
+
+    /// <summary>
+    /// The popout as laid out (test model of the native anchor, WidgetRelativeRectController.cs:359-360, 417-420, 436-447,
+    /// with PreferredHorizontalSpace unbounded as FilterUi sets it): desired width capped by
+    /// <see cref="PopoutWidth"/>; it flips to the left of the button when its right-hand room is below that width and below the left-hand room.
+    /// </summary>
+    public static (bool Left, float Width) PopoutLayout(float screenLeft, float screenRight, float buttonLeft, float buttonRight, float desired)
+    {
+        float width = Math.Min(desired, PopoutWidth(screenLeft, screenRight, buttonLeft, buttonRight));
+        float amount = screenRight - buttonLeft, opposite = buttonRight - screenLeft;
+        return (amount < Math.Min(float.MaxValue, width) && amount < opposite, width);
+    }
+
     /// <summary>§26 damage level of a part sprite with that many levels, as vanilla PartSpriteRules.GetAtlasSpriteForDamage.</summary>
     public static int DamageLevel(float damageFraction, int levels) => Math.Clamp((int)(damageFraction * levels), 0, levels - 1);
 
