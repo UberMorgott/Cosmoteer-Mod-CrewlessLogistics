@@ -1,7 +1,8 @@
 // Shared source bus plus a reserve charged from reactors only. Sockets are added by NetworkCoverage (belts DLL).
+// NetworkCoverage overrides the receiver names for other parts and adds the overclock delivery heat
+// (CrewlessLogisticsDeliveryTrigger/Heat on the part's own heat producer) only where the part has it.
 Components : <source-components.rules>/Components
 {
-    CrewlessLogisticsCanTransfer : ^/0/CrewlessLogisticsCanTransfer { Toggles = [ConsumptionToggle, CrewlessLogisticsToggle] }
     // The unscaled native receiver combines the local normal and overclock reserves. Vanilla crew
     // overclock pickup conversion is separate and remains untouched.
     CrewlessLogisticsCells : ^/0/CrewlessLogisticsCells { FromStorage = BatteryReceiverStorage }
@@ -61,27 +62,5 @@ Components : <source-components.rules>/Components
         OperationalToggle = CrewlessLogisticsCanCharge
         FromStorage = CrewlessLogisticsReactorOutput
         ToStorage = CrewlessLogisticsReceivingCells
-    }
-    // Network storage operations do not invoke the crew-only receiving trigger.
-    // Preserve the native crew path and account for each network-delivered cell
-    // separately using the same vanilla per-battery overclock heat amount.
-    CrewlessLogisticsDeliveryTrigger
-    {
-        Type = MultiTrigger
-        OperationalToggle = IsOverclocked
-        Triggers = [CrewlessLogisticsCharge]
-    }
-    CrewlessLogisticsDeliveryHeat : <./Data/ships/terran/power_storage/power_storage.rules>/Part/Components/Overclock_DeliveryHeatProducer
-    {
-        Trigger = CrewlessLogisticsDeliveryTrigger
-        Amount : <./Data/ships/terran/power_storage/power_storage.rules>/Part/Components/Overclock_DeliveryHeatProducer/Amount
-        {
-            // Each successful conversion is exactly one cell. Native converter
-            // trigger events have effect scale zero, so normalize to one battery.
-            Modifiers
-            [
-                { Type = ScaledEffectScale; ModificationMode = Multiply; Scale = 0; Basis = 1 }
-            ]
-        }
     }
 }

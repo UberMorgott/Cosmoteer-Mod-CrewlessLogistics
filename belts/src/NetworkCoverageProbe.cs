@@ -98,16 +98,21 @@ internal static partial class NetworkCoverage
             }
             Put("mod/cable.rules", "Part { ID = morgott.crewless_logistics.cable; Size = [1, 1]; Components { CrewlessLogisticsNode { Type = NetworkBasicNode } } }");
             Put("Data/cosmoteer.rules", "");
-            Put("Data/ships/terran/terran.rules", "Terran { Parts [ &<a/a.rules>/Part, &<b/b.rules>/Part, &<c/c.rules>/Part, &<d/d.rules>/Part, &<f/f.rules>/Part, &<e/e.rules>/Part, &<g/g.rules>/Part, &<h/h.rules>/Part, &<r/r.rules>/Part, &<../../../mod/cable.rules>/Part ] }");
+            Put("Data/ships/terran/terran.rules", "Terran { Parts [ &<a/a.rules>/Part, &<b/b.rules>/Part, &<c/c.rules>/Part, &<d/d.rules>/Part, &<f/f.rules>/Part, &<e/e.rules>/Part, &<g/g.rules>/Part, &<h/h.rules>/Part, &<r/r.rules>/Part, &<r2/r2.rules>/Part, &<s/s.rules>/Part, &<q/q.rules>/Part, &<../../../mod/cable.rules>/Part ] }");
             // Codex review regressions. e: inherits consumer f but already has its own adapter child (kept; f must not leak).
             // g: reserve only inside a ToggledComponents branch. h: receiver pool with dynamic ViaBuffs members.
-            // r: reactor without the IsOperational toggle the source template references.
+            // r: reactor whose producer has no OperationalToggle (network switch only); r2: producer toggle inside a branch.
+            // s: overclock capacitor with a non-vanilla delivery heat; q: simple storage without overclock.
             const string battery = "BatteryStorage { Type = ResourceStorage; ResourceType = battery; MaxResources = 2000 }";
+            const string supplying = "BatteryStorage { Type = ResourceStorage; ResourceType = battery; MaxResources = 2000; SuppliesResources = true }";
+            Put("Data/ships/terran/r2/r2.rules", "Part { ID = r2; Size = [1, 1]; TypeCategories = [reactor]; Components { " + supplying + " Lit { Type = UIToggle; ToggleID = \"r2.lit\" } Branch { Type = ToggledComponents; Toggle = Lit; Components { On { Type = UIToggle; ToggleID = \"r2.on\" } } } BatteryProducer { Type = ResourceConverter; OperationalToggle = On; ToStorage = BatteryStorage } } }");
+            Put("Data/ships/terran/s/s.rules", "Part { ID = s; Size = [1, 1]; TypeCategories = [provides_power]; Components { " + supplying + " BatteryReceiverStorage { Type = MultiResourceStorage; ResourceType = battery; ResourceStorages = [BatteryStorage] } ConsumptionToggle { Type = UIToggle; ToggleID = \"s.on\" } IsOverclocked { Type = UIToggle; ToggleID = \"s.oc\" } Overclock_DeliveryHeatProducer { Type = ResourceChange; ResourceStorage = BatteryStorage; Amount { BaseValue = 66; Modifiers [ { Type = ScaledEffectScale; ModificationMode = Multiply; Scale = 1 } ] } } BatteryConsumer { Type = ResourceConsumer; ResourceType = battery; Storage = BatteryReceiverStorage; OperationalToggle = ConsumptionToggle } } }");
+            Put("Data/ships/terran/q/q.rules", "Part { ID = q; Size = [1, 1]; TypeCategories = [provides_power]; Components { " + supplying + " PowerToggle { Type = UIToggle; ToggleID = \"q.on\" } BatteryConsumer { Type = ResourceConsumer; ResourceType = battery; Storage = BatteryStorage; OperationalToggle = PowerToggle } } }");
             Put("Data/ships/terran/f/f.rules", "Part { ID = f; Size = [1, 1]; Components { " + battery + " BatteryConsumer { Type = ResourceConsumer; ResourceType = battery; Storage = BatteryStorage } } }");
             Put("Data/ships/terran/e/e.rules", "Part : <../f/f.rules>/Part { ID = e; Components : ^/0/Components { CrewlessLogisticsToggle { Type = UIToggle; ToggleID = \"e.own\" } } }");
             Put("Data/ships/terran/g/g.rules", "Part { ID = g; Size = [1, 1]; Components { On { Type = UIToggle; ToggleID = \"g.on\" } Branch { Type = ToggledComponents; Toggle = On; Components { " + battery + " } } BatteryConsumer { Type = ResourceConsumer; ResourceType = battery; Storage = BatteryStorage } } }");
             Put("Data/ships/terran/h/h.rules", "Part { ID = h; Size = [1, 1]; Components { Reserve { Type = ResourceStorage; ResourceType = battery; MaxResources = 2000 } Provider { Type = GridBuffProvider; BuffType = Engine } Combined { Type = MultiResourceStorage; ResourceType = battery; ResourceStorages = [Reserve]; ViaBuffs { OutgoingBuffProviders = [Provider]; ComponentIDs = [Reserve] } } BatteryConsumer { Type = ResourceConsumer; ResourceType = battery; Storage = Combined } } }");
-            Put("Data/ships/terran/r/r.rules", "Part { ID = r; Size = [1, 1]; TypeCategories = [reactor]; Components { " + battery + " BatteryProducer { Type = ResourceConverter; ToStorage = BatteryStorage } } }");
+            Put("Data/ships/terran/r/r.rules", "Part { ID = r; Size = [1, 1]; TypeCategories = [reactor]; Components { " + supplying + " BatteryProducer { Type = ResourceConverter; ToStorage = BatteryStorage } } }");
             Put("Data/ships/terran/a/a.rules", "Part { ID = a; Size = [2, 2]; Components { BatteryStorage { Type = ResourceStorage; ResourceType = battery; MaxResources = 2000 } BatteryConsumer { Type = ResourceConsumer; ResourceType = battery; Storage = BatteryStorage } } }");
             Put("Data/ships/terran/b/b.rules", "Part : <../a/a.rules>/Part { ID = b; Size = [1, 1] }");
             Put("Data/ships/terran/c/c.rules", "Part : <../a/a.rules>/Part { ID = c; Components : ^/0/Components { Reserve { Type = ResourceStorage; ResourceType = battery; MaxResources = 3000 } Proxy { Type = ResourceStorageProxy; ResourceType = battery; ComponentID = Reserve } BatteryConsumer { Type = ResourceConsumer; ResourceType = battery; Storage = Proxy } } }");
@@ -133,7 +138,8 @@ internal static partial class NetworkCoverage
                 "C1 failure while applying rolls every edit back (rules identical to before): " + rollback));
             var root = new OTFile(Path.Combine(dir, "Data", "cosmoteer.rules"));
             Report first = Apply(root);
-            r.Add((first.Covered.GetValueOrDefault(DeviceKind.Consumer) == 3 && first.Derived == 3, "C1 fixture " + first.Summary()));
+            r.Add((first.Covered.GetValueOrDefault(DeviceKind.Consumer) == 3 && first.Covered.GetValueOrDefault(DeviceKind.Reactor) == 1 && first.Covered.GetValueOrDefault(DeviceKind.Capacitor) == 2 && first.Derived == 3,
+                "C1 fixture " + first.Summary()));
             Dictionary<string, List<string>> Names() => Read(root, out _, out _).ToDictionary(e => e.Id, e => ((OTGroupNode)e.Part.FindAtPath("Components", e.Ctx, out OTContext? c)).GetChildrenWithContext(c)
                 .Where(x => x.Child is not OTVoidNode).Select(x => x.Child.Name).Where(n => n.StartsWith(Prefix, StringComparison.Ordinal)).ToList());
             string Ports(List<string> n) => string.Join(",", n.Where(x => x.StartsWith("CrewlessLogisticsPort_", StringComparison.Ordinal)).Order(StringComparer.Ordinal));
@@ -151,7 +157,15 @@ internal static partial class NetworkCoverage
                 "C1 e keeps its own adapter child, f is not covered: " + Skip("f")));
             r.Add((names["g"].Count == 0 && Skip("g").Contains("ToggledComponents", StringComparison.Ordinal), "C1 g (reserve in a branch) skipped: " + Skip("g")));
             r.Add((names["h"].Count == 0 && Skip("h").Contains("ViaBuffs", StringComparison.Ordinal), "C1 h (ViaBuffs pool) skipped: " + Skip("h")));
-            r.Add((names["r"].Count == 0 && Skip("r").Contains("IsOperational", StringComparison.Ordinal), "C1 r (reactor without IsOperational) skipped: " + Skip("r")));
+            T Field<T>(string id, string path) => Read(root, out _, out _).Where(e => e.Id == id).Select(e => Try(e.Part, e.Ctx, "Components/" + path, out T? v) ? v : default).Single()!;
+            string Toggles(string id) => string.Join(",", Field<string[]>(id, "CrewlessLogisticsCanTransfer/Toggles") ?? Array.Empty<string>());
+            r.Add((names["r"].Contains("CrewlessLogisticsSource") && Toggles("r") == "CrewlessLogisticsToggle", "C1 r (producer without OperationalToggle) covered, gated by the switch only: " + Toggles("r")));
+            r.Add((names["r2"].Count == 0 && Skip("r2").Contains("ToggledComponents branch: On", StringComparison.Ordinal), "C1 r2 (conditional producer toggle) skipped: " + Skip("r2")));
+            float heat = Field<float>("s", "CrewlessLogisticsDeliveryHeat/Amount/BaseValue"), scale = Field<float>("s", "CrewlessLogisticsDeliveryHeat/Amount/Modifiers/0/Scale");
+            r.Add((heat == 66 && scale == 0 && Field<string>("s", "CrewlessLogisticsDeliveryHeat/Trigger") == "CrewlessLogisticsDeliveryTrigger" && Toggles("s") == "ConsumptionToggle,CrewlessLogisticsToggle",
+                $"C1 s (overclock capacitor) own heat {heat} per network cell, scale {scale}, gate {Toggles("s")}"));
+            r.Add((!names["q"].Contains("CrewlessLogisticsDeliveryHeat") && names["q"].Contains("CrewlessLogisticsCharge") && Toggles("q") == "PowerToggle,CrewlessLogisticsToggle"
+                && Field<string>("q", "CrewlessLogisticsCells/FromStorage") == "BatteryStorage", "C1 q (simple storage) covered without overclock heat, gate " + Toggles("q")));
             Report second = Apply(root);
             r.Add((second.Covered.Count == 0 && second.Derived == 0 && Names().All(p => p.Value.SequenceEqual(names[p.Key])), "C1 second run changes nothing (idempotent)"));
         }

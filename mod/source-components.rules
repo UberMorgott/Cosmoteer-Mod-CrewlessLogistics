@@ -1,11 +1,13 @@
 Components
 {
     CrewlessLogisticsToggle : <common.rules>/DeviceToggle {}
+    // NetworkCoverage prepends the part's own gates (reactor producer OperationalToggle and supply toggle,
+    // capacitor consumer OperationalToggle); a part without them is gated by the network switch alone.
     CrewlessLogisticsCanTransfer
     {
         Type = MultiToggle
         Mode = All
-        Toggles = [IsOperational, CrewlessLogisticsToggle]
+        Toggles = [CrewlessLogisticsToggle]
     }
     CrewlessLogisticsCells : <common.rules>/CellView {}
     CrewlessLogisticsInput

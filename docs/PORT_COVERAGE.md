@@ -12,8 +12,8 @@ Electrical cables may connect to every eligible physical perimeter edge of parti
 
 - Consumer: one battery `ResourceConsumer` resolving to one local physical battery store (whole cells). Rocket-style aggregates collapse to their one direct reserve.
 - Engine room: a `GridBuffProvider` with `BuffType = EnginePowerDistribution` and a battery aggregate reaching it through `ViaBuffs`.
-- Reactor: `reactor` category with a battery-producing converter into a verified local store.
-- Capacitor: the vanilla Power Capacitor contract only (`ConsumptionToggle`, `BatteryReceiverStorage`, `IsOverclocked`, `Overclock_DeliveryHeatProducer`); other `provides_power` parts are skipped.
+- Reactor: `reactor` category with a battery-producing converter into a verified local store. Network transfer is gated by the converter's own `OperationalToggle` (none declared: the network switch alone) and by the store's `SuppliesResourcesToggle` (a complementary normal/overclock pickup pair, as on the vanilla large reactor, gates nothing); a conditional or unresolvable toggle skips the part.
+- Capacitor: `provides_power` with one crew battery receiver, gated by the receiver's own `OperationalToggle`. A part with the native overclock mechanic (`IsOverclocked`) must have `Overclock_DeliveryHeatProducer`; network-delivered cells then heat with that part's own producer and amount. A part without overclock is a simple storage and gets no heat.
 
 Anything else with battery components is skipped with its reason in `Logs\CrewlessLogistics.Belts.log`. A registered part inheriting another covered part gets its own complete adapter locally, and inherited adapter children it must not have are voided (native `Name;` nodes, skipped by `PartRules`). Parts already holding `CrewlessLogistics*` components are left alone, which makes the hook idempotent.
 

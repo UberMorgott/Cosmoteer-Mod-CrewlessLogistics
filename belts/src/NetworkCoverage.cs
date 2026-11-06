@@ -408,7 +408,7 @@ internal static partial class NetworkCoverage
         }
     }
 
-    private static readonly string[] RefFields = { "Storage", "ResourceStorage", "FromStorage", "ToStorage", "ComponentID", "ProxyToggle", "OperationalToggle" };
+    private static readonly string[] RefFields = { "Storage", "ResourceStorage", "FromStorage", "ToStorage", "ComponentID", "ProxyToggle", "OperationalToggle", "SuppliesResourcesToggle" };
 
     /// <summary>Flat component facts, first declaration wins, nested ToggledComponents included (as the catalog did).</summary>
     private static void Scan(OTGroupNode group, OTContext? ctx, Dictionary<string, DeviceComponent> comps, bool conditional = false)
@@ -434,10 +434,31 @@ internal static partial class NetworkCoverage
                 x.HasViaBuffs = node.TryFindAtPath("ViaBuffs", out IOTNode? _, c, out OTContext? _);
                 foreach (string f in RefFields)
                 {
-                    if (Try(node, c, f, out string? v) && v != null)
+                    if (!node.TryFindAtPath(f, out IOTNode? _, c, out OTContext? _))
                     {
-                        x.Refs[f] = v;
+                        continue; // truly absent
                     }
+                    try
+                    {
+                        if (Try(node, c, f, out string? v) && v != null)
+                        {
+                            x.Refs[f] = v;
+                            continue;
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // declared, but not a plain component name
+                    }
+                    x.UnreadableRefs.Add(f);
+                }
+                if (Try(node, c, "SuppliesResources", out bool supplies))
+                {
+                    x.SuppliesResources = supplies;
+                }
+                if (type == "MultiToggle")
+                {
+                    ReadLogic(node, c, x);
                 }
                 Try(node, c, "ResourceStorages", out x.ResourceStorages);
                 Try(node, c, "PartLocation", out x.PartLocation);
@@ -469,6 +490,42 @@ internal static partial class NetworkCoverage
             {
                 Scan(nested, nc, comps, true); // exists only while the ToggledComponents branch is on
             }
+        }
+    }
+
+    /// <summary>MultiToggle Mode, Invert and Toggles entries (plain name or { Toggle; Invert }); any unreadable entry leaves Entries null.</summary>
+    private static void ReadLogic(IOTNode node, OTContext? c, DeviceComponent x)
+    {
+        try
+        {
+            Try(node, c, "Mode", out x.Mode);
+            Try(node, c, "Invert", out x.Invert);
+            if (!node.TryFindAtPath("Toggles", out IOTNode? found, c, out OTContext? lc) || found is not OTParentNode list)
+            {
+                return;
+            }
+            var entries = new List<(string, bool)>();
+            for (int i = 0; i < list.GetCount(lc); i++)
+            {
+                string at = "Toggles/" + i.ToString(CultureInfo.InvariantCulture);
+                string? name = null;
+                if (list.FindAtPath(i.ToString(CultureInfo.InvariantCulture), lc, out OTContext? _) is not OTGroupNode && Try(node, c, at, out name) && name != null)
+                {
+                    entries.Add((name, false));
+                    continue;
+                }
+                if (!Try(node, c, at + "/Toggle", out name) || name == null)
+                {
+                    return;
+                }
+                Try(node, c, at + "/Invert", out bool invert);
+                entries.Add((name, invert));
+            }
+            x.Entries = entries;
+        }
+        catch (Exception)
+        {
+            x.Entries = null; // not plain local toggle names: a free input for the toggle logic
         }
     }
 

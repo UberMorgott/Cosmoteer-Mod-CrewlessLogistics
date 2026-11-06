@@ -193,7 +193,7 @@ public class CoverageTests
         Assert.NotNull(Classify(Array.Empty<string>(), room).Skip);
     }
 
-    /// <summary>Codex review regressions: conditional branch members, dynamic ViaBuffs pools, and the reactor template's IsOperational.</summary>
+    /// <summary>Codex review regressions: conditional branch members, dynamic ViaBuffs pools, and the reactor's own producer toggle.</summary>
     [Fact]
     public void AdapterReferencesMustBeStaticAndPresent()
     {
@@ -209,29 +209,199 @@ public class CoverageTests
         var d = Classify(Array.Empty<string>(), C("Reserve", "ResourceStorage", max: 2000), pooled, Consumer("Combined"));
         Assert.Equal(DeviceKind.Consumer, d.Kind);
         Assert.Contains("ViaBuffs", d.Skip);
-        var reactorParts = new[] { C("BatteryStorage", "ResourceStorage", max: 3000), C("Producer", "ResourceConverter", null, refs: ("ToStorage", "BatteryStorage")) };
-        Assert.Contains("IsOperational", Classify(new[] { "reactor" }, reactorParts).Skip);
+        // A reactor's producer gate must be its own present, unconditional toggle.
         var gate = C("IsOperational", "MultiToggle", null);
         gate.Conditional = true;
-        Assert.Contains("IsOperational", Classify(new[] { "reactor" }, reactorParts.Append(gate).ToArray()).Skip);
+        Assert.Contains("ToggledComponents branch: IsOperational", Classify(new[] { "reactor" }, Reactor(("OperationalToggle", "IsOperational")).Append(gate).ToArray()).Skip);
+        Assert.Contains("missing component: Gone", Classify(new[] { "reactor" }, Reactor(("OperationalToggle", "Gone"))).Skip);
+        var unreadable = Reactor();
+        unreadable[1].UnreadableRefs.Add("OperationalToggle");
+        Assert.Contains("not a single component reference", Classify(new[] { "reactor" }, unreadable).Skip);
+    }
+
+    /// <summary>Battery store + producer; <paramref name="producerRefs"/> beyond ToStorage.</summary>
+    static DeviceComponent[] Reactor(params (string, string)[] producerRefs)
+    {
+        var store = C("BatteryStorage", "ResourceStorage", max: 3000);
+        store.SuppliesResources = true;
+        return new[] { store, C("Producer", "ResourceConverter", null, refs: producerRefs.Append(("ToStorage", "BatteryStorage")).ToArray()) };
+    }
+
+    static string Text(DeviceDecision d, string name) => DeviceClassifier.Adapter(d, Array.Empty<PortEdge>(), p => p).Children.Single(c => c.Name == name).Text;
+
+    [Fact]
+    public void ReactorGatesOnItsOwnToggles()
+    {
+        var vanilla = Classify(new[] { "reactor", "provides_power" }, Reactor(("OperationalToggle", "IsOperational")).Append(C("IsOperational", "MultiToggle", null)).ToArray());
+        Assert.Equal((DeviceKind.Reactor, (string?)null, "BatteryStorage", "IsOperational"), (vanilla.Kind, vanilla.Skip, vanilla.Backing, vanilla.Gates));
+        Assert.Equal("CrewlessLogisticsCanTransfer : <source-components.rules>/Components/CrewlessLogisticsCanTransfer { Toggles = [IsOperational, CrewlessLogisticsToggle] }", Text(vanilla, "CrewlessLogisticsCanTransfer"));
+        // No producer toggle at all (Extended Tech Tree reactors): the network switch alone, template default.
+        var bare = Classify(new[] { "reactor" }, Reactor());
+        Assert.Equal((DeviceKind.Reactor, (string?)null, (string?)null), (bare.Kind, bare.Skip, bare.Gates));
+        Assert.Empty(DeviceClassifier.Adapter(bare, Array.Empty<PortEdge>(), p => p).Children);
+        Assert.NotNull(Classify(new[] { "reactor" }, C("BatteryStorage", "ResourceStorage", max: 3000)).Skip);
+        // A store nobody may pick up from never supplies the network either.
+        var silent = Reactor();
+        silent[0].SuppliesResources = null;
+        Assert.Contains("supplied by no storage", Classify(new[] { "reactor" }, silent).Skip);
+    }
+
+    static DeviceComponent Logic(string id, string mode, params (string Toggle, bool Invert)[] entries)
+    {
+        var t = C(id, "MultiToggle", null);
+        t.Mode = mode;
+        t.Entries = entries.ToList();
+        return t;
+    }
+
+    static DeviceComponent Supplier(string id, string type, string? toggle, params string[] members)
+    {
+        var s = C(id, type, max: type == "ResourceStorage" ? 2000 : null, storages: members.Length > 0 ? members : null);
+        s.SuppliesResources = true;
+        if (toggle != null)
+        {
+            s.Refs["SuppliesResourcesToggle"] = toggle;
+        }
+        return s;
     }
 
     [Fact]
-    public void ReactorAndCapacitorContracts()
+    public void ReactorRespectsSupplyToggles()
     {
-        var reactor = Classify(new[] { "reactor", "provides_power" }, C("BatteryStorage", "ResourceStorage", max: 3000), C("Producer", "ResourceConverter", null, refs: ("ToStorage", "BatteryStorage")), C("IsOperational", "MultiToggle", null));
-        Assert.Equal((DeviceKind.Reactor, (string?)null, "BatteryStorage"), (reactor.Kind, reactor.Skip, reactor.Backing));
-        Assert.Empty(DeviceClassifier.Adapter(reactor, Array.Empty<PortEdge>(), p => p).Children);
-        Assert.NotNull(Classify(new[] { "reactor" }, C("BatteryStorage", "ResourceStorage", max: 3000)).Skip);
+        DeviceComponent[] Parts(string? storeToggle, params DeviceComponent[] extra)
+        {
+            var p = Reactor(("OperationalToggle", "IsOperational"));
+            p[0] = Supplier("BatteryStorage", "ResourceStorage", storeToggle);
+            return p.Append(C("IsOperational", "UIToggle", null)).Concat(extra).ToArray();
+        }
+        string?[] R(DeviceDecision d) => new[] { d.Skip == null ? null : "skip", d.Gates };
+        Assert.Equal("IsOperational, Discharge", Classify(new[] { "reactor" }, Parts("Discharge", C("Discharge", "UIToggle", null))).Gates);
+        Assert.Contains("missing component: Discharge", Classify(new[] { "reactor" }, Parts("Discharge")).Skip);
+        // Vanilla large reactor: normal pickup while not overclocked, the overclock provider aliasing the same store otherwise.
+        var provider = Supplier("Overclock_BatteryProviderStorage", "MultiResourceStorage", "IsOverclocked", "BatteryStorage");
+        var oc = C("IsOverclocked", "UIToggle", null);
+        Assert.Equal(new string?[] { null, "IsOperational" }, R(Classify(new[] { "reactor" }, Parts("Normal", provider, Logic("Normal", "None", ("IsOverclocked", false)), oc))));
+        // Codex P2 1: Invert (entry or top level) or ViaBuffs inputs break the complement; never drop the gate then.
+        Assert.Contains("not implied", Classify(new[] { "reactor" }, Parts("Normal", provider, Logic("Normal", "None", ("IsOverclocked", true)), oc)).Skip);
+        var inverted = Logic("Normal", "None", ("IsOverclocked", false));
+        inverted.Invert = true;
+        Assert.Contains("not implied", Classify(new[] { "reactor" }, Parts("Normal", provider, inverted, oc)).Skip);
+        var buffed = Logic("Normal", "None", ("IsOverclocked", false));
+        buffed.HasViaBuffs = true;
+        Assert.Contains("not implied", Classify(new[] { "reactor" }, Parts("Normal", provider, buffed, oc)).Skip);
+        Assert.Contains("not implied", Classify(new[] { "reactor" }, Parts("Normal", provider, Logic("Normal", "All", ("IsOverclocked", false)), oc)).Skip);
+        // Codex P2 2: a branch supplier never lifts or completes the permanent store's gate.
+        var branchFree = Supplier("Extra", "MultiResourceStorage", null, "BatteryStorage");
+        branchFree.Conditional = true;
+        Assert.Contains("ToggledComponents branch: Extra", Classify(new[] { "reactor" }, Parts("Discharge", C("Discharge", "UIToggle", null), branchFree)).Skip);
+        provider.Conditional = true;
+        Assert.Contains("ToggledComponents branch: Overclock_BatteryProviderStorage", Classify(new[] { "reactor" }, Parts("Normal", provider, Logic("Normal", "None", ("IsOverclocked", false)), oc)).Skip);
+        var branchToggle = Logic("Normal", "None", ("IsOverclocked", false));
+        branchToggle.Conditional = true;
+        provider.Conditional = false;
+        Assert.Contains("ToggledComponents branch: Normal", Classify(new[] { "reactor" }, Parts("Normal", provider, branchToggle, oc)).Skip);
+    }
+
+    [Fact]
+    public void CapacitorContracts()
+    {
+        // Vanilla Power Capacitor: normal and overclock pickup toggles, each ConsumptionToggle and an overclock state.
         var capacitor = new List<DeviceComponent>
         {
-            C("BatteryStorage", "ResourceStorage", max: 1000),
+            Supplier("BatteryStorage", "ResourceStorage", "PowerToggleNonOverclocked"),
             C("BatteryReceiverStorage", "MultiResourceStorage", storages: new[] { "BatteryStorage" }),
+            Supplier("Overclock_BatteryProviderStorage", "MultiResourceStorage", "PowerToggleOverclocked", "BatteryStorage"),
             Consumer("BatteryReceiverStorage"),
+            C("IsOverclocked", "UIToggle", null),
+            Logic("ConsumptionToggle", "All", ("PowerToggle", false), ("ScorchedToggle", false)),
+            Logic("PowerToggleNonOverclocked", "All", ("ConsumptionToggle", false), ("IsOverclocked", true)),
+            Logic("PowerToggleOverclocked", "All", ("ConsumptionToggle", false), ("IsOverclocked", false)),
         };
-        // provides_power alone never gets the capacitor adapter.
-        Assert.Equal(DeviceKind.Capacitor, Classify(new[] { "provides_power" }, capacitor.ToArray()) is { Skip: not null } s ? s.Kind : DeviceKind.None);
-        capacitor.AddRange(new[] { C("ConsumptionToggle", "MultiToggle", null), C("IsOverclocked", "ModeToggle", null), C("Overclock_DeliveryHeatProducer", "ResourceChange", null) });
-        Assert.Equal(new DeviceDecision(DeviceKind.Capacitor, null, "BatteryReceiverStorage"), Classify(new[] { "provides_power" }, capacitor.ToArray()));
+        capacitor[3].Refs["OperationalToggle"] = "ConsumptionToggle";
+        // Overclock mechanic without its delivery heat producer: skipped.
+        Assert.Contains("missing component: Overclock_DeliveryHeatProducer", Classify(new[] { "provides_power" }, capacitor.ToArray()).Skip);
+        capacitor.Add(C(DeviceClassifier.HeatProducer, "ResourceChange", null));
+        var vanilla = Classify(new[] { "provides_power" }, capacitor.ToArray());
+        Assert.Equal(new DeviceDecision(DeviceKind.Capacitor, null, "BatteryReceiverStorage", "BatteryReceiverStorage", Gates: "ConsumptionToggle", Heat: DeviceClassifier.HeatProducer), vanilla);
+        Assert.Equal(new[] { "CrewlessLogisticsCanTransfer", "CrewlessLogisticsDeliveryTrigger", "CrewlessLogisticsDeliveryHeat" }, DeviceClassifier.Adapter(vanilla, Array.Empty<PortEdge>(), p => p).Children.Select(c => c.Name));
+        Assert.StartsWith("CrewlessLogisticsDeliveryHeat : Overclock_DeliveryHeatProducer { Trigger = CrewlessLogisticsDeliveryTrigger; Amount : ^/0/Amount", Text(vanilla, "CrewlessLogisticsDeliveryHeat"));
+        // Simple storage (Extended Tech Tree _q/a parts): consumer straight into a physical store, no overclock.
+        var simpleConsumer = Consumer("BatteryStorage");
+        simpleConsumer.Refs["OperationalToggle"] = "PowerToggle";
+        var simple = Classify(new[] { "provides_power" }, Supplier("BatteryStorage", "ResourceStorage", "PowerToggle"), simpleConsumer, C("PowerToggle", "UIToggle", null));
+        Assert.Equal((DeviceKind.Capacitor, (string?)null, "PowerToggle", (string?)null), (simple.Kind, simple.Skip, simple.Gates, simple.Heat));
+        Assert.Equal(new[] { "CrewlessLogisticsCells", "CrewlessLogisticsReceivingAggregate", "CrewlessLogisticsCanTransfer" }, DeviceClassifier.Adapter(simple, Array.Empty<PortEdge>(), p => p).Children.Select(c => c.Name));
+        Assert.Contains("ResourceStorages = [BatteryStorage, CrewlessLogisticsReceivingBias]", Text(simple, "CrewlessLogisticsReceivingAggregate"));
+        Assert.Contains("missing component: PowerToggle", Classify(new[] { "provides_power" }, Supplier("BatteryStorage", "ResourceStorage", "PowerToggle"), simpleConsumer).Skip);
+        // Codex P2 3: may charge but must not discharge (supply toggle beyond the consumer gate): skipped, never discharged.
+        Assert.Contains("not implied", Classify(new[] { "provides_power" }, Supplier("BatteryStorage", "ResourceStorage", "Discharge"), simpleConsumer, C("PowerToggle", "UIToggle", null), C("Discharge", "UIToggle", null)).Skip);
+    }
+
+    /// <summary>Codex P2: suppliers of different stores are never ORed; each store read needs its own permission.</summary>
+    [Fact]
+    public void EveryReadStoreNeedsItsOwnSupplyPermission()
+    {
+        var consumer = Consumer("Pool");
+        consumer.Refs["OperationalToggle"] = "Charge";
+        DeviceComponent[] Pool(params DeviceComponent[] extra) => new[]
+        {
+            Supplier("A", "ResourceStorage", null),
+            Supplier("B", "ResourceStorage", "DischargeB"),
+            C("Pool", "MultiResourceStorage", storages: new[] { "A", "B" }),
+            consumer, C("Charge", "UIToggle", null), C("DischargeB", "UIToggle", null),
+        }.Concat(extra).ToArray();
+        var d = Classify(new[] { "provides_power" }, Pool());
+        Assert.Contains("battery store B are not implied", d.Skip);
+        Assert.Contains("battery store B are not implied", Classify(new[] { "reactor" }, Pool(C("Producer", "ResourceConverter", null, refs: ("ToStorage", "Pool")))).Skip);
+        // An unconditional alternative supplier of B itself permits it.
+        Assert.Null(Classify(new[] { "provides_power" }, Pool(Supplier("BPickup", "MultiResourceStorage", null, "B"))).Skip);
+        // Vanilla overclock reserve, read through a proxy only while overclocked, is supplied through the overclock provider.
+        var proxy = C("OcProxy", "ResourceStorageProxy", refs: new[] { ("ComponentID", "Oc"), ("ProxyToggle", "IsOverclocked") });
+        var vanilla = new[]
+        {
+            Supplier("A", "ResourceStorage", "Charge"), C("Oc", "ResourceStorage", max: 1000), proxy,
+            C("Pool", "MultiResourceStorage", storages: new[] { "A", "OcProxy" }),
+            Supplier("Provider", "MultiResourceStorage", "OcSupply", "A", "OcProxy"),
+            consumer, C("Charge", "UIToggle", null), C("IsOverclocked", "UIToggle", null),
+            Logic("OcSupply", "All", ("Charge", false), ("IsOverclocked", false)), C(DeviceClassifier.HeatProducer, "ResourceChange", null),
+        };
+        Assert.Null(Classify(new[] { "provides_power" }, vanilla).Skip);
+        vanilla[4] = Supplier("Provider", "MultiResourceStorage", "OcSupply", "A");
+        Assert.Contains("supplied by no storage: Oc", Classify(new[] { "provides_power" }, vanilla).Skip);
+    }
+
+    /// <summary>Codex P2: a supplier proxy grants permission only on a verified path (local, unconditional, readable static toggle).</summary>
+    [Fact]
+    public void SupplierProxyPathIsVerified()
+    {
+        DeviceComponent[] Parts(string[] categories, Action<DeviceComponent> broken)
+        {
+            var proxy = C("Remote", "ResourceStorageProxy", refs: new[] { ("ComponentID", "Reserve"), ("ProxyToggle", "Link") });
+            broken(proxy);
+            var parts = new List<DeviceComponent>
+            {
+                C("Reserve", "ResourceStorage", max: 2000), proxy, C("Link", "UIToggle", null),
+                Supplier("Pickup", "MultiResourceStorage", null, "Remote"),
+            };
+            if (categories.Contains("reactor"))
+            {
+                parts.Add(C("Producer", "ResourceConverter", null, refs: ("ToStorage", "Reserve")));
+            }
+            else
+            {
+                var consumer = Consumer("Reserve");
+                consumer.Refs["OperationalToggle"] = "Link";
+                parts.Add(consumer);
+            }
+            return parts.ToArray();
+        }
+        foreach (string[] kind in new[] { new[] { "reactor" }, new[] { "provides_power" } })
+        {
+            Assert.Equal(new string?[] { null, "Link" }, Classify(kind, Parts(kind, _ => { })) is var ok ? new[] { ok.Skip, ok.Gates } : null); // local proxy: valid supplier path, gated by its toggle
+            Assert.Contains("targets another part", Classify(kind, Parts(kind, p => p.PartLocation = new[] { 1, 0 })).Skip);
+            Assert.Contains("ToggledComponents branch: Remote", Classify(kind, Parts(kind, p => p.Conditional = true)).Skip);
+            Assert.Contains("not a single component reference: Remote", Classify(kind, Parts(kind, p => { p.Refs.Remove("ProxyToggle"); p.UnreadableRefs.Add("ProxyToggle"); })).Skip);
+            Assert.Contains("missing component: Gone", Classify(kind, Parts(kind, p => p.Refs["ProxyToggle"] = "Gone")).Skip);
+        }
     }
 }
